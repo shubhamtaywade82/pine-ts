@@ -23,9 +23,13 @@ export class PineRuntime {
     await this.initialize();
     const data = await this.loadHistoricalBars(bars);
 
-    for (const bar of data) {
+    for (const [index, bar] of data.entries()) {
       this.currentBar = bar;
-      this.session.processHistoricalBar(bar, () => this.execute(script));
+      this.session.processHistoricalBar(
+        bar,
+        () => this.execute(script),
+        index === data.length - 1,
+      );
     }
   }
 
@@ -79,7 +83,7 @@ export class PineRuntime {
   private execute(script: PineScript): void {
     const previousSession = setCurrentSession(this.session);
     try {
-      script(createContext(this.session, this.currentBar));
+      script(createContext(this.session, this.currentBar as Bar));
     } finally {
       setCurrentSession(previousSession);
     }
