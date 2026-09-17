@@ -1,0 +1,40 @@
+version: 6
+source: "TradingView Pine Script v6 Reference Manual"
+status: partial
+namespace: ta
+functions:
+  - name: sma
+    status: implemented
+    returns: "series<float>"
+  - name: ema
+    status: implemented
+    returns: "series<float>"
+  - name: highest
+    status: implemented
+    returns: "series<float>"
+  - name: lowest
+    status: implemented
+    returns: "series<float>"
+  - name: change
+    status: implemented
+    returns: "series<float>"
+  - name: crossover
+    status: implemented
+    returns: "series<bool>"
+  - name: crossunder
+    status: implemented
+    returns: "series<bool>"
+  - name: rma
+    status: planned
+  - name: rsi
+    status: planned
+  - name: macd
+    status: planned
+  - name: atr
+    status: planned
+  - name: adx
+    status: planned
+  - name: dmi
+    status: planned
+  - name: supertrend
+    status: planned
