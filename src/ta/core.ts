@@ -22,7 +22,10 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.sma", source, length), () => {
-    interface State { buffer: number[]; sum: number; }
+    interface State {
+      buffer: number[];
+      sum: number;
+    }
     const definition = {
       warmupBars: length - 1,
       init: (): State => ({ buffer: [], sum: 0 }),
@@ -48,7 +51,10 @@ export const ema = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.ema", source, length), () => {
-    interface State { seeded: boolean; previous: number; }
+    interface State {
+      seeded: boolean;
+      previous: number;
+    }
     const alpha = 2 / (length + 1);
     const definition = {
       init: (): State => ({ seeded: false, previous: Number.NaN }),
@@ -73,7 +79,11 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
-    interface State { seedCount: number; seedSum: number; previous: number; }
+    interface State {
+      seedCount: number;
+      seedSum: number;
+      previous: number;
+    }
     const alpha = 1 / length;
     const definition = {
       warmupBars: length - 1,
@@ -115,7 +125,11 @@ export const tr = (handleNa = true): FloatSeries => {
         const previousClose = close.at(1);
         if (isNa(highValue) || isNa(lowValue)) return Number.NaN;
         if (isNa(previousClose)) return handleNa ? highValue - lowValue : Number.NaN;
-        return Math.max(highValue - lowValue, Math.abs(highValue - previousClose), Math.abs(lowValue - previousClose));
+        return Math.max(
+          highValue - lowValue,
+          Math.abs(highValue - previousClose),
+          Math.abs(lowValue - previousClose),
+        );
       },
       commit: (): void => undefined,
     };
@@ -205,8 +219,14 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
   const sqrtLength = Math.max(1, Math.floor(Math.sqrt(length)));
   const fast = wma(source, halfLength);
   const slow = wma(source, length);
-  const leading = zipSeries(fast, slow, "ta.hma.leading", (fastValue, slowValue) =>
-    isNa(fastValue) || isNa(slowValue) ? Number.NaN : 2 * fastValue - slowValue,
+  const leading = zipSeries(
+    fast,
+    slow,
+    "ta.hma.leading",
+    (fastValue, slowValue) => {
+      if (isNa(fastValue) || isNa(slowValue)) return Number.NaN;
+      return 2 * fastValue - slowValue;
+    },
   );
   return wma(leading, sqrtLength);
 };
