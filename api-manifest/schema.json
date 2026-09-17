@@ -8,11 +8,8 @@
     "namespace": { "type": "string", "minLength": 1 },
     "pineVersion": { "const": 6 },
     "status": { "enum": ["partial", "complete"] },
-    "source": { "type": "string", "format": "uri" },
-    "types": {
-      "type": "object",
-      "additionalProperties": { "type": "string" }
-    },
+    "source": { "type": "string" },
+    "types": { "type": "object", "additionalProperties": { "type": "string" } },
     "functions": {
       "type": "array",
       "items": {
@@ -53,7 +50,7 @@
             }
           },
           "status": { "enum": ["verified", "draft", "planned", "unsupported"] },
-          "source": { "type": "string", "format": "uri" },
+          "source": { "type": "string" },
           "vectors": { "type": "array", "items": { "type": "string" } },
           "overloads": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "implicitSources": { "type": "array", "items": { "type": "string" } }
