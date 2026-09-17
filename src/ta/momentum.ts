@@ -2,7 +2,7 @@ import { requireCurrentSession } from "../core/execution-context.js";
 import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
-import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
+import { FloatSeries, Series } from "../core/series.js";
 import { requirePositiveLength } from "./validation.js";
 
 const requireCompatibleRuntime = (source: Series<number>, other?: Series<number>) => {
@@ -77,12 +77,10 @@ export const rsi = (source: Series<number>, length: number): FloatSeries => {
       }),
       evaluate: (state: Readonly<State>): number => {
         const current = source.at(0);
-        if (isNa(current)) return Number.NaN;
-        if (!state.seededSource) return Number.NaN;
+        if (isNa(current) || !state.seededSource || state.seedCount < length) return Number.NaN;
         const delta = current - state.previousSource;
         const gain = Math.max(delta, 0);
         const loss = Math.max(-delta, 0);
-        if (state.seedCount < length) return Number.NaN;
         const averageGain = (state.averageGain * (length - 1) + gain) / length;
         const averageLoss = (state.averageLoss * (length - 1) + loss) / length;
         if (averageLoss === 0) return 100;
