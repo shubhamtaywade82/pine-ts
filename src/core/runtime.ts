@@ -2,7 +2,7 @@ import { createContext, type PineContext } from "./context.js";
 import { PineSession } from "./session.js";
 import type { Bar, MarketDataProvider, PineExecutionMode, SymbolInfo } from "./types.js";
 
-export type PineScript = (context: PineContext) => void | Promise<void>;
+export type PineScript = (context: PineContext) => void;
 
 export interface RuntimeOptions {
   readonly provider: MarketDataProvider;
@@ -24,9 +24,7 @@ export class PineRuntime {
 
     for (const bar of data) {
       this.currentBar = bar;
-      this.session.processHistoricalBar(bar, () => {
-        void script(createContext(this.session, bar));
-      });
+      this.session.processHistoricalBar(bar, () => script(createContext(this.session, bar)));
     }
   }
 
@@ -38,9 +36,7 @@ export class PineRuntime {
       timeframe: this.options.timeframe,
     })) {
       this.currentBar = bar;
-      this.session.processRealtimeTick(bar, () => {
-        void script(createContext(this.session, bar));
-      });
+      this.session.processRealtimeTick(bar, () => script(createContext(this.session, bar)));
     }
   }
 
@@ -60,20 +56,22 @@ export class PineRuntime {
     return this.session.barIndex;
   }
 
+  public get currentBarTime(): number | undefined {
+    return this.currentBar?.time;
+  }
+
   private async initialize(): Promise<void> {
     this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
     this.session.setSymbolInfo(this.symbolInfo);
   }
 
   private async loadHistoricalBars(bars?: readonly Bar[]): Promise<readonly Bar[]> {
-    return bars ??
+    return (
+      bars ??
       (await this.options.provider.getHistoricalBars({
         symbol: this.options.symbol,
         timeframe: this.options.timeframe,
-      }));
-  }
-
-  public get currentBarTime(): number | undefined {
-    return this.currentBar?.time;
+      }))
+    );
   }
 }
