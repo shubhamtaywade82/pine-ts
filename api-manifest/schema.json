@@ -7,6 +7,8 @@
   "properties": {
     "namespace": { "type": "string", "minLength": 1 },
     "pineVersion": { "const": 6 },
+    "status": { "enum": ["partial", "complete"] },
+    "source": { "type": "string", "format": "uri" },
     "types": {
       "type": "object",
       "additionalProperties": { "type": "string" }
@@ -33,7 +35,7 @@
                   "properties": {
                     "name": { "type": "string" },
                     "type": { "type": "string" },
-                    "constraints": { "type": "object" }
+                    "constraints": { "type": "object", "additionalProperties": true }
                   }
                 }
               }
@@ -51,9 +53,9 @@
             }
           },
           "status": { "enum": ["verified", "draft", "planned", "unsupported"] },
-          "source": { "type": "string" },
+          "source": { "type": "string", "format": "uri" },
           "vectors": { "type": "array", "items": { "type": "string" } },
-          "overloads": { "type": "array", "items": { "type": "object" } },
+          "overloads": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "implicitSources": { "type": "array", "items": { "type": "string" } }
         }
       }
