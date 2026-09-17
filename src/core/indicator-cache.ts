@@ -13,7 +13,6 @@ interface SmaState {
 
 const emaStates = new WeakMap<object, Map<number, EmaState>>();
 const smaStates = new WeakMap<object, Map<number, SmaState>>();
-const trackedSources = new Set<object>();
 
 const requireLength = (length: number): void => {
   if (!Number.isInteger(length) || length <= 0) {
@@ -26,16 +25,8 @@ export const invalidateIndicatorState = (source: Series<number>): void => {
   smaStates.delete(source as object);
 };
 
-export const invalidateAllIndicatorState = (): void => {
-  for (const source of trackedSources) {
-    invalidateIndicatorState(source as Series<number>);
-  }
-  trackedSources.clear();
-};
-
 export const incrementalEma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
-  trackedSources.add(source as object);
 
   let states = emaStates.get(source as object);
   if (!states) {
@@ -80,7 +71,6 @@ export const incrementalEma = (source: Series<number>, length: number): number |
 
 export const incrementalSma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
-  trackedSources.add(source as object);
 
   let states = smaStates.get(source as object);
   if (!states) {
@@ -105,7 +95,10 @@ export const incrementalSma = (source: Series<number>, length: number): number |
     state.queue.push(value);
     state.sum += value;
     if (state.queue.length > length) {
-      state.sum -= state.queue.shift()!;
+      const oldestValue = state.queue.shift();
+      if (oldestValue !== undefined) {
+        state.sum -= oldestValue;
+      }
     }
   }
 
