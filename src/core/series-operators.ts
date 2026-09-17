@@ -1,5 +1,6 @@
 import { nodeKey } from "./node-registry.js";
 import { IndicatorNode } from "./series-node.js";
+import type { PineSession } from "./session.js";
 import { FloatSeries, Series } from "./series.js";
 
 export const mapSeries = <T, U>(
@@ -60,4 +61,22 @@ export const mapFloatSeries = (
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
+};
+
+export const createUserSeries = <T>(
+  session: PineSession,
+  key: string,
+  evaluate: () => T,
+): Series<T> => {
+  const normalizedKey = key.trim();
+  if (normalizedKey.length === 0) throw new RangeError("User series key must not be empty");
+
+  return session.nodes.getOrCreate(nodeKey("user.series", normalizedKey), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate,
+      commit: (): void => undefined,
+    };
+    return new Series(session, new IndicatorNode(definition));
+  });
 };
