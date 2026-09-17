@@ -20,7 +20,10 @@ const requireLength = (length: number): void => {
   }
 };
 
-const getStateMap = <State>(cache: WeakMap<object, Map<number, State>>, source: object) => {
+const getStateMap = <State>(
+  cache: WeakMap<object, Map<number, State>>,
+  source: object,
+) => {
   let states = cache.get(source);
   if (states === undefined) {
     states = new Map();
@@ -29,7 +32,11 @@ const getStateMap = <State>(cache: WeakMap<object, Map<number, State>>, source: 
   return states;
 };
 
-const getState = <State>(states: Map<number, State>, length: number, create: () => State): State => {
+const getState = <State>(
+  states: Map<number, State>,
+  length: number,
+  create: () => State,
+): State => {
   let state = states.get(length);
   if (state === undefined) {
     state = create();
