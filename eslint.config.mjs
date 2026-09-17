@@ -64,7 +64,7 @@ export default defineConfig(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/array-type": ["error", "array-simple"],
+      "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
     },
   },
   {
