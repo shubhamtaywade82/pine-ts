@@ -111,15 +111,24 @@ export class FloatSeries extends Series<number> {
   }
 }
 
-export const createSeries = <T>(
-  session?: PineSession,
+export function createSeries<T>(seed?: Iterable<T>): Series<T>;
+export function createSeries<T>(session: PineSession, seed?: Iterable<T>): Series<T>;
+export function createSeries<T>(
+  sessionOrSeed?: PineSession | Iterable<T>,
   seed?: Iterable<T>,
-): Series<T> => {
+): Series<T> {
+  const isSession =
+    typeof sessionOrSeed === "object" &&
+    sessionOrSeed !== null &&
+    "registerSeries" in sessionOrSeed;
+  const session = isSession ? (sessionOrSeed as PineSession) : undefined;
+  const values = isSession ? seed : sessionOrSeed;
   const series = new Series<T>(session);
-  if (seed !== undefined) {
-    for (const value of seed) series.push(value);
+
+  if (values !== undefined) {
+    for (const value of values) series.push(value);
   }
   return series;
-};
+}
 
 export const createFloatSeries = (session: PineSession): FloatSeries => new FloatSeries(session);
