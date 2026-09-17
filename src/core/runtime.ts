@@ -79,7 +79,7 @@ export class PineRuntime {
   private execute(script: PineScript): void {
     const previousSession = setCurrentSession(this.session);
     try {
-      script(createContext(this.session, this.currentBar as Bar));
+      script(createContext(this.session, this.currentBar!));
     } finally {
       setCurrentSession(previousSession);
     }
