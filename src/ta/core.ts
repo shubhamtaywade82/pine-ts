@@ -1,7 +1,7 @@
+import { isNa } from "../core/na.js";
+import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
-import { nodeKey } from "../core/node-registry.js";
-import { isNa } from "../core/na.js";
 
 const requirePositiveLength = (length: number): void => {
   if (!Number.isInteger(length) || length <= 0) {
@@ -28,10 +28,9 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
       init: (): State => ({ buffer: [], sum: 0 }),
       evaluate: (state: Readonly<State>): number => {
         const value = source.at(0);
-        if (isNa(value)) return Number.NaN;
-        if (state.buffer.length < length - 1) return Number.NaN;
-        const nextSum = state.sum + value;
-        return (nextSum - (state.buffer.length === length ? (state.buffer[0] ?? 0) : 0)) / length;
+        if (isNa(value) || state.buffer.length < length - 1) return Number.NaN;
+        const oldest = state.buffer.length === length ? state.buffer[0] : undefined;
+        return (state.sum - (oldest ?? 0) + value) / length;
       },
       commit: (state: State): void => {
         const value = source.at(0);
@@ -70,6 +69,40 @@ export const ema = (source: Series<number>, length: number): FloatSeries => {
   }) as FloatSeries;
 };
 
+export const rma = (source: Series<number>, length: number): FloatSeries => {
+  requirePositiveLength(length);
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
+    type State = { seedValues: number[]; seedSum: number; previous: number };
+    const alpha = 1 / length;
+    const definition = {
+      warmupBars: length - 1,
+      init: (): State => ({ seedValues: [], seedSum: 0, previous: Number.NaN }),
+      evaluate: (state: Readonly<State>): number => {
+        const value = source.at(0);
+        if (isNa(value)) return Number.NaN;
+        if (state.seedValues.length < length) {
+          if (state.seedValues.length + 1 < length) return Number.NaN;
+          return (state.seedSum + value) / length;
+        }
+        return alpha * value + (1 - alpha) * state.previous;
+      },
+      commit: (state: State): void => {
+        const value = source.at(0);
+        if (isNa(value)) return;
+        if (state.seedValues.length < length) {
+          state.seedValues.push(value);
+          state.seedSum += value;
+          if (state.seedValues.length === length) state.previous = state.seedSum / length;
+          return;
+        }
+        state.previous = alpha * value + (1 - alpha) * state.previous;
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
 export const highest = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
@@ -78,7 +111,7 @@ export const highest = (source: Series<number>, length: number): FloatSeries => 
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        if (source.runtime?.barIndex !== undefined && source.runtime.barIndex < length - 1) return Number.NaN;
+        if (runtime.barIndex < length - 1) return Number.NaN;
         let result = -Infinity;
         for (let offset = 0; offset < length; offset += 1) {
           const value = source.at(offset);
@@ -101,7 +134,7 @@ export const lowest = (source: Series<number>, length: number): FloatSeries => {
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        if (source.runtime?.barIndex !== undefined && source.runtime.barIndex < length - 1) return Number.NaN;
+        if (runtime.barIndex < length - 1) return Number.NaN;
         let result = Infinity;
         for (let offset = 0; offset < length; offset += 1) {
           const value = source.at(offset);
@@ -131,6 +164,20 @@ export const change = (source: Series<number>, length = 1): FloatSeries => {
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
+};
+
+export const tr = (handleNa = true): FloatSeries => {
+  throwIfNoSessionSources(handleNa);
+};
+
+const throwIfNoSessionSources = (handleNa: boolean): never => {
+  throw new Error(
+    `ta.tr(${String(handleNa)}) requires a PineSession-bound OHLC context; call ta.atr() from a Pine script context`,
+  );
+};
+
+export const atr = (length: number): FloatSeries => {
+  throwIfNoSessionSources(length);
 };
 
 export const crossover = (source: Series<number>, other: Series<number>): Series<boolean> => {
