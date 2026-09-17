@@ -5,7 +5,7 @@ import { FloatSeries, Series } from "./series.js";
 export const mapSeries = <T, U>(
   source: Series<T>,
   name: string,
-  map: (value: T) => U,
+  map: (value: T | undefined) => U,
 ): Series<U> => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("Derived series require a PineSession-owned source");
@@ -24,7 +24,7 @@ export const zipSeries = <A, B, U>(
   left: Series<A>,
   right: Series<B>,
   name: string,
-  combine: (left: A, right: B) => U,
+  combine: (left: A | undefined, right: B | undefined) => U,
 ): Series<U> => {
   if (left.runtime === undefined || right.runtime === undefined) {
     throw new Error("Derived series require PineSession-owned sources");
@@ -47,7 +47,7 @@ export const zipSeries = <A, B, U>(
 export const mapFloatSeries = (
   source: Series<number>,
   name: string,
-  map: (value: number) => number,
+  map: (value: number | undefined) => number,
 ): FloatSeries => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("Derived series require a PineSession-owned source");
@@ -59,5 +59,5 @@ export const mapFloatSeries = (
       commit: (): void => undefined,
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
-  });
+  }) as FloatSeries;
 };
