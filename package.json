@@ -12,6 +12,12 @@
     "url": "git+https://github.com/shubhamtaywade82/pine-ts.git"
   },
   "publishConfig": { "access": "public" },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "exports": {
