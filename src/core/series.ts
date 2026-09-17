@@ -95,7 +95,9 @@ export class Series<T> {
   }
 
   public _commit(): void {
-    this.committedValues.push(this.at(0) as T);
+    const value = this.at(0);
+    if (value !== undefined) this.committedValues.push(value);
+    else if (this.hasWorkingValue) this.committedValues.push(value as T);
     this.node?.commit();
   }
 
