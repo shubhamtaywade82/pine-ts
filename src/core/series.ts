@@ -6,7 +6,7 @@ export class Series<T> {
 
   public readonly id = Series.nextId++;
   private readonly committedValues: T[] = [];
-  private workingValue?: T;
+  private workingValue: T | undefined;
   private hasWorkingValue = false;
   private workingRevision = -1;
 
@@ -123,7 +123,7 @@ export class FloatSeries extends Series<number> {
     return this.at(0);
   }
 
-  public valueOf(): number {
+  public override valueOf(): number {
     return this.at(0);
   }
 }
