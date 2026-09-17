@@ -69,8 +69,8 @@ export class PineSession {
     return this.symbolInfo;
   }
 
-  public processHistoricalBar(bar: Bar, execute: BarExecutor): void {
-    this.beginBar(bar, true, true, true);
+  public processHistoricalBar(bar: Bar, execute: BarExecutor, isLast: boolean): void {
+    this.beginBar(bar, true, true, true, isLast);
     execute();
     this.confirmBar();
   }
@@ -79,7 +79,7 @@ export class PineSession {
     const isNewBar = this.currentTime === undefined || bar.time !== this.currentTime;
 
     if (isNewBar) {
-      this.beginBar(bar, false, true, Boolean(bar.isClosed));
+      this.beginBar(bar, false, true, Boolean(bar.isClosed), true);
       execute();
       if (bar.isClosed) this.confirmBar();
       return;
@@ -88,17 +88,23 @@ export class PineSession {
     this.revision += 1;
     this.state.rollback();
     this.updateSources(bar);
-    this.barstate = this.createBarState(false, false, true, Boolean(bar.isClosed));
+    this.barstate = this.createBarState(false, false, true, Boolean(bar.isClosed), true);
     execute();
 
     if (bar.isClosed) this.confirmBar();
   }
 
-  private beginBar(bar: Bar, history: boolean, isNew: boolean, confirmed: boolean): void {
+  private beginBar(
+    bar: Bar,
+    history: boolean,
+    isNew: boolean,
+    confirmed: boolean,
+    isLast: boolean,
+  ): void {
     this.revision += 1;
     this.barIndex += 1;
     this.currentTime = bar.time;
-    this.barstate = this.createBarState(history, isNew, !history, confirmed);
+    this.barstate = this.createBarState(history, isNew, !history, confirmed, isLast);
     this.updateSources(bar);
   }
 
@@ -107,16 +113,17 @@ export class PineSession {
     isNew: boolean,
     realtime: boolean,
     confirmed: boolean,
+    isLast: boolean,
   ): BarState {
     return {
       index: this.barIndex,
       isFirst: this.barIndex === 0,
-      isLast: true,
+      isLast,
       isHistory: history,
       isRealtime: realtime,
       isNew,
       isConfirmed: confirmed,
-      isLastConfirmedHistory: history,
+      isLastConfirmedHistory: history && isLast,
     };
   }
 
