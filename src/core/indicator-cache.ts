@@ -20,47 +20,54 @@ const requireLength = (length: number): void => {
   }
 };
 
+const getStateMap = <State>(cache: WeakMap<object, Map<number, State>>, source: object) => {
+  let states = cache.get(source);
+  if (states === undefined) {
+    states = new Map();
+    cache.set(source, states);
+  }
+  return states;
+};
+
+const getState = <State>(states: Map<number, State>, length: number, create: () => State): State => {
+  let state = states.get(length);
+  if (state === undefined) {
+    state = create();
+    states.set(length, state);
+  }
+  return state;
+};
+
+const seedEma = (source: Series<number>, length: number, processed: number): number | undefined => {
+  if (processed < length) return undefined;
+
+  let sum = 0;
+  for (let index = processed - length; index < processed; index += 1) {
+    const item = source.get(index);
+    if (item === undefined) return undefined;
+    sum += item;
+  }
+  return sum / length;
+};
+
 export const invalidateIndicatorState = (source: Series<number>): void => {
-  emaStates.delete(source as object);
-  smaStates.delete(source as object);
+  emaStates.delete(source);
+  smaStates.delete(source);
 };
 
 export const incrementalEma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
 
-  let states = emaStates.get(source as object);
-  if (!states) {
-    states = new Map();
-    emaStates.set(source as object, states);
-  }
-
-  let state = states.get(length);
-  if (!state) {
-    state = { processed: 0 };
-    states.set(length, state);
-  }
-
+  const states = getStateMap(emaStates, source);
+  const state = getState(states, length, () => ({ processed: 0 }));
   const alpha = 2 / (length + 1);
+
   while (state.processed < source.length) {
     const value = source.get(state.processed++);
-    if (value === undefined) {
-      continue;
-    }
+    if (value === undefined) continue;
 
     if (state.value === undefined) {
-      if (state.processed < length) {
-        continue;
-      }
-
-      let sum = 0;
-      for (let index = state.processed - length; index < state.processed; index += 1) {
-        const item = source.get(index);
-        if (item === undefined) {
-          return undefined;
-        }
-        sum += item;
-      }
-      state.value = sum / length;
+      state.value = seedEma(source, length, state.processed);
     } else {
       state.value = alpha * value + (1 - alpha) * state.value;
     }
@@ -72,17 +79,8 @@ export const incrementalEma = (source: Series<number>, length: number): number |
 export const incrementalSma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
 
-  let states = smaStates.get(source as object);
-  if (!states) {
-    states = new Map();
-    smaStates.set(source as object, states);
-  }
-
-  let state = states.get(length);
-  if (!state) {
-    state = { processed: 0, queue: [], sum: 0 };
-    states.set(length, state);
-  }
+  const states = getStateMap(smaStates, source);
+  const state = getState(states, length, () => ({ processed: 0, queue: [], sum: 0 }));
 
   while (state.processed < source.length) {
     const value = source.get(state.processed++);
