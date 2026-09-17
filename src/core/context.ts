@@ -1,3 +1,4 @@
+import { createUserSeries } from "./series-operators.js";
 import type { PineSession } from "./session.js";
 import type { FloatSeries, Series } from "./series.js";
 import type { PineState } from "./state.js";
@@ -17,6 +18,7 @@ export interface PineContext {
   readonly barstate: BarState;
   readonly syminfo: SymbolInfo;
   readonly state: PineState;
+  readonly series: <T>(key: string, evaluate: () => T) => Series<T>;
 }
 
 export const createContext = (session: PineSession, bar: Bar): PineContext => ({
@@ -33,4 +35,6 @@ export const createContext = (session: PineSession, bar: Bar): PineContext => ({
   barstate: session.barstate,
   syminfo: session.getSymbolInfo(),
   state: session.state,
+  series: <T>(key: string, evaluate: () => T): Series<T> =>
+    createUserSeries(session, key, evaluate),
 });
