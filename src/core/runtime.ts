@@ -23,10 +23,14 @@ export class PineRuntime {
     await this.initialize();
     const data = await this.loadHistoricalBars(bars);
 
-    for (const bar of data) {
+    data.forEach((bar, index) => {
       this.currentBar = bar;
-      this.session.processHistoricalBar(bar, () => this.execute(script, bar));
-    }
+      this.session.processHistoricalBar(
+        bar,
+        () => this.execute(script, bar),
+        index === data.length - 1,
+      );
+    });
   }
 
   public async runRealtime(script: PineScript): Promise<void> {
