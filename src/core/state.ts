@@ -12,7 +12,7 @@ class Cell<T> implements PersistentCell<T> {
   public reset(): void { this.current = this.initial; }
 }
 
-type Snapshot = Map<string, unknown>;
+export type PineStateSnapshot = ReadonlyMap<string, unknown>;
 
 export class PineState {
   private readonly vars = new Map<string, Cell<unknown>>();
@@ -38,11 +38,12 @@ export class PineState {
     return cell;
   }
 
-  public snapshot(): Snapshot {
+  /** Snapshot `var` state. `varip` is intentionally excluded from rollback. */
+  public snapshot(): PineStateSnapshot {
     return new Map([...this.vars.entries()].map(([name, cell]) => [name, cell.value]));
   }
 
-  public restore(snapshot: Snapshot): void {
+  public restore(snapshot: PineStateSnapshot): void {
     for (const [name, value] of snapshot) this.vars.get(name)?.set(value);
   }
 
