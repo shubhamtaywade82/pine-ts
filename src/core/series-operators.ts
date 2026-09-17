@@ -13,11 +13,11 @@ export const mapSeries = <T, U>(
   return runtime.nodes.getOrCreate(nodeKey(name, source), () => {
     const definition = {
       init: (): null => null,
-      evaluate: (): U => map(source.at(0) as T),
+      evaluate: (): U => map(source.at(0)),
       commit: (): void => undefined,
     };
     return new Series(runtime, new IndicatorNode(definition));
-  }) as Series<U>;
+  });
 };
 
 export const zipSeries = <A, B, U>(
@@ -37,11 +37,11 @@ export const zipSeries = <A, B, U>(
   return runtime.nodes.getOrCreate(nodeKey(name, left, right), () => {
     const definition = {
       init: (): null => null,
-      evaluate: (): U => combine(left.at(0) as A, right.at(0) as B),
+      evaluate: (): U => combine(left.at(0), right.at(0)),
       commit: (): void => undefined,
     };
     return new Series(runtime, new IndicatorNode(definition));
-  }) as Series<U>;
+  });
 };
 
 export const mapFloatSeries = (
@@ -59,5 +59,5 @@ export const mapFloatSeries = (
       commit: (): void => undefined,
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
+  });
 };
