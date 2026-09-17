@@ -1,0 +1,54 @@
+import eslint from "@eslint/js";
+import vitest from "@vitest/eslint-plugin";
+import { defineConfig } from "eslint/config";
+import importX from "eslint-plugin-import-x";
+import unicorn from "eslint-plugin-unicorn";
+import prettier from "eslint-config-prettier/flat";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+
+export default defineConfig(
+  {
+    ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/*.generated.ts"],
+  },
+  {
+    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
+    extends: [eslint.configs.recommended, tseslint.configs.recommendedTypeChecked, tseslint.configs.stylisticTypeChecked],
+    languageOptions: {
+      globals: globals.nodeBuiltin,
+      parserOptions: {
+        projectService: true,
+      },
+    },
+    plugins: {
+      "import-x": importX,
+      unicorn,
+    },
+    rules: {
+      "func-style": ["error", "expression", { allowArrowFunctions: true }],
+      "prefer-arrow-callback": "error",
+      "import-x/first": "error",
+      "import-x/no-duplicates": "error",
+      "import-x/newline-after-import": "error",
+      "unicorn/prefer-array-find": "error",
+      "unicorn/prefer-includes": "error",
+      "unicorn/prefer-number-properties": "error",
+      "unicorn/prefer-object-from-entries": "error",
+      "unicorn/prefer-optional-catch-binding": "error",
+      "unicorn/prefer-regexp-test": "error",
+      "unicorn/prefer-string-starts-ends-with": "error",
+    },
+  },
+  {
+    files: ["tests/**/*.{ts,tsx}"],
+    plugins: {
+      vitest,
+    },
+    rules: {
+      "vitest/no-disabled-tests": "error",
+      "vitest/no-focused-tests": "error",
+      "vitest/no-identical-title": "error",
+    },
+  },
+  prettier,
+);
