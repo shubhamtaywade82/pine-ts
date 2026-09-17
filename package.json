@@ -5,24 +5,68 @@
   "license": "MIT",
   "author": "Shubham Taywade",
   "type": "module",
-  "packageManager": "pnpm@10.15.0",
-  "engines": { "node": ">=22" },
-  "repository": { "type": "git", "url": "git+https://github.com/shubhamtaywade82/pine-ts.git" },
-  "publishConfig": { "access": "public" },
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamtaywade82/pine-ts.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "spellcheck": "cspell lint \"**/*\"",
+    "knip": "knip",
+    "package:lint": "publint",
+    "types:check": "attw --pack .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm package:lint && pnpm types:check",
     "ta:inventory": "tsx scripts/generate-ta-inventory.ts"
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "^22.15.0",
-    "tsup": "^8.5.0",
-    "tsx": "^4.19.4",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.3",
+    "@vitest/coverage-v8": "^5.0.1",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "cspell": "^10.3.3",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-sonarjs": "^4.2.1",
+    "eslint-plugin-unicorn": "^74.0.0",
+    "globals": "^17.12.0",
+    "knip": "^6.35.1",
+    "prettier": "^3.9.7",
+    "prettier-plugin-packagejson": "^3.0.2",
+    "publint": "^0.3.24",
+    "tsx": "^4.23.13",
+    "tsdown": "^0.23.0",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
   }
 }
