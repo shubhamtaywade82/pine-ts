@@ -12,7 +12,7 @@ export class NodeRegistry {
   public getOrCreate<T>(key: string, create: () => Series<T>): Series<T> {
     const existing = this.series.get(key);
     if (existing !== undefined) {
-      return existing;
+      return existing as Series<T>;
     }
 
     const created = create();
