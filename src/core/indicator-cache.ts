@@ -2,7 +2,7 @@ import type { Series } from "./series.js";
 
 interface EmaState {
   processed: number;
-  value?: number;
+  value: number | undefined;
 }
 
 interface SmaState {
@@ -66,7 +66,7 @@ export const incrementalEma = (source: Series<number>, length: number): number |
   requireLength(length);
 
   const states: Map<number, EmaState> = getStateMap(emaStates, source);
-  const state: EmaState = getState(states, length, () => ({ processed: 0 }));
+  const state: EmaState = getState(states, length, () => ({ processed: 0, value: undefined }));
   const alpha = 2 / (length + 1);
 
   while (state.processed < source.length) {
