@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PineRuntime, ta } from "../src/index.js";
-import type { Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
+import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
 const bars = [
@@ -21,7 +21,9 @@ class Provider implements MarketDataProvider {
   public getSymbolInfo = async (): Promise<SymbolInfo> => info;
 }
 
-const run = async (evaluate: Parameters<PineRuntime["run"]>[0]): Promise<number[]> => {
+type Evaluator = (context: Parameters<PineScript>[0]) => number;
+
+const run = async (evaluate: Evaluator): Promise<number[]> => {
   const values: number[] = [];
   const runtime = new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1m" });
   await runtime.run((ctx) => values.push(evaluate(ctx)), bars);
