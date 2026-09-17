@@ -2,6 +2,10 @@ import eslint from "@eslint/js";
 import vitest from "@vitest/eslint-plugin";
 import { defineConfig } from "eslint/config";
 import importX from "eslint-plugin-import-x";
+import promise from "eslint-plugin-promise";
+import regexp from "eslint-plugin-regexp";
+import security from "eslint-plugin-security";
+import sonarjs from "eslint-plugin-sonarjs";
 import unicorn from "eslint-plugin-unicorn";
 import prettier from "eslint-config-prettier/flat";
 import globals from "globals";
@@ -13,7 +17,14 @@ export default defineConfig(
   },
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx}"],
-    extends: [eslint.configs.recommended, tseslint.configs.recommendedTypeChecked, tseslint.configs.stylisticTypeChecked],
+    extends: [
+      eslint.configs.recommended,
+      tseslint.configs.recommendedTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
+      sonarjs.configs.recommended,
+      regexp.configs.recommended,
+      promise.configs["flat/recommended"],
+    ],
     languageOptions: {
       globals: globals.nodeBuiltin,
       parserOptions: {
@@ -22,6 +33,7 @@ export default defineConfig(
     },
     plugins: {
       "import-x": importX,
+      security,
       unicorn,
     },
     rules: {
@@ -30,6 +42,7 @@ export default defineConfig(
       "import-x/first": "error",
       "import-x/no-duplicates": "error",
       "import-x/newline-after-import": "error",
+      "security/detect-object-injection": "off",
       "unicorn/prefer-array-find": "error",
       "unicorn/prefer-includes": "error",
       "unicorn/prefer-number-properties": "error",
