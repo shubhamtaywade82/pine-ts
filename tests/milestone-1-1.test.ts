@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PineRuntime, createSeries, na, nz, ta } from "../src/index.js";
-import type { AsyncIterator, Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
+import type { Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
 const bar = (time: number, close: number, isClosed = true): Bar => ({
