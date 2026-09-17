@@ -22,7 +22,10 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.sma", source, length), () => {
-    type State = { buffer: number[]; sum: number };
+    interface State {
+      buffer: number[];
+      sum: number;
+    }
     const definition = {
       warmupBars: length - 1,
       init: (): State => ({ buffer: [], sum: 0 }),
@@ -48,7 +51,10 @@ export const ema = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.ema", source, length), () => {
-    type State = { seeded: boolean; previous: number };
+    interface State {
+      seeded: boolean;
+      previous: number;
+    }
     const alpha = 2 / (length + 1);
     const definition = {
       init: (): State => ({ seeded: false, previous: Number.NaN }),
@@ -73,7 +79,11 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
-    type State = { seedCount: number; seedSum: number; previous: number };
+    interface State {
+      seedCount: number;
+      seedSum: number;
+      previous: number;
+    }
     const alpha = 1 / length;
     const definition = {
       warmupBars: length - 1,
@@ -215,7 +225,7 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
     "ta.hma.leading",
     (fastValue, slowValue) => 2 * fastValue - slowValue,
   );
-  return wma(leading, sqrtLength) as FloatSeries;
+  return wma(leading, sqrtLength);
 };
 
 export const highest = (source: Series<number>, length: number): FloatSeries => {
