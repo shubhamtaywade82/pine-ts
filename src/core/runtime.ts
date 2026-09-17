@@ -23,7 +23,7 @@ export class PineRuntime {
     for (let index = 0; index < data.length; index += 1) {
       const bar = data[index]; if (bar === undefined) continue;
       this.ohlcv.commit(bar);
-      await script(this.context(bar, this.createBarState(index, data.length, true, true)));
+      await script(this.context(bar, this.createBarState(index, data.length, true, true, true)));
       this.committedState = this.state.snapshot();
     }
   }
@@ -34,15 +34,11 @@ export class PineRuntime {
     for await (const bar of this.options.provider.streamBars({ symbol: this.options.symbol, timeframe: this.options.timeframe })) {
       const isNewBar = this.currentBarTime === undefined || bar.time !== this.currentBarTime;
       if (isNewBar) {
-        this.ohlcv.commit(bar);
-        this.currentBarTime = bar.time;
-        this.committedState = this.state.snapshot();
+        this.ohlcv.commit(bar); this.currentBarTime = bar.time; this.committedState = this.state.snapshot();
       } else {
-        this.state.restore(this.committedState);
-        this.ohlcv.replaceCurrent(bar);
-        invalidateAllIndicatorState();
+        this.state.restore(this.committedState); this.ohlcv.replaceCurrent(bar); invalidateAllIndicatorState();
       }
-      await script(this.context(bar, this.createBarState(index, index, isNewBar, Boolean(bar.isClosed))));
+      await script(this.context(bar, this.createBarState(index, index, isNewBar, Boolean(bar.isClosed), false)));
       if (bar.isClosed) this.committedState = this.state.snapshot();
       if (isNewBar) index += 1;
     }
@@ -54,8 +50,7 @@ export class PineRuntime {
       barstate, syminfo: this.symbolInfo!, state: this.state };
   }
 
-  private createBarState(index: number, total: number, isNew: boolean, isConfirmed: boolean): BarState {
-    const isHistory = this.executionMode === "historical";
+  private createBarState(index: number, total: number, isNew: boolean, isConfirmed: boolean, isHistory: boolean): BarState {
     const isFirst = index === 0; const isLast = isHistory ? index === total - 1 : true;
     return { index, isFirst, isLast, isHistory, isRealtime: !isHistory, isNew,
       isConfirmed: isHistory || isConfirmed, isLastConfirmedHistory: isHistory && isLast };
