@@ -10,3 +10,4 @@ export {
   tr,
   atr,
 } from "./core.js";
+export { cmo, mom, roc, rsi, stoch, wpr } from "./momentum.js";
