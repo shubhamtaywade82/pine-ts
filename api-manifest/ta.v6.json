@@ -2,7 +2,7 @@
   "namespace": "ta",
   "pineVersion": 6,
   "source": "https://www.tradingview.com/pine-script-reference/v6/",
-  "description": "Compatibility inventory for the Pine Script v6 ta namespace. An entry is not considered implemented until its signature, warm-up/na behavior, numerical behavior, and realtime behavior are tested.",
+  "description": "Compatibility inventory for the Pine Script v6 ta namespace. An entry is not considered verified until its signature, warm-up/na behavior, numerical behavior, and realtime behavior are tested.",
   "functions": [
     "accdist", "alma", "aroon", "atr", "bb", "bbw", "barssince", "bop", "cci", "cmo", "cog",
     "correlation", "cross", "crossover", "crossunder", "cum", "dema", "dev", "dmi", "ema", "falling",
@@ -13,7 +13,10 @@
     "vwap", "vwma", "wma", "wpr", "obv", "nvi", "pvi", "pvt", "iii", "relativeVolume", "sum", "avg",
     "change", "mode", "rising"
   ],
-  "implemented": ["sma", "ema", "rma", "tr", "atr", "highest", "lowest", "change", "crossover", "crossunder"],
+  "implemented": [
+    "sma", "ema", "rma", "tr", "atr", "highest", "lowest", "change", "crossover", "crossunder",
+    "wma", "vwma", "swma", "hma", "rsi", "roc", "mom", "stoch", "wpr", "cmo"
+  ],
   "types": {
     "float": "number",
     "int": "number",
