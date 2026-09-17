@@ -5,6 +5,8 @@ export interface Bar {
   readonly low: number;
   readonly close: number;
   readonly volume: number;
+  /** True when the provider has confirmed this candle is closed. */
+  readonly isClosed?: boolean;
   readonly symbol?: string;
   readonly timeframe?: string;
 }
