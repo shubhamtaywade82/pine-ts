@@ -1,7 +1,7 @@
 import type { Series } from "./series.js";
 import type { SeriesNode } from "./series-node.js";
 
-const stableArgument = (arg: unknown): string => isSeries(arg) ? `#${arg.id}` : stableValue(arg);
+const stableArgument = (arg: unknown): string => (isSeries(arg) ? `#${arg.id}` : stableValue(arg));
 
 export const nodeKey = (name: string, ...args: readonly unknown[]): string =>
   `${name}(${args.map(stableArgument).join(",")})`;
