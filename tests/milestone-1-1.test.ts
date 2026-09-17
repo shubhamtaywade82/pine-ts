@@ -3,13 +3,26 @@ import { PineRuntime, createSeries, na, nz, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
-const bar = (time: number, close: number, isClosed = true): Bar => ({ time, open: close, high: close, low: close, close, volume: 1, isClosed });
+const bar = (time: number, close: number, isClosed = true): Bar => ({
+  time,
+  open: close,
+  high: close,
+  low: close,
+  close,
+  volume: 1,
+  isClosed,
+});
 
 class Provider implements MarketDataProvider {
-  constructor(private readonly stream: readonly Bar[]) {}
-  async getHistoricalBars(): Promise<readonly Bar[]> { return this.stream; }
-  async *streamBars(): AsyncIterable<Bar> { yield* this.stream; }
-  async getSymbolInfo(): Promise<SymbolInfo> { return info; }
+  public constructor(private readonly stream: readonly Bar[]) {}
+
+  public getHistoricalBars = async (): Promise<readonly Bar[]> => this.stream;
+
+  public streamBars = async function* (): AsyncIterable<Bar> {
+    yield* this.stream;
+  }.bind(this);
+
+  public getSymbolInfo = async (): Promise<SymbolInfo> => info;
 }
 
 describe("Milestone 1.1", () => {
@@ -26,7 +39,9 @@ describe("Milestone 1.1", () => {
   it("keeps SMA and EMA incremental across bars", () => {
     const series = createSeries<number>();
     expect(ta.sma(series, 3)).toBeUndefined();
-    series.push(1); series.push(2); series.push(3);
+    series.push(1);
+    series.push(2);
+    series.push(3);
     expect(ta.sma(series, 3)).toBe(2);
     expect(ta.ema(series, 3)).toBe(2);
     series.push(5);
@@ -36,8 +51,14 @@ describe("Milestone 1.1", () => {
 
   it("rolls var back on intrabar execution but preserves varip", async () => {
     const events = [bar(1, 100, false), bar(1, 101, false), bar(1, 102, true), bar(2, 103, true)];
-    const runtime = new PineRuntime({ provider: new Provider(events), symbol: "TEST", timeframe: "1m", executionMode: "realtime" });
+    const runtime = new PineRuntime({
+      provider: new Provider(events),
+      symbol: "TEST",
+      timeframe: "1m",
+      executionMode: "realtime",
+    });
     const seen: Array<[number, number, number, boolean]> = [];
+
     await runtime.runRealtime(ctx => {
       const regular = ctx.state.var("regular", () => 0);
       const intrabar = ctx.state.varip("intrabar", () => 0);
@@ -47,7 +68,7 @@ describe("Milestone 1.1", () => {
     });
 
     expect(seen).toEqual([
-      [100, 1, 1, true],
+      [100, 1, 1, false],
       [101, 1, 2, false],
       [102, 1, 3, true],
       [103, 2, 4, true],
