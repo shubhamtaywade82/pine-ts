@@ -24,4 +24,4 @@ export type {
 } from "./core/types.js";
 export { BinanceProvider, type BinanceMarketClient } from "./data/binance.js";
 
-export * as ta from "./ta/core.js";
+export * as ta from "./ta/index.js";
