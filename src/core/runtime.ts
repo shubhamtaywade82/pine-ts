@@ -22,14 +22,11 @@ export interface RuntimeOptions {
 export class PineRuntime {
   private readonly ohlcv = new OhlcvSeries();
   private readonly state = new PineState();
-  private readonly executionMode: PineExecutionMode;
   private symbolInfo?: SymbolInfo;
   private committedState = new Map<string, unknown>();
   private currentBarTime?: number;
 
-  public constructor(private readonly options: RuntimeOptions) {
-    this.executionMode = options.executionMode ?? "historical";
-  }
+  public constructor(private readonly options: RuntimeOptions) {}
 
   public async run(script: PineScript, bars?: readonly Bar[]): Promise<void> {
     const data =
@@ -72,7 +69,12 @@ export class PineRuntime {
         invalidateAllIndicatorState();
       }
 
-      await script(this.context(bar, this.createBarState(index, index, isNewBar, Boolean(bar.isClosed), false)));
+      await script(
+        this.context(
+          bar,
+          this.createBarState(index, index, isNewBar, Boolean(bar.isClosed), false),
+        ),
+      );
 
       if (bar.isClosed) {
         this.committedState = this.state.snapshot();
