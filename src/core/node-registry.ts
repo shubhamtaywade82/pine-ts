@@ -1,8 +1,11 @@
 import type { Series } from "./series.js";
 import type { SeriesNode } from "./series-node.js";
 
+const stableArgument = (arg: unknown): string =>
+  isSeries(arg) ? `#${arg.id}` : stableValue(arg);
+
 export const nodeKey = (name: string, ...args: readonly unknown[]): string =>
-  `${name}(${args.map((arg) => (isSeries(arg) ? `#${arg.id}` : stableValue(arg))).join(",")})`;
+  `${name}(${args.map(stableArgument).join(",")})`;
 
 export class NodeRegistry {
   private readonly series = new Map<string, Series<unknown>>();
@@ -10,11 +13,11 @@ export class NodeRegistry {
   public getOrCreate<T>(key: string, create: () => Series<T>): Series<T> {
     const existing = this.series.get(key);
     if (existing !== undefined) {
-      return existing as Series<T>;
+      return existing;
     }
 
     const created = create();
-    this.series.set(key, created as Series<unknown>);
+    this.series.set(key, created);
     return created;
   }
 
