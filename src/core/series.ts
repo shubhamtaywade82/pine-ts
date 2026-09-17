@@ -35,16 +35,22 @@ export class Series<T> {
     }
 
     if (offset === 0) {
-      const revision = this.session?.revision ?? 0;
-      if (this.workingRevision !== revision) {
-        this.workingValue = this.node?.evaluate();
-        this.hasWorkingValue = true;
-        this.workingRevision = revision;
+      if (this.hasWorkingValue) {
+        const revision = this.session?.revision ?? 0;
+        if (this.workingRevision !== revision) {
+          this.workingValue = this.node?.evaluate();
+          this.hasWorkingValue = true;
+          this.workingRevision = revision;
+        }
+        return this.workingValue;
       }
-      return this.workingValue;
+
+      return this.committedValues[this.committedValues.length - 1];
     }
 
-    const index = this.committedValues.length - offset;
+    const index = this.hasWorkingValue
+      ? this.committedValues.length - offset
+      : this.committedValues.length - 1 - offset;
     return index < 0 ? undefined : this.committedValues[index];
   }
 
@@ -95,9 +101,8 @@ export class Series<T> {
   }
 
   public _commit(): void {
-    const value = this.at(0);
-    if (value !== undefined) this.committedValues.push(value);
-    else if (this.hasWorkingValue) this.committedValues.push(value as T);
+    if (!this.hasWorkingValue) return;
+    this.committedValues.push(this.workingValue as T);
     this.node?.commit();
   }
 
@@ -122,10 +127,6 @@ export class FloatSeries extends Series<number> {
   }
 
   public override get value(): number {
-    return this.at(0);
-  }
-
-  public override valueOf(): number {
     return this.at(0);
   }
 }
