@@ -224,7 +224,7 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
     slow,
     "ta.hma.leading",
     (fastValue, slowValue) => {
-      if (isNa(fastValue) || isNa(slowValue)) return Number.NaN;
+      if (fastValue === undefined || slowValue === undefined) return Number.NaN;
       return 2 * fastValue - slowValue;
     },
   );
