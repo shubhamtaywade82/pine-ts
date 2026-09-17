@@ -152,7 +152,7 @@ export function createSeries<T>(
     typeof sessionOrSeed === "object" &&
     sessionOrSeed !== null &&
     "registerSeries" in sessionOrSeed;
-  const session = isSession ? (sessionOrSeed as PineSession) : undefined;
+  const session = isSession ? sessionOrSeed : undefined;
   const values = isSession ? seed : sessionOrSeed;
   const series = new Series<T>(session);
 
