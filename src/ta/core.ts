@@ -1,8 +1,8 @@
+import { requireCurrentSession } from "../core/execution-context.js";
 import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
-import { requireCurrentSession } from "../core/execution-context.js";
 import { IndicatorNode } from "../core/series-node.js";
-import { FloatSeries, Series } from "../core/series.js";
+import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
 
 const requirePositiveLength = (length: number): void => {
   if (!Number.isInteger(length) || length <= 0) {
@@ -74,16 +74,16 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
-    type State = { seedValues: number[]; seedSum: number; previous: number };
+    type State = { seedCount: number; seedSum: number; previous: number };
     const alpha = 1 / length;
     const definition = {
       warmupBars: length - 1,
-      init: (): State => ({ seedValues: [], seedSum: 0, previous: Number.NaN }),
+      init: (): State => ({ seedCount: 0, seedSum: 0, previous: Number.NaN }),
       evaluate: (state: Readonly<State>): number => {
         const value = source.at(0);
         if (isNa(value)) return Number.NaN;
-        if (state.seedValues.length < length) {
-          if (state.seedValues.length + 1 < length) return Number.NaN;
+        if (state.seedCount < length) {
+          if (state.seedCount + 1 < length) return Number.NaN;
           return (state.seedSum + value) / length;
         }
         return alpha * value + (1 - alpha) * state.previous;
@@ -91,10 +91,10 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
       commit: (state: State): void => {
         const value = source.at(0);
         if (isNa(value)) return;
-        if (state.seedValues.length < length) {
-          state.seedValues.push(value);
+        if (state.seedCount < length) {
+          state.seedCount += 1;
           state.seedSum += value;
-          if (state.seedValues.length === length) state.previous = state.seedSum / length;
+          if (state.seedCount === length) state.previous = state.seedSum / length;
           return;
         }
         state.previous = alpha * value + (1 - alpha) * state.previous;
@@ -196,7 +196,7 @@ export const change = (source: Series<number>, length = 1): FloatSeries => {
   }) as FloatSeries;
 };
 
-export const crossover = (source: Series<number>, other: Series<number>): Series<boolean> => {
+export const crossover = (source: Series<number>, other: Series<number>): BooleanSeries => {
   const runtime = requireCompatibleRuntime(source, other);
   return runtime.nodes.getOrCreate(nodeKey("ta.crossover", source, other), () => {
     const definition = {
@@ -211,11 +211,11 @@ export const crossover = (source: Series<number>, other: Series<number>): Series
       },
       commit: (): void => undefined,
     };
-    return new Series<boolean>(runtime, new IndicatorNode(definition));
-  });
+    return new BooleanSeries(runtime, new IndicatorNode(definition));
+  }) as BooleanSeries;
 };
 
-export const crossunder = (source: Series<number>, other: Series<number>): Series<boolean> => {
+export const crossunder = (source: Series<number>, other: Series<number>): BooleanSeries => {
   const runtime = requireCompatibleRuntime(source, other);
   return runtime.nodes.getOrCreate(nodeKey("ta.crossunder", source, other), () => {
     const definition = {
@@ -230,6 +230,6 @@ export const crossunder = (source: Series<number>, other: Series<number>): Serie
       },
       commit: (): void => undefined,
     };
-    return new Series<boolean>(runtime, new IndicatorNode(definition));
-  });
+    return new BooleanSeries(runtime, new IndicatorNode(definition));
+  }) as BooleanSeries;
 };
