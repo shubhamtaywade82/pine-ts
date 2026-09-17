@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shubhamtaywade82/pine-ts/blob/main/api-manifest/schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["namespace", "pineVersion", "types", "functions", "variables"],
+  "properties": {
+    "namespace": { "type": "string", "minLength": 1 },
+    "pineVersion": { "const": 6 },
+    "types": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "signature", "returns", "status"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "signature": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["params"],
+            "properties": {
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "type"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "constraints": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "returns": { "type": "string" },
+          "semantics": { "type": "object", "additionalProperties": true },
+          "impl": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["module", "export"],
+            "properties": {
+              "module": { "type": "string" },
+              "export": { "type": "string" }
+            }
+          },
+          "status": { "enum": ["verified", "draft", "planned", "unsupported"] },
+          "source": { "type": "string" },
+          "vectors": { "type": "array", "items": { "type": "string" } },
+          "overloads": { "type": "array", "items": { "type": "object" } },
+          "implicitSources": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "variables": { "type": "object", "additionalProperties": true },
+    "providerCapabilities": { "type": "object", "additionalProperties": true }
+  }
+}
