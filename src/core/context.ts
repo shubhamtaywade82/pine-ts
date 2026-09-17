@@ -28,14 +28,20 @@ export class OhlcvSeries {
   public readonly ohlc4 = createSeries<number>();
 
   public commit(bar: Bar): void {
-    this.open.push(bar.open);
-    this.high.push(bar.high);
-    this.low.push(bar.low);
-    this.close.push(bar.close);
-    this.volume.push(bar.volume);
-    this.time.push(bar.time);
+    this.open.push(bar.open); this.high.push(bar.high); this.low.push(bar.low);
+    this.close.push(bar.close); this.volume.push(bar.volume); this.time.push(bar.time);
     this.hl2.push((bar.high + bar.low) / 2);
     this.hlc3.push((bar.high + bar.low + bar.close) / 3);
     this.ohlc4.push((bar.open + bar.high + bar.low + bar.close) / 4);
   }
+
+  public replaceCurrent(bar: Bar): void {
+    this.open.replaceCurrent(bar.open); this.high.replaceCurrent(bar.high); this.low.replaceCurrent(bar.low);
+    this.close.replaceCurrent(bar.close); this.volume.replaceCurrent(bar.volume); this.time.replaceCurrent(bar.time);
+    this.hl2.replaceCurrent((bar.high + bar.low) / 2);
+    this.hlc3.replaceCurrent((bar.high + bar.low + bar.close) / 3);
+    this.ohlc4.replaceCurrent((bar.open + bar.high + bar.low + bar.close) / 4);
+  }
+
+  public get length(): number { return this.close.length; }
 }
