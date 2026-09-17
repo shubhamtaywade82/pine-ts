@@ -55,7 +55,7 @@ export const rsi = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rsi", source, length), () => {
-    type State = {
+    interface State {
       seedCount: number;
       gainSum: number;
       lossSum: number;
@@ -63,7 +63,7 @@ export const rsi = (source: Series<number>, length: number): FloatSeries => {
       averageLoss: number;
       previousSource: number;
       seededSource: boolean;
-    };
+    }
     const definition = {
       warmupBars: length,
       init: (): State => ({
@@ -184,7 +184,11 @@ export const cmo = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.cmo", source, length), () => {
-    type State = { changes: number[]; sumGain: number; sumLoss: number };
+    interface State {
+      changes: number[];
+      sumGain: number;
+      sumLoss: number;
+    }
     const definition = {
       warmupBars: length,
       init: (): State => ({ changes: [], sumGain: 0, sumLoss: 0 }),
