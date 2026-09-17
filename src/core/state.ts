@@ -6,27 +6,14 @@ export interface PersistentCell<T> {
 }
 
 class Cell<T> implements PersistentCell<T> {
-  public constructor(
-    public readonly name: string,
-    private readonly initial: T,
-    private current: T,
-  ) {}
-
-  public get value(): T {
-    return this.current;
-  }
-
-  public set(value: T): void {
-    this.current = value;
-  }
-
-  public reset(): void {
-    this.current = this.initial;
-  }
+  public constructor(public readonly name: string, private readonly initial: T, private current: T) {}
+  public get value(): T { return this.current; }
+  public set(value: T): void { this.current = value; }
+  public reset(): void { this.current = this.initial; }
 }
 
-/** Persistent state survives bar executions. A separate store is used for varip because
- * realtime intrabar updates have different lifetime semantics from var. */
+type Snapshot = Map<string, unknown>;
+
 export class PineState {
   private readonly vars = new Map<string, Cell<unknown>>();
   private readonly varips = new Map<string, Cell<unknown>>();
@@ -49,6 +36,14 @@ export class PineState {
       this.varips.set(name, cell as Cell<unknown>);
     }
     return cell;
+  }
+
+  public snapshot(): Snapshot {
+    return new Map([...this.vars.entries()].map(([name, cell]) => [name, cell.value]));
+  }
+
+  public restore(snapshot: Snapshot): void {
+    for (const [name, value] of snapshot) this.vars.get(name)?.set(value);
   }
 
   public reset(): void {
