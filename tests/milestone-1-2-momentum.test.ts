@@ -58,7 +58,7 @@ describe("Milestone 1.2 — momentum oscillators", () => {
   });
 
   it("calculates Williams %R from implicit OHLC sources", async () => {
-    const values = await run((ctx) => ta.wpr(3).value);
+    const values = await run(() => ta.wpr(3).value);
     expect(values.slice(0, 2).every(Number.isNaN)).toBe(true);
     expect(values[2]).toBeCloseTo(-25);
     expect(values[3]).toBeCloseTo(-25);
