@@ -45,20 +45,20 @@ export class PineState {
 
   public var<T>(name: string, initializer: () => T): PersistentCell<T> {
     const existing = this.vars.get(name);
-    if (existing !== undefined) return existing;
+    if (existing !== undefined) return existing as PersistentCell<T>;
 
     const value = initializer();
-    const cell = new Cell(name, value, value);
+    const cell = new Cell<T>(name, value, value);
     this.vars.set(name, cell);
     return cell;
   }
 
   public varip<T>(name: string, initializer: () => T): PersistentCell<T> {
     const existing = this.varips.get(name);
-    if (existing !== undefined) return existing;
+    if (existing !== undefined) return existing as PersistentCell<T>;
 
     const value = initializer();
-    const cell = new Cell(name, value, value);
+    const cell = new Cell<T>(name, value, value);
     this.varips.set(name, cell);
     return cell;
   }
