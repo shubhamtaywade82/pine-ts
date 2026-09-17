@@ -1,69 +1,125 @@
-export interface Series<T> {
-  readonly current: T | undefined;
-  at(offset: number): T | undefined;
-  readonly length: number;
-  push(value: T): void;
-  replaceCurrent(value: T): void;
-  truncate(length: number): void;
-  get(index: number): T | undefined;
-  toArray(): readonly T[];
-}
+import type { PineSession } from "./session.js";
+import type { SeriesNode } from "./series-node.js";
 
-class MutableSeries<T> implements Series<T> {
-  private readonly values: T[] = [];
+export class Series<T> {
+  private static nextId = 1;
+
+  public readonly id = Series.nextId++;
+  private readonly committedValues: T[] = [];
+  private workingValue?: T;
+  private workingRevision = -1;
+
+  public constructor(
+    private readonly session?: PineSession,
+    private readonly node?: SeriesNode<T>,
+  ) {
+    session?.registerSeries(this);
+  }
 
   public get current(): T | undefined {
-    return this.values[this.values.length - 1];
+    return this.at(0);
+  }
+
+  public get value(): T | undefined {
+    return this.at(0);
   }
 
   public get length(): number {
-    return this.values.length;
+    return this.committedValues.length + (this.workingValue === undefined ? 0 : 1);
   }
 
   public at(offset: number): T | undefined {
     if (!Number.isInteger(offset) || offset < 0) {
       throw new RangeError("Series history offset must be a non-negative integer");
     }
-    return this.values[this.values.length - 1 - offset];
+
+    if (offset === 0) {
+      const revision = this.session?.revision ?? 0;
+      if (this.workingRevision !== revision) {
+        this.workingValue = this.node?.evaluate();
+        this.workingRevision = revision;
+      }
+      return this.workingValue;
+    }
+
+    const index = this.committedValues.length - offset;
+    return index < 0 ? undefined : this.committedValues[index];
+  }
+
+  public history(): readonly T[] {
+    return this.committedValues;
   }
 
   public push(value: T): void {
-    this.values.push(value);
+    this.workingValue = value;
+    this.workingRevision = this.session?.revision ?? 0;
+    if (this.session === undefined) this.committedValues.push(value);
   }
 
   public replaceCurrent(value: T): void {
-    if (this.values.length === 0) {
-      this.values.push(value);
-    } else {
-      this.values[this.values.length - 1] = value;
+    this.workingValue = value;
+    this.workingRevision = this.session?.revision ?? 0;
+    if (this.session === undefined) {
+      if (this.committedValues.length === 0) this.committedValues.push(value);
+      else this.committedValues[this.committedValues.length - 1] = value;
     }
   }
 
   public truncate(length: number): void {
-    if (!Number.isInteger(length) || length < 0 || length > this.values.length) {
+    if (!Number.isInteger(length) || length < 0 || length > this.committedValues.length) {
       throw new RangeError("Invalid series truncate length");
     }
-    this.values.length = length;
+    this.committedValues.length = length;
   }
 
   public get(index: number): T | undefined {
     if (!Number.isInteger(index) || index < 0) {
       throw new RangeError("Series index must be a non-negative integer");
     }
-    return this.values[index];
+    return this.committedValues[index];
   }
 
   public toArray(): readonly T[] {
-    return this.values;
+    return this.committedValues;
+  }
+
+  public _push(value: T): void {
+    if (this.session === undefined) throw new Error("Source mutation requires a PineSession");
+    this.workingValue = value;
+    this.workingRevision = this.session.revision;
+  }
+
+  public _commit(): void {
+    const value = this.at(0);
+    if (value !== undefined) this.committedValues.push(value);
+    this.node?.commit();
+  }
+
+  public _resetWorking(): void {
+    this.workingValue = undefined;
+    this.workingRevision = -1;
+  }
+
+  public get runtime(): PineSession | undefined {
+    return this.session;
   }
 }
 
-export const createSeries = <T>(seed?: Iterable<T>): Series<T> => {
-  const series = new MutableSeries<T>();
+export class FloatSeries extends Series<number> {
+  public valueOf(): number {
+    return this.at(0) ?? Number.NaN;
+  }
+}
+
+export const createSeries = <T>(
+  session?: PineSession,
+  seed?: Iterable<T>,
+): Series<T> => {
+  const series = new Series<T>(session);
   if (seed !== undefined) {
-    for (const value of seed) {
-      series.push(value);
-    }
+    for (const value of seed) series.push(value);
   }
   return series;
 };
+
+export const createFloatSeries = (session: PineSession): FloatSeries => new FloatSeries(session);
