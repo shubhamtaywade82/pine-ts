@@ -23,14 +23,10 @@ export class PineRuntime {
     await this.initialize();
     const data = await this.loadHistoricalBars(bars);
 
-    data.forEach((bar, index) => {
+    for (const bar of data) {
       this.currentBar = bar;
-      this.session.processHistoricalBar(
-        bar,
-        () => this.execute(script, bar),
-        index === data.length - 1,
-      );
-    });
+      this.session.processHistoricalBar(bar, () => this.execute(script));
+    }
   }
 
   public async runRealtime(script: PineScript): Promise<void> {
@@ -41,7 +37,7 @@ export class PineRuntime {
       timeframe: this.options.timeframe,
     })) {
       this.currentBar = bar;
-      this.session.processRealtimeTick(bar, () => this.execute(script, bar));
+      this.session.processRealtimeTick(bar, () => this.execute(script));
     }
   }
 
@@ -80,10 +76,10 @@ export class PineRuntime {
     );
   }
 
-  private execute(script: PineScript, bar: Bar): void {
+  private execute(script: PineScript): void {
     const previousSession = setCurrentSession(this.session);
     try {
-      script(createContext(this.session, bar));
+      script(createContext(this.session, this.currentBar));
     } finally {
       setCurrentSession(previousSession);
     }
