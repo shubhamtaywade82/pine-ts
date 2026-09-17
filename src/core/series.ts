@@ -149,9 +149,7 @@ export function createSeries<T>(
   seed?: Iterable<T>,
 ): Series<T> {
   const isSession =
-    typeof sessionOrSeed === "object" &&
-    sessionOrSeed !== null &&
-    "registerSeries" in sessionOrSeed;
+    typeof sessionOrSeed === "object" && "registerSeries" in sessionOrSeed;
   const session = isSession ? sessionOrSeed : undefined;
   const values = isSession ? seed : sessionOrSeed;
   const series = new Series<T>(session);
