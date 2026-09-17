@@ -1,5 +1,6 @@
 import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
+import { requireCurrentSession } from "../core/execution-context.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
 
@@ -103,6 +104,35 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
   }) as FloatSeries;
 };
 
+export const tr = (handleNa = true): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { high, low, close } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.tr", high, low, close, handleNa), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const highValue = high.at(0);
+        const lowValue = low.at(0);
+        const previousClose = close.at(1);
+        if (isNa(highValue) || isNa(lowValue)) return Number.NaN;
+        if (isNa(previousClose)) return handleNa ? highValue - lowValue : Number.NaN;
+        return Math.max(
+          highValue - lowValue,
+          Math.abs(highValue - previousClose),
+          Math.abs(lowValue - previousClose),
+        );
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+export const atr = (length: number): FloatSeries => {
+  requirePositiveLength(length);
+  return rma(tr(true), length);
+};
+
 export const highest = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
@@ -164,20 +194,6 @@ export const change = (source: Series<number>, length = 1): FloatSeries => {
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
-};
-
-export const tr = (handleNa = true): FloatSeries => {
-  throwIfNoSessionSources(handleNa);
-};
-
-const throwIfNoSessionSources = (handleNa: boolean): never => {
-  throw new Error(
-    `ta.tr(${String(handleNa)}) requires a PineSession-bound OHLC context; call ta.atr() from a Pine script context`,
-  );
-};
-
-export const atr = (length: number): FloatSeries => {
-  throwIfNoSessionSources(length);
 };
 
 export const crossover = (source: Series<number>, other: Series<number>): Series<boolean> => {
