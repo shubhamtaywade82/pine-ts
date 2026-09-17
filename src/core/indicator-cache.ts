@@ -74,7 +74,8 @@ export const incrementalEma = (source: Series<number>, length: number): number |
     if (value === undefined) continue;
 
     if (state.value === undefined) {
-      state.value = seedEma(source, length, state.processed);
+      const seeded = seedEma(source, length, state.processed);
+      if (seeded !== undefined) state.value = seeded;
     } else {
       state.value = alpha * value + (1 - alpha) * state.value;
     }
