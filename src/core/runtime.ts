@@ -1,4 +1,5 @@
 import { createContext, type PineContext } from "./context.js";
+import { setCurrentSession } from "./execution-context.js";
 import { PineSession } from "./session.js";
 import type { Bar, MarketDataProvider, PineExecutionMode, SymbolInfo } from "./types.js";
 
@@ -24,7 +25,7 @@ export class PineRuntime {
 
     for (const bar of data) {
       this.currentBar = bar;
-      this.session.processHistoricalBar(bar, () => script(createContext(this.session, bar)));
+      this.session.processHistoricalBar(bar, () => this.execute(script, bar));
     }
   }
 
@@ -36,7 +37,7 @@ export class PineRuntime {
       timeframe: this.options.timeframe,
     })) {
       this.currentBar = bar;
-      this.session.processRealtimeTick(bar, () => script(createContext(this.session, bar)));
+      this.session.processRealtimeTick(bar, () => this.execute(script, bar));
     }
   }
 
@@ -73,5 +74,14 @@ export class PineRuntime {
         timeframe: this.options.timeframe,
       }))
     );
+  }
+
+  private execute(script: PineScript, bar: Bar): void {
+    const previousSession = setCurrentSession(this.session);
+    try {
+      script(createContext(this.session, bar));
+    } finally {
+      setCurrentSession(previousSession);
+    }
   }
 }
