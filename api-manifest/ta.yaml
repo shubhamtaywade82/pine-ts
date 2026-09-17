@@ -199,6 +199,38 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/cmo.basic.json]
 
+  - name: variance
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: biased, type: bool, default: true }
+    returns: series<float>
+    semantics: { denominator: "length when biased, length - 1 otherwise" }
+    impl: { module: src/ta/statistics.ts, export: variance }
+    status: draft
+
+  - name: stdev
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: biased, type: bool, default: true }
+    returns: series<float>
+    semantics: { core: "sqrt(ta.variance(source, length, biased))" }
+    impl: { module: src/ta/statistics.ts, export: stdev }
+    status: draft
+
+  - name: dev
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { core: "mean absolute deviation from the rolling SMA" }
+    impl: { module: src/ta/statistics.ts, export: dev }
+    status: draft
+
   - name: macd
     signature:
       params:
