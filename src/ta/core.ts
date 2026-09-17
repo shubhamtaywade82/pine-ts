@@ -1,20 +1,13 @@
-import { requireCurrentSession } from "../core/execution-context.js";
 import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
-import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
+import { FloatSeries, Series } from "../core/series.js";
 import { zipSeries } from "../core/series-operators.js";
+import { requirePositiveLength } from "./validation.js";
 
-const requirePositiveLength = (length: number): void => {
-  if (!Number.isInteger(length) || length <= 0)
-    throw new RangeError("length must be a positive integer");
-};
-
-const requireCompatibleRuntime = (source: Series<number>, other?: Series<number>) => {
+const requireCompatibleRuntime = <T>(source: Series<T>) => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("TA series require a PineSession-owned source series");
-  if (other !== undefined && other.runtime !== runtime)
-    throw new Error("TA operands must belong to the same PineSession");
   return runtime;
 };
 
@@ -22,26 +15,20 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.sma", source, length), () => {
-    interface State {
-      buffer: number[];
-      sum: number;
-    }
     const definition = {
       warmupBars: length - 1,
-      init: (): State => ({ buffer: [], sum: 0 }),
-      evaluate: (state: Readonly<State>): number => {
-        const value = source.at(0);
-        if (isNa(value) || state.buffer.length < length - 1) return Number.NaN;
-        const oldest = state.buffer.length === length ? state.buffer[0] : undefined;
-        return (state.sum - (oldest ?? 0) + value) / length;
+      init: (): null => null,
+      evaluate: (): number => {
+        if (runtime.barIndex < length - 1) return Number.NaN;
+        let sum = 0;
+        for (let offset = 0; offset < length; offset += 1) {
+          const value = source.at(offset);
+          if (isNa(value)) return Number.NaN;
+          sum += value;
+        }
+        return sum / length;
       },
-      commit: (state: State): void => {
-        const value = source.at(0);
-        if (isNa(value)) return;
-        state.buffer.push(value);
-        state.sum += value;
-        if (state.buffer.length > length) state.sum -= state.buffer.shift() ?? 0;
-      },
+      commit: (): void => undefined,
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
@@ -51,25 +38,27 @@ export const ema = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.ema", source, length), () => {
-    interface State {
-      seeded: boolean;
-      previous: number;
-    }
-    const alpha = 2 / (length + 1);
     const definition = {
-      init: (): State => ({ seeded: false, previous: Number.NaN }),
-      evaluate: (state: Readonly<State>): number => {
-        const value = source.at(0);
-        if (isNa(value)) return Number.NaN;
-        return state.seeded ? alpha * value + (1 - alpha) * state.previous : value;
-      },
-      commit: (state: State): void => {
-        const value = source.at(0);
-        if (!isNa(value)) {
-          state.previous = state.seeded ? alpha * value + (1 - alpha) * state.previous : value;
-          state.seeded = true;
+      warmupBars: length - 1,
+      init: (): { value: number | undefined } => ({ value: undefined }),
+      evaluate: (state: { value: number | undefined }): number => {
+        const current = source.at(0);
+        if (isNa(current)) return Number.NaN;
+        if (runtime.barIndex < length - 1) return Number.NaN;
+        if (state.value === undefined) {
+          let sum = 0;
+          for (let offset = 0; offset < length; offset += 1) {
+            const value = source.at(offset);
+            if (isNa(value)) return Number.NaN;
+            sum += value;
+          }
+          state.value = sum / length;
+          return state.value;
         }
+        state.value = (2 / (length + 1)) * current + (1 - 2 / (length + 1)) * state.value;
+        return state.value;
       },
+      commit: (): void => undefined,
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
@@ -79,57 +68,25 @@ export const rma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
-    interface State {
-      seedCount: number;
-      seedSum: number;
-      previous: number;
-    }
-    const alpha = 1 / length;
     const definition = {
       warmupBars: length - 1,
-      init: (): State => ({ seedCount: 0, seedSum: 0, previous: Number.NaN }),
-      evaluate: (state: Readonly<State>): number => {
-        const value = source.at(0);
-        if (isNa(value)) return Number.NaN;
-        if (state.seedCount < length) {
-          if (state.seedCount + 1 < length) return Number.NaN;
-          return (state.seedSum + value) / length;
+      init: (): { value: number | undefined } => ({ value: undefined }),
+      evaluate: (state: { value: number | undefined }): number => {
+        if (runtime.barIndex < length - 1) return Number.NaN;
+        const current = source.at(0);
+        if (isNa(current)) return Number.NaN;
+        if (state.value === undefined) {
+          let sum = 0;
+          for (let offset = 0; offset < length; offset += 1) {
+            const value = source.at(offset);
+            if (isNa(value)) return Number.NaN;
+            sum += value;
+          }
+          state.value = sum / length;
+        } else {
+          state.value = (state.value * (length - 1) + current) / length;
         }
-        return alpha * value + (1 - alpha) * state.previous;
-      },
-      commit: (state: State): void => {
-        const value = source.at(0);
-        if (isNa(value)) return;
-        if (state.seedCount < length) {
-          state.seedCount += 1;
-          state.seedSum += value;
-          if (state.seedCount === length) state.previous = state.seedSum / length;
-          return;
-        }
-        state.previous = alpha * value + (1 - alpha) * state.previous;
-      },
-    };
-    return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
-};
-
-export const tr = (handleNa = true): FloatSeries => {
-  const runtime = requireCurrentSession();
-  const { high, low, close } = runtime.sources;
-  return runtime.nodes.getOrCreate(nodeKey("ta.tr", high, low, close, handleNa), () => {
-    const definition = {
-      init: (): null => null,
-      evaluate: (): number => {
-        const highValue = high.at(0);
-        const lowValue = low.at(0);
-        const previousClose = close.at(1);
-        if (isNa(highValue) || isNa(lowValue)) return Number.NaN;
-        if (isNa(previousClose)) return handleNa ? highValue - lowValue : Number.NaN;
-        return Math.max(
-          highValue - lowValue,
-          Math.abs(highValue - previousClose),
-          Math.abs(lowValue - previousClose),
-        );
+        return state.value;
       },
       commit: (): void => undefined,
     };
@@ -137,10 +94,26 @@ export const tr = (handleNa = true): FloatSeries => {
   }) as FloatSeries;
 };
 
-export const atr = (length: number): FloatSeries => {
-  requirePositiveLength(length);
-  return rma(tr(true), length);
+export const tr = (source: Series<number>): FloatSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.tr", source), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const bar = runtime.currentBar;
+        if (bar === undefined) return Number.NaN;
+        if (runtime.barIndex === 0) return bar.high - bar.low;
+        const previousClose = source.at(1);
+        if (isNa(previousClose)) return Number.NaN;
+        return Math.max(bar.high - bar.low, Math.abs(bar.high - previousClose), Math.abs(bar.low - previousClose));
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
 };
+
+export const atr = (source: Series<number>, length: number): FloatSeries => rma(tr(source), length);
 
 export const wma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
@@ -150,6 +123,7 @@ export const wma = (source: Series<number>, length: number): FloatSeries => {
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
+        if (runtime.barIndex < length - 1) return Number.NaN;
         let weightedSum = 0;
         let weightSum = 0;
         for (let offset = 0; offset < length; offset += 1) {
@@ -170,22 +144,22 @@ export const wma = (source: Series<number>, length: number): FloatSeries => {
 export const vwma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
-  const { volume } = runtime.sources;
-  return runtime.nodes.getOrCreate(nodeKey("ta.vwma", source, volume, length), () => {
+  return runtime.nodes.getOrCreate(nodeKey("ta.vwma", source, length), () => {
     const definition = {
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        let numerator = 0;
-        let denominator = 0;
+        if (runtime.barIndex < length - 1) return Number.NaN;
+        let weightedSum = 0;
+        let volumeSum = 0;
         for (let offset = 0; offset < length; offset += 1) {
           const value = source.at(offset);
-          const volumeValue = volume.at(offset);
-          if (isNa(value) || isNa(volumeValue)) return Number.NaN;
-          numerator += value * volumeValue;
-          denominator += volumeValue;
+          const volume = runtime.sources.volume.at(offset);
+          if (isNa(value) || isNa(volume)) return Number.NaN;
+          weightedSum += value * volume;
+          volumeSum += volume;
         }
-        return denominator === 0 ? Number.NaN : numerator / denominator;
+        return volumeSum === 0 ? Number.NaN : weightedSum / volumeSum;
       },
       commit: (): void => undefined,
     };
@@ -219,12 +193,10 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
   const sqrtLength = Math.max(1, Math.floor(Math.sqrt(length)));
   const fast = wma(source, halfLength);
   const slow = wma(source, length);
-  const leading = zipSeries(
-    fast,
-    slow,
-    "ta.hma.leading",
-    (fastValue, slowValue) => 2 * fastValue - slowValue,
-  );
+  const leading = zipSeries(fast, slow, "ta.hma.leading", (fastValue, slowValue) => {
+    if (isNa(fastValue) || isNa(slowValue)) return Number.NaN;
+    return 2 * fastValue - slowValue;
+  });
   return wma(leading, sqrtLength);
 };
 
@@ -279,6 +251,7 @@ export const change = (source: Series<number>, length = 1): FloatSeries => {
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.change", source, length), () => {
     const definition = {
+      warmupBars: length,
       init: (): null => null,
       evaluate: (): number => {
         const current = source.at(0);
@@ -291,40 +264,19 @@ export const change = (source: Series<number>, length = 1): FloatSeries => {
   }) as FloatSeries;
 };
 
-export const crossover = (source: Series<number>, other: Series<number>): BooleanSeries => {
-  const runtime = requireCompatibleRuntime(source, other);
-  return runtime.nodes.getOrCreate(nodeKey("ta.crossover", source, other), () => {
+export const crossover = (source: Series<number>, level: number): import("../core/series.js").BooleanSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.crossover", source, level), () => {
     const definition = {
+      warmupBars: 1,
       init: (): null => null,
       evaluate: (): boolean => {
-        const source0 = source.at(0);
-        const source1 = source.at(1);
-        const other0 = other.at(0);
-        const other1 = other.at(1);
-        if (isNa(source0) || isNa(source1) || isNa(other0) || isNa(other1)) return false;
-        return source0 > other0 && source1 <= other1;
+        const current = source.at(0);
+        const previous = source.at(1);
+        return !isNa(current) && !isNa(previous) && current > level && previous <= level;
       },
       commit: (): void => undefined,
     };
-    return new BooleanSeries(runtime, new IndicatorNode(definition));
-  }) as BooleanSeries;
-};
-
-export const crossunder = (source: Series<number>, other: Series<number>): BooleanSeries => {
-  const runtime = requireCompatibleRuntime(source, other);
-  return runtime.nodes.getOrCreate(nodeKey("ta.crossunder", source, other), () => {
-    const definition = {
-      init: (): null => null,
-      evaluate: (): boolean => {
-        const source0 = source.at(0);
-        const source1 = source.at(1);
-        const other0 = other.at(0);
-        const other1 = other.at(1);
-        if (isNa(source0) || isNa(source1) || isNa(other0) || isNa(other1)) return false;
-        return source0 < other0 && source1 >= other1;
-      },
-      commit: (): void => undefined,
-    };
-    return new BooleanSeries(runtime, new IndicatorNode(definition));
-  }) as BooleanSeries;
+    return new (require("../core/series.js") as never)();
+  }) as import("../core/series.js").BooleanSeries;
 };
