@@ -35,10 +35,10 @@ export class PineSession {
   public readonly state = new PineState();
   public readonly sources: SourceBundle;
 
-  private readonly orderedSeries: Array<{
+  private readonly orderedSeries: {
     _commit(): void;
     _resetWorking(): void;
-  }> = [];
+  }[] = [];
   private currentTime?: number;
   private symbolInfo?: SymbolInfo;
 
@@ -65,8 +65,9 @@ export class PineSession {
   }
 
   public getSymbolInfo(): SymbolInfo {
-    if (this.symbolInfo === undefined)
+    if (this.symbolInfo === undefined) {
       throw new Error("PineSession symbol information is not initialized");
+    }
     return this.symbolInfo;
   }
 
