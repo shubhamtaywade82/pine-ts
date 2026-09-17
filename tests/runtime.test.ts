@@ -10,7 +10,9 @@ const provider: MarketDataProvider = {
   async getHistoricalBars() {
     return bars;
   },
-  async *streamBars() {},
+  async *streamBars() {
+    yield* [];
+  },
   async getSymbolInfo(symbol) {
     return { ticker: symbol };
   },
