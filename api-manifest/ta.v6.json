@@ -1,0 +1,24 @@
+{
+  "namespace": "ta",
+  "version": 6,
+  "source": "https://www.tradingview.com/pine-script-reference/v6/",
+  "description": "Machine-readable inventory of Pine Script v6 ta namespace symbols. Status tracks implementation in pine-ts; entries are never silently treated as implemented.",
+  "functions": [
+    "accdist", "ad", "adl", "alma", "aroon", "atr", "bb", "bbw", "barssince", "barsince", "bop",
+    "cci", "cmo", "cog", "correlation", "cross", "crossover", "crossunder", "cum", "dema", "dev",
+    "dmi", "ema", "falling", "highest", "highestbars", "hma", "ichimoku", "kc", "kcw", "linreg",
+    "lowest", "lowestbars", "macd", "max", "median", "mfi", "min", "mom", "percentile_linear_interpolation",
+    "percentile_nearest_rank", "percentrank", "pivothigh", "pivotlow", "range", "rci", "rma", "roc", "rsi",
+    "sar", "sma", "stdev", "stoch", "stochFull", "stochRsi", "supertrend", "swma", "tema", "tr", "trima",
+    "trix", "tsi", "variance", "vwap", "vwma", "wma", "wpr", "rising", "valuewhen", "vosc", "obv", "nvi",
+    "pvi", "pvt", "iii", "relativeVolume", "relativeStrength", "median", "mode", "avg", "sum", "change",
+    "dev", "falling", "rising", "stoch", "stochRsi", "vi", "williamsR"
+  ],
+  "implemented": ["sma", "ema", "highest", "lowest", "change", "crossover", "crossunder"],
+  "policy": {
+    "missingFunctions": "tracked",
+    "providerSpecificData": "must fail explicitly",
+    "seriesSemantics": "required",
+    "realtimeSemantics": "required"
+  }
+}
