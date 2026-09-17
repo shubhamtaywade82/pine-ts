@@ -22,9 +22,10 @@ export const highest = (source: Series<number>, length: number): number | undefi
   let result = -Infinity;
   for (let index = source.length - length; index < source.length; index += 1) {
     const value = source.get(index);
-    if (value !== undefined) {
-      result = Math.max(result, value);
+    if (value === undefined) {
+      return undefined;
     }
+    result = Math.max(result, value);
   }
   return result;
 };
@@ -38,9 +39,10 @@ export const lowest = (source: Series<number>, length: number): number | undefin
   let result = Infinity;
   for (let index = source.length - length; index < source.length; index += 1) {
     const value = source.get(index);
-    if (value !== undefined) {
-      result = Math.min(result, value);
+    if (value === undefined) {
+      return undefined;
     }
+    result = Math.min(result, value);
   }
   return result;
 };
