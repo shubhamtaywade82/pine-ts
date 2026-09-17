@@ -106,8 +106,34 @@ export class Series<T> {
 }
 
 export class FloatSeries extends Series<number> {
+  public override at(offset: number): number {
+    return super.at(offset) ?? Number.NaN;
+  }
+
+  public override get current(): number {
+    return this.at(0);
+  }
+
+  public override get value(): number {
+    return this.at(0);
+  }
+
   public valueOf(): number {
-    return this.at(0) ?? Number.NaN;
+    return this.at(0);
+  }
+}
+
+export class BooleanSeries extends Series<boolean> {
+  public override at(offset: number): boolean {
+    return super.at(offset) ?? false;
+  }
+
+  public override get current(): boolean {
+    return this.at(0);
+  }
+
+  public override get value(): boolean {
+    return this.at(0);
   }
 }
 
