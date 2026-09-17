@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import Ajv from "ajv";
+import Ajv2020 from "ajv/dist/2020.js";
 import YAML from "yaml";
 
 interface ManifestFunction {
@@ -21,7 +21,7 @@ const manifestPath = resolve(root, "api-manifest/ta.yaml");
 const schemaPath = resolve(root, "api-manifest/schema.json");
 const manifest = YAML.parse(await readFile(manifestPath, "utf8")) as Manifest;
 const schema = JSON.parse(await readFile(schemaPath, "utf8")) as object;
-const validator = new Ajv({ allErrors: true, strict: true }).compile(schema);
+const validator = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
 
 if (!validator(manifest)) {
   console.error(JSON.stringify(validator.errors, null, 2));
