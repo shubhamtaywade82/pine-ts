@@ -7,6 +7,7 @@ export class Series<T> {
   public readonly id = Series.nextId++;
   private readonly committedValues: T[] = [];
   private workingValue?: T;
+  private hasWorkingValue = false;
   private workingRevision = -1;
 
   public constructor(
@@ -25,7 +26,7 @@ export class Series<T> {
   }
 
   public get length(): number {
-    return this.committedValues.length + (this.workingValue === undefined ? 0 : 1);
+    return this.committedValues.length + (this.hasWorkingValue ? 1 : 0);
   }
 
   public at(offset: number): T | undefined {
@@ -37,6 +38,7 @@ export class Series<T> {
       const revision = this.session?.revision ?? 0;
       if (this.workingRevision !== revision) {
         this.workingValue = this.node?.evaluate();
+        this.hasWorkingValue = true;
         this.workingRevision = revision;
       }
       return this.workingValue;
@@ -52,12 +54,14 @@ export class Series<T> {
 
   public push(value: T): void {
     this.workingValue = value;
+    this.hasWorkingValue = true;
     this.workingRevision = this.session?.revision ?? 0;
     if (this.session === undefined) this.committedValues.push(value);
   }
 
   public replaceCurrent(value: T): void {
     this.workingValue = value;
+    this.hasWorkingValue = true;
     this.workingRevision = this.session?.revision ?? 0;
     if (this.session === undefined) {
       if (this.committedValues.length === 0) this.committedValues.push(value);
@@ -86,17 +90,18 @@ export class Series<T> {
   public _push(value: T): void {
     if (this.session === undefined) throw new Error("Source mutation requires a PineSession");
     this.workingValue = value;
+    this.hasWorkingValue = true;
     this.workingRevision = this.session.revision;
   }
 
   public _commit(): void {
-    const value = this.at(0);
-    if (value !== undefined) this.committedValues.push(value);
+    this.committedValues.push(this.at(0) as T);
     this.node?.commit();
   }
 
   public _resetWorking(): void {
     this.workingValue = undefined;
+    this.hasWorkingValue = false;
     this.workingRevision = -1;
   }
 
