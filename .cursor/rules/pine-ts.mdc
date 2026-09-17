@@ -1,0 +1,42 @@
+---
+description: Pine-TS Pine v6 compatibility and clean TypeScript rules
+alwaysApply: true
+---
+
+# Pine-TS Cursor Agent Rules
+
+Follow `AGENTS.md` as the canonical engineering contract.
+
+## Core constraints
+
+- Pine v6 semantics are the source of truth.
+- Test-first: write a failing test before production behavior.
+- No lookahead, hidden future-bar access, or invented missing values.
+- Runtime state and indicator caches must be isolated per execution context; never add global mutable trading state.
+- Preserve strict TypeScript and ESM.
+- Use modern syntax, including arrow functions for function expressions/declarations where appropriate.
+- Prefer `readonly`, `unknown`, discriminated unions, explicit public return types, and `import type`.
+- Avoid `any`, unjustified assertions, non-null assertions, `@ts-ignore`, and disabled lint rules.
+
+## Architecture
+
+Use patterns intentionally:
+
+- Strategy for executable Pine scripts.
+- Memento for realtime state snapshots/rollback.
+- Adapter for market-data providers.
+- Facade for runtime/context APIs.
+- Factory for interchangeable implementations.
+- Observer for optional telemetry/events.
+
+Do not force patterns into small numerical functions.
+
+## TA changes
+
+Before implementing a built-in, verify its Pine v6 signature and behavior. Add tests for warm-up/`na`, history indexing, numerical values, realtime rollback, and runtime isolation. Update the TA manifest, generated inventory, exports, and coverage documentation.
+
+## Workflow
+
+Inspect -> verify semantics -> failing test -> minimal implementation -> targeted checks -> refactor -> `pnpm check` -> `pnpm build` when applicable.
+
+Never claim a test or build passed unless it actually ran and passed.
