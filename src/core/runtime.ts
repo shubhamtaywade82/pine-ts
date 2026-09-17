@@ -32,12 +32,11 @@ export class PineRuntime {
       const bar = data[index];
       if (bar === undefined) continue;
       this.ohlcv.commit(bar);
-      await script(this.context(bar, this.createBarState(index, data.length, false)));
+      await script(this.context(bar, this.createBarState(index, data.length, true, true)));
       this.committedState = this.state.snapshot();
     }
   }
 
-  /** Execute an endless realtime stream. Providers may emit both open and closed candle updates. */
   public async runRealtime(script: PineScript): Promise<void> {
     this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
     let index = 0;
@@ -53,12 +52,9 @@ export class PineRuntime {
         invalidateIndicatorState(this.ohlcv.close);
       }
 
-      await script(this.context(bar, this.createBarState(index, index, !isNewBar)));
-
-      if (bar.isClosed) {
-        this.committedState = this.state.snapshot();
-      }
-      index += isNewBar ? 1 : 0;
+      await script(this.context(bar, this.createBarState(index, index, isNewBar, Boolean(bar.isClosed))));
+      if (bar.isClosed) this.committedState = this.state.snapshot();
+      if (isNewBar) index += 1;
     }
   }
 
@@ -70,13 +66,13 @@ export class PineRuntime {
     };
   }
 
-  private createBarState(index: number, total: number, intrabar: boolean): BarState {
+  private createBarState(index: number, total: number, isNew: boolean, isConfirmed: boolean): BarState {
     const isHistory = this.executionMode === "historical";
     const isFirst = index === 0;
     const isLast = isHistory ? index === total - 1 : true;
     return {
-      index, isFirst, isLast, isHistory, isRealtime: !isHistory,
-      isNew: !intrabar, isConfirmed: isHistory || !intrabar,
+      index, isFirst, isLast, isHistory, isRealtime: !isHistory, isNew,
+      isConfirmed: isHistory || isConfirmed,
       isLastConfirmedHistory: isHistory && isLast,
     };
   }
