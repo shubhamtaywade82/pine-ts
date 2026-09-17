@@ -6,16 +6,12 @@
   "author": "Shubham Taywade",
   "type": "module",
   "packageManager": "pnpm@12.4.2",
-  "engines": {
-    "node": ">=22"
-  },
+  "engines": { "node": ">=22" },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shubhamtaywade82/pine-ts.git"
   },
-  "publishConfig": {
-    "access": "public"
-  },
+  "publishConfig": { "access": "public" },
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "exports": {
@@ -24,9 +20,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
@@ -42,8 +36,11 @@
     "knip": "knip",
     "package:lint": "publint",
     "types:check": "attw --pack .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm spellcheck && pnpm knip && pnpm package:lint && pnpm types:check",
-    "ta:inventory": "tsx scripts/generate-ta-inventory.ts"
+    "manifest:validate": "tsx scripts/validate-manifest.ts",
+    "manifest:generate": "tsx scripts/generate-ta-inventory.ts",
+    "manifest:coverage": "tsx scripts/generate-ta-inventory.ts --coverage",
+    "ta:inventory": "pnpm manifest:generate",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm manifest:validate && pnpm test && pnpm spellcheck && pnpm knip && pnpm package:lint && pnpm types:check"
   },
   "dependencies": {},
   "devDependencies": {
@@ -52,6 +49,7 @@
     "@types/node": "^22.20.3",
     "@vitest/coverage-v8": "^5.0.1",
     "@vitest/eslint-plugin": "^1.6.27",
+    "ajv": "^8.20.0",
     "cspell": "^10.3.3",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
@@ -70,6 +68,7 @@
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2",
     "typescript-eslint": "^8.70.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "yaml": "^2.9.1"
   }
 }
