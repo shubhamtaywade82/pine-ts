@@ -1,0 +1,31 @@
+{
+  "version": "0.2",
+  "language": "en,en-GB",
+  "useGitignore": true,
+  "files": ["**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}"],
+  "ignorePaths": ["dist/**", "coverage/**", "node_modules/**", "pnpm-lock.yaml"],
+  "words": [
+    "ADX",
+    "Algo",
+    "ATR",
+    "Binance",
+    "bollinger",
+    "CJS",
+    "DMI",
+    "EMA",
+    "ESM",
+    "HMA",
+    "hlc3",
+    "OHLCV",
+    "Pine",
+    "pnpm",
+    "RSI",
+    "SMA",
+    "stdev",
+    "ta",
+    "tradingview",
+    "TypeScript",
+    "VWAP",
+    "VWMA"
+  ]
+}
