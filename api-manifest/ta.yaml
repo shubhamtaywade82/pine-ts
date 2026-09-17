@@ -125,38 +125,80 @@ functions:
     impl: { module: src/ta/core.ts, export: wma }
     status: draft
     vectors: [fixtures/v6/ta/wma.basic.json]
+
   - name: vwma
     signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
     impl: { module: src/ta/core.ts, export: vwma }
     status: draft
     vectors: [fixtures/v6/ta/vwma.basic.json]
+
   - name: swma
     signature: { params: [{ name: source, type: series<float> }] }
     returns: series<float>
     impl: { module: src/ta/core.ts, export: swma }
     status: draft
     vectors: [fixtures/v6/ta/swma.basic.json]
+
   - name: hma
     signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
     impl: { module: src/ta/core.ts, export: hma }
     status: draft
     vectors: [fixtures/v6/ta/hma.basic.json]
+
   - name: rsi
-    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
     semantics: { core: "Wilder RMA of gains and losses" }
-    status: planned
+    impl: { module: src/ta/momentum.ts, export: rsi }
+    status: draft
+    vectors: [fixtures/v6/ta/rsi.basic.json]
+
+  - name: roc
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
+    returns: series<float>
+    semantics: { formula: "100 * (source - source[length]) / source[length]" }
+    impl: { module: src/ta/momentum.ts, export: roc }
+    status: draft
+    vectors: [fixtures/v6/ta/roc.basic.json]
+
+  - name: mom
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
+    returns: series<float>
+    semantics: { formula: "source - source[length]" }
+    impl: { module: src/ta/momentum.ts, export: mom }
+    status: draft
+    vectors: [fixtures/v6/ta/mom.basic.json]
+
   - name: stoch
     signature:
       params:
         - { name: source, type: series<float> }
-        - { name: high, type: series<float> }
-        - { name: low, type: series<float> }
-        - { name: length, type: int }
+        - { name: peak, type: series<float> }
+        - { name: valley, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
-    status: planned
+    impl: { module: src/ta/momentum.ts, export: stoch }
+    status: draft
+    vectors: [fixtures/v6/ta/stoch.basic.json]
+
+  - name: wpr
+    signature: { params: [{ name: length, type: int, constraints: { min: 1 } }] }
+    returns: series<float>
+    implicitSources: [high, low, close]
+    impl: { module: src/ta/momentum.ts, export: wpr }
+    status: draft
+    vectors: [fixtures/v6/ta/wpr.basic.json]
+
+  - name: cmo
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
+    returns: series<float>
+    semantics: { core: "Chande Momentum Oscillator" }
+    impl: { module: src/ta/momentum.ts, export: cmo }
+    status: draft
+    vectors: [fixtures/v6/ta/cmo.basic.json]
+
   - name: macd
     signature:
       params:
