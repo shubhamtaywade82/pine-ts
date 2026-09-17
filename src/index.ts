@@ -1,5 +1,8 @@
 export { PineRuntime, type PineScript, type RuntimeOptions } from "./core/runtime.js";
 export { createSeries, type Series } from "./core/series.js";
+export { na, isNa, nz, type PineValue } from "./core/na.js";
+export { PineState, type PersistentCell } from "./core/state.js";
+export { RealtimeTransaction, type RealtimeCheckpoint } from "./core/transaction.js";
 export type { PineContext } from "./core/context.js";
 export type {
   Bar,
