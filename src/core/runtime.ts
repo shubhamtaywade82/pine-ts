@@ -1,6 +1,6 @@
 import type { PineContext } from "./context.js";
 import { OhlcvSeries } from "./context.js";
-import { invalidateAllIndicatorState } from "./indicator-cache.js";
+import { invalidateIndicatorState } from "./indicator-cache.js";
 import { PineState } from "./state.js";
 import type {
   Bar,
@@ -103,8 +103,20 @@ export class PineRuntime {
 
     this.state.restore(this.committedState);
     this.ohlcv.replaceCurrent(bar);
-    invalidateAllIndicatorState();
+    this.invalidateRealtimeIndicatorState();
     return false;
+  }
+
+  private invalidateRealtimeIndicatorState(): void {
+    invalidateIndicatorState(this.ohlcv.open);
+    invalidateIndicatorState(this.ohlcv.high);
+    invalidateIndicatorState(this.ohlcv.low);
+    invalidateIndicatorState(this.ohlcv.close);
+    invalidateIndicatorState(this.ohlcv.volume);
+    invalidateIndicatorState(this.ohlcv.time);
+    invalidateIndicatorState(this.ohlcv.hl2);
+    invalidateIndicatorState(this.ohlcv.hlc3);
+    invalidateIndicatorState(this.ohlcv.ohlc4);
   }
 
   private createContext(bar: Bar, barstate: BarState, symbolInfo: SymbolInfo): PineContext {
