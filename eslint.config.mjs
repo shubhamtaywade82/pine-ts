@@ -28,7 +28,11 @@ export default defineConfig(
     languageOptions: {
       globals: globals.nodeBuiltin,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ["*.config.mjs"],
+          defaultProject: "tsconfig.json",
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
