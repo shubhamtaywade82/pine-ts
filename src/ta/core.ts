@@ -1,42 +1,85 @@
-import type { Series } from "../core/series.js";
 import { incrementalEma, incrementalSma } from "../core/indicator-cache.js";
+import type { Series } from "../core/series.js";
 
-function requirePositiveLength(length: number): void {
-  if (!Number.isInteger(length) || length <= 0) throw new RangeError("length must be a positive integer");
-}
+const requirePositiveLength = (length: number): void => {
+  if (!Number.isInteger(length) || length <= 0) {
+    throw new RangeError("length must be a positive integer");
+  }
+};
 
-export function sma(source: Series<number>, length: number): number | undefined { return incrementalSma(source, length); }
-export function ema(source: Series<number>, length: number): number | undefined { return incrementalEma(source, length); }
+export const sma = (source: Series<number>, length: number): number | undefined =>
+  incrementalSma(source, length);
 
-export function highest(source: Series<number>, length: number): number | undefined {
+export const ema = (source: Series<number>, length: number): number | undefined =>
+  incrementalEma(source, length);
+
+export const highest = (source: Series<number>, length: number): number | undefined => {
   requirePositiveLength(length);
-  if (source.length < length) return undefined;
+  if (source.length < length) {
+    return undefined;
+  }
+
   let result = -Infinity;
-  for (let i = source.length - length; i < source.length; i += 1) result = Math.max(result, source.get(i)!);
+  for (let index = source.length - length; index < source.length; index += 1) {
+    const value = source.get(index);
+    if (value !== undefined) {
+      result = Math.max(result, value);
+    }
+  }
   return result;
-}
+};
 
-export function lowest(source: Series<number>, length: number): number | undefined {
+export const lowest = (source: Series<number>, length: number): number | undefined => {
   requirePositiveLength(length);
-  if (source.length < length) return undefined;
-  let result = Infinity;
-  for (let i = source.length - length; i < source.length; i += 1) result = Math.min(result, source.get(i)!);
-  return result;
-}
+  if (source.length < length) {
+    return undefined;
+  }
 
-export function change(source: Series<number>, length = 1): number | undefined {
+  let result = Infinity;
+  for (let index = source.length - length; index < source.length; index += 1) {
+    const value = source.get(index);
+    if (value !== undefined) {
+      result = Math.min(result, value);
+    }
+  }
+  return result;
+};
+
+export const change = (source: Series<number>, length = 1): number | undefined => {
   requirePositiveLength(length);
   const current = source.current;
   const previous = source.at(length);
   return current === undefined || previous === undefined ? undefined : current - previous;
-}
+};
 
-export function crossover(source: Series<number>, other: Series<number>): boolean {
-  const a = source.current, b = other.current, pa = source.at(1), pb = other.at(1);
-  return a !== undefined && b !== undefined && pa !== undefined && pb !== undefined ? a > b && pa <= pb : false;
-}
+export const crossover = (source: Series<number>, other: Series<number>): boolean => {
+  const currentSource = source.current;
+  const currentOther = other.current;
+  const previousSource = source.at(1);
+  const previousOther = other.at(1);
 
-export function crossunder(source: Series<number>, other: Series<number>): boolean {
-  const a = source.current, b = other.current, pa = source.at(1), pb = other.at(1);
-  return a !== undefined && b !== undefined && pa !== undefined && pb !== undefined ? a < b && pa >= pb : false;
-}
+  return (
+    currentSource !== undefined &&
+    currentOther !== undefined &&
+    previousSource !== undefined &&
+    previousOther !== undefined &&
+    currentSource > currentOther &&
+    previousSource <= previousOther
+  );
+};
+
+export const crossunder = (source: Series<number>, other: Series<number>): boolean => {
+  const currentSource = source.current;
+  const currentOther = other.current;
+  const previousSource = source.at(1);
+  const previousOther = other.at(1);
+
+  return (
+    currentSource !== undefined &&
+    currentOther !== undefined &&
+    previousSource !== undefined &&
+    previousOther !== undefined &&
+    currentSource < currentOther &&
+    previousSource >= previousOther
+  );
+};
