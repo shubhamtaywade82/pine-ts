@@ -1,0 +1,1 @@
+{"name":"ta.swma","pineVersion":6,"input":{"source":[1,2,3,4]},"expected":[null,null,null,2.5],"notes":"Fixed weights 1:2:2:1 over current-to-oldest bars."}
