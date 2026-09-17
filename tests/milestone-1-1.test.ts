@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PineRuntime, createSeries, na, nz, ta } from "../src/index.js";
-import type { Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
+import type { AsyncIterator, Bar, MarketDataProvider, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
 const bar = (time: number, close: number, isClosed = true): Bar => ({
@@ -18,9 +18,23 @@ class Provider implements MarketDataProvider {
 
   public getHistoricalBars = async (): Promise<readonly Bar[]> => this.stream;
 
-  public streamBars = async function* (): AsyncIterable<Bar> {
-    yield* this.stream;
-  }.bind(this);
+  public streamBars = (): AsyncIterable<Bar> => {
+    let index = 0;
+    const iterator: AsyncIterator<Bar> = {
+      next: async () => {
+        const value = this.stream[index];
+        if (value === undefined) {
+          return { value: undefined, done: true };
+        }
+        index += 1;
+        return { value, done: false };
+      },
+    };
+
+    return {
+      [Symbol.asyncIterator]: () => iterator,
+    };
+  };
 
   public getSymbolInfo = async (): Promise<SymbolInfo> => info;
 }
