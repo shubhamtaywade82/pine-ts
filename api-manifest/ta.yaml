@@ -1,40 +1,198 @@
-version: 6
-source: "TradingView Pine Script v6 Reference Manual"
-status: partial
 namespace: ta
+pineVersion: 6
+status: partial
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  float: number
+  int: number
+  bool: boolean
+  string: string
+  "series<float>": FloatSeries
+  "series<int>": Series<number>
+  "series<bool>": Series<boolean>
+  "series<string>": Series<string>
+
 functions:
   - name: sma
-    status: implemented
-    returns: "series<float>"
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { warmup: length - 1, na: "na source propagates" }
+    impl: { module: src/ta/core.ts, export: sma }
+    status: verified
+    vectors: [fixtures/v6/ta/sma.basic.json]
+
   - name: ema
-    status: implemented
-    returns: "series<float>"
-  - name: highest
-    status: implemented
-    returns: "series<float>"
-  - name: lowest
-    status: implemented
-    returns: "series<float>"
-  - name: change
-    status: implemented
-    returns: "series<float>"
-  - name: crossover
-    status: implemented
-    returns: "series<bool>"
-  - name: crossunder
-    status: implemented
-    returns: "series<bool>"
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { seed: "first non-na source value", alpha: "2 / (length + 1)" }
+    impl: { module: src/ta/core.ts, export: ema }
+    status: verified
+    vectors: [fixtures/v6/ta/ema.basic.json]
+
   - name: rma
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { seed: "SMA of first length non-na values", alpha: "1 / length" }
+    impl: { module: src/ta/core.ts, export: rma }
+    status: verified
+    vectors: [fixtures/v6/ta/rma.basic.json]
+
+  - name: tr
+    signature:
+      params: [{ name: handle_na, type: bool }]
+    returns: series<float>
+    implicitSources: [high, low, close]
+    semantics: { firstBar: "handle_na true uses high - low; false returns na" }
+    impl: { module: src/ta/core.ts, export: tr }
+    status: verified
+    vectors: [fixtures/v6/ta/tr.basic.json]
+
+  - name: atr
+    signature:
+      params: [{ name: length, type: int, constraints: { min: 1 } }]
+    returns: series<float>
+    implicitSources: [high, low, close]
+    semantics: { core: "ta.rma(ta.tr(true), length)" }
+    impl: { module: src/ta/core.ts, export: atr }
+    status: verified
+    vectors: [fixtures/v6/ta/atr.basic.json]
+
+  - name: highest
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { warmup: length - 1 }
+    impl: { module: src/ta/core.ts, export: highest }
+    status: verified
+    vectors: [fixtures/v6/ta/highest.basic.json]
+
+  - name: lowest
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics: { warmup: length - 1 }
+    impl: { module: src/ta/core.ts, export: lowest }
+    status: verified
+    vectors: [fixtures/v6/ta/lowest.basic.json]
+
+  - name: change
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1, default: 1 } }
+    returns: series<float>
+    impl: { module: src/ta/core.ts, export: change }
+    status: verified
+    vectors: [fixtures/v6/ta/change.basic.json]
+
+  - name: crossover
+    signature:
+      params:
+        - { name: source1, type: series<float> }
+        - { name: source2, type: series<float> }
+    returns: series<bool>
+    semantics: { na: "any na operand yields false" }
+    impl: { module: src/ta/core.ts, export: crossover }
+    status: verified
+    vectors: [fixtures/v6/ta/crossover.basic.json]
+
+  - name: crossunder
+    signature:
+      params:
+        - { name: source1, type: series<float> }
+        - { name: source2, type: series<float> }
+    returns: series<bool>
+    impl: { module: src/ta/core.ts, export: crossunder }
+    status: verified
+    vectors: [fixtures/v6/ta/crossunder.basic.json]
+
+  - name: wma
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    returns: series<float>
+    status: planned
+  - name: vwma
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    returns: series<float>
+    status: planned
+  - name: swma
+    signature: { params: [{ name: source, type: series<float> }] }
+    returns: series<float>
+    status: planned
+  - name: hma
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    returns: series<float>
     status: planned
   - name: rsi
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    returns: series<float>
+    semantics: { core: "Wilder RMA of gains and losses" }
+    status: planned
+  - name: stoch
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: high, type: series<float> }
+        - { name: low, type: series<float> }
+        - { name: length, type: int }
+    returns: series<float>
     status: planned
   - name: macd
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: fast_length, type: int }
+        - { name: slow_length, type: int }
+        - { name: signal_length, type: int }
+    returns: "tuple(series<float>, series<float>, series<float>)"
     status: planned
-  - name: atr
-    status: planned
-  - name: adx
+  - name: bb
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int }
+        - { name: mult, type: float }
+    returns: "tuple(series<float>, series<float>, series<float>)"
     status: planned
   - name: dmi
+    signature:
+      params:
+        - { name: di_length, type: int }
+        - { name: adx_smoothing, type: int }
+    returns: "tuple(series<float>, series<float>, series<float>)"
     status: planned
   - name: supertrend
+    signature:
+      params: [{ name: factor, type: float }, { name: atr_period, type: int }]
+    returns: "tuple(series<float>, series<int>)"
     status: planned
+
+variables:
+  barstate:
+    type: namespace
+    members: [isfirst, islast, ishistory, isrealtime, isnew, isconfirmed, islastconfirmedhistory]
+  syminfo:
+    type: namespace
+    members: [ticker, tickerid, basecurrency, currency, mintick, timezone, type]
+  ohlcv:
+    type: source-bundle
+    members: [open, high, low, close, volume, time, hl2, hlc3, ohlc4]
+
+providerCapabilities:
+  ohlcv:
+    requiredBy: [ta.tr, ta.atr, request.security]
+  fundamentals:
+    requiredBy: [request.financial]
+    missingBehavior: ProviderCapabilityError
