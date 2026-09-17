@@ -9,7 +9,9 @@ export type TaFunctionName =
   | "vwap" | "vwma" | "wma" | "wpr" | "obv" | "nvi" | "pvi" | "pvt" | "iii" | "relativeVolume" | "sum" | "avg"
   | "change" | "mode" | "rising";
 
-export type ImplementedTaFunctionName = "change" | "crossover" | "crossunder" | "ema" | "highest" | "lowest" | "sma";
+export type ImplementedTaFunctionName =
+  | "atr" | "cmo" | "change" | "crossover" | "crossunder" | "ema" | "highest" | "lowest" | "hma"
+  | "mom" | "rma" | "roc" | "rsi" | "sma" | "stoch" | "swma" | "tr" | "vwma" | "wma" | "wpr";
 
 export const taV6FunctionNames = [
   "accdist", "alma", "aroon", "atr", "bb", "bbw", "barssince", "bop", "cci", "cmo", "cog", "correlation",
