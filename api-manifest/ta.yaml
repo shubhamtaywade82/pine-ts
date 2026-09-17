@@ -9,7 +9,7 @@ types:
   string: string
   "series<float>": FloatSeries
   "series<int>": Series<number>
-  "series<bool>": Series<boolean>
+  "series<bool>": BooleanSeries
   "series<string>": Series<string>
 
 functions:
@@ -43,7 +43,7 @@ functions:
     returns: series<float>
     semantics: { seed: "SMA of first length non-na values", alpha: "1 / length" }
     impl: { module: src/ta/core.ts, export: rma }
-    status: verified
+    status: draft
     vectors: [fixtures/v6/ta/rma.basic.json]
 
   - name: tr
@@ -53,7 +53,7 @@ functions:
     implicitSources: [high, low, close]
     semantics: { firstBar: "handle_na true uses high - low; false returns na" }
     impl: { module: src/ta/core.ts, export: tr }
-    status: verified
+    status: draft
     vectors: [fixtures/v6/ta/tr.basic.json]
 
   - name: atr
@@ -63,7 +63,7 @@ functions:
     implicitSources: [high, low, close]
     semantics: { core: "ta.rma(ta.tr(true), length)" }
     impl: { module: src/ta/core.ts, export: atr }
-    status: verified
+    status: draft
     vectors: [fixtures/v6/ta/atr.basic.json]
 
   - name: highest
@@ -120,21 +120,29 @@ functions:
     vectors: [fixtures/v6/ta/crossunder.basic.json]
 
   - name: wma
-    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
-    status: planned
+    impl: { module: src/ta/core.ts, export: wma }
+    status: draft
+    vectors: [fixtures/v6/ta/wma.basic.json]
   - name: vwma
-    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
-    status: planned
+    impl: { module: src/ta/core.ts, export: vwma }
+    status: draft
+    vectors: [fixtures/v6/ta/vwma.basic.json]
   - name: swma
     signature: { params: [{ name: source, type: series<float> }] }
     returns: series<float>
-    status: planned
+    impl: { module: src/ta/core.ts, export: swma }
+    status: draft
+    vectors: [fixtures/v6/ta/swma.basic.json]
   - name: hma
-    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
+    signature: { params: [{ name: source, type: series<float> }, { name: length, type: int, constraints: { min: 1 } }] }
     returns: series<float>
-    status: planned
+    impl: { module: src/ta/core.ts, export: hma }
+    status: draft
+    vectors: [fixtures/v6/ta/hma.basic.json]
   - name: rsi
     signature: { params: [{ name: source, type: series<float> }, { name: length, type: int }] }
     returns: series<float>
