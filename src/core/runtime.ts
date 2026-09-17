@@ -1,17 +1,11 @@
 import type { PineContext } from "./context.js";
 import { OhlcvSeries } from "./context.js";
-import { invalidateIndicatorState } from "./indicator-cache.js";
+import { invalidateAllIndicatorState } from "./indicator-cache.js";
 import { PineState } from "./state.js";
 import type { Bar, BarState, MarketDataProvider, PineExecutionMode, SymbolInfo } from "./types.js";
 
 export type PineScript = (context: PineContext) => void | Promise<void>;
-
-export interface RuntimeOptions {
-  readonly provider: MarketDataProvider;
-  readonly symbol: string;
-  readonly timeframe: string;
-  readonly executionMode?: PineExecutionMode;
-}
+export interface RuntimeOptions { readonly provider: MarketDataProvider; readonly symbol: string; readonly timeframe: string; readonly executionMode?: PineExecutionMode; }
 
 export class PineRuntime {
   private readonly ohlcv = new OhlcvSeries();
@@ -21,16 +15,13 @@ export class PineRuntime {
   private committedState = new Map<string, unknown>();
   private currentBarTime?: number;
 
-  public constructor(private readonly options: RuntimeOptions) {
-    this.executionMode = options.executionMode ?? "historical";
-  }
+  public constructor(private readonly options: RuntimeOptions) { this.executionMode = options.executionMode ?? "historical"; }
 
   public async run(script: PineScript, bars?: readonly Bar[]): Promise<void> {
     const data = bars ?? await this.options.provider.getHistoricalBars({ symbol: this.options.symbol, timeframe: this.options.timeframe });
     this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
     for (let index = 0; index < data.length; index += 1) {
-      const bar = data[index];
-      if (bar === undefined) continue;
+      const bar = data[index]; if (bar === undefined) continue;
       this.ohlcv.commit(bar);
       await script(this.context(bar, this.createBarState(index, data.length, true, true)));
       this.committedState = this.state.snapshot();
@@ -49,9 +40,8 @@ export class PineRuntime {
       } else {
         this.state.restore(this.committedState);
         this.ohlcv.replaceCurrent(bar);
-        invalidateIndicatorState(this.ohlcv.close);
+        invalidateAllIndicatorState();
       }
-
       await script(this.context(bar, this.createBarState(index, index, isNewBar, Boolean(bar.isClosed))));
       if (bar.isClosed) this.committedState = this.state.snapshot();
       if (isNewBar) index += 1;
@@ -59,21 +49,15 @@ export class PineRuntime {
   }
 
   private context(bar: Bar, barstate: BarState): PineContext {
-    return {
-      bar, open: this.ohlcv.open, high: this.ohlcv.high, low: this.ohlcv.low, close: this.ohlcv.close,
-      volume: this.ohlcv.volume, time: this.ohlcv.time, hl2: this.ohlcv.hl2, hlc3: this.ohlcv.hlc3,
-      ohlc4: this.ohlcv.ohlc4, barstate, syminfo: this.symbolInfo!, state: this.state,
-    };
+    return { bar, open: this.ohlcv.open, high: this.ohlcv.high, low: this.ohlcv.low, close: this.ohlcv.close,
+      volume: this.ohlcv.volume, time: this.ohlcv.time, hl2: this.ohlcv.hl2, hlc3: this.ohlcv.hlc3, ohlc4: this.ohlcv.ohlc4,
+      barstate, syminfo: this.symbolInfo!, state: this.state };
   }
 
   private createBarState(index: number, total: number, isNew: boolean, isConfirmed: boolean): BarState {
     const isHistory = this.executionMode === "historical";
-    const isFirst = index === 0;
-    const isLast = isHistory ? index === total - 1 : true;
-    return {
-      index, isFirst, isLast, isHistory, isRealtime: !isHistory, isNew,
-      isConfirmed: isHistory || isConfirmed,
-      isLastConfirmedHistory: isHistory && isLast,
-    };
+    const isFirst = index === 0; const isLast = isHistory ? index === total - 1 : true;
+    return { index, isFirst, isLast, isHistory, isRealtime: !isHistory, isNew,
+      isConfirmed: isHistory || isConfirmed, isLastConfirmedHistory: isHistory && isLast };
   }
 }
