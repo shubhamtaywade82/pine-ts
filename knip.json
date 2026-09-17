@@ -1,16 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": [
-    "src/index.ts",
-    "scripts/generate-ta-inventory.ts",
-    "tests/**/*.ts"
-  ],
-  "project": [
-    "src/**/*.ts",
-    "scripts/**/*.ts",
-    "tests/**/*.ts"
-  ],
-  "ignore": [
-    "src/ta/generated.ts"
-  ]
+  "entry": ["src/index.ts", "scripts/generate-ta-inventory.ts", "tests/**/*.ts"],
+  "project": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
+  "ignore": ["src/ta/generated.ts"]
 }

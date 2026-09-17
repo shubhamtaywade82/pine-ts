@@ -6,12 +6,16 @@
   "author": "Shubham Taywade",
   "type": "module",
   "packageManager": "pnpm@12.4.2",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shubhamtaywade82/pine-ts.git"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "exports": {
@@ -20,7 +24,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",

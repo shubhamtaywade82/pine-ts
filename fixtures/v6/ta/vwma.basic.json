@@ -1,1 +1,6 @@
-{"name":"ta.vwma","pineVersion":6,"input":{"source":[1,2,3,4],"volume":[1,2,3,4],"length":3},"expected":[null,null,2.3333333333333335,3.2222222222222223]}
+{
+  "name": "ta.vwma",
+  "pineVersion": 6,
+  "input": { "source": [1, 2, 3, 4], "volume": [1, 2, 3, 4], "length": 3 },
+  "expected": [null, null, 2.3333333333333335, 3.2222222222222223]
+}

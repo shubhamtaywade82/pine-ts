@@ -7,9 +7,13 @@ const bars: readonly Bar[] = [
 ];
 
 const provider: MarketDataProvider = {
-  async getHistoricalBars() { return bars; },
+  async getHistoricalBars() {
+    return bars;
+  },
   async *streamBars() {},
-  async getSymbolInfo(symbol) { return { ticker: symbol }; },
+  async getSymbolInfo(symbol) {
+    return { ticker: symbol };
+  },
 };
 
 describe("PineRuntime", () => {

@@ -25,11 +25,7 @@ export class PineRuntime {
 
     for (const [index, bar] of data.entries()) {
       this.currentBar = bar;
-      this.session.processHistoricalBar(
-        bar,
-        () => this.execute(script),
-        index === data.length - 1,
-      );
+      this.session.processHistoricalBar(bar, () => this.execute(script), index === data.length - 1);
     }
   }
 

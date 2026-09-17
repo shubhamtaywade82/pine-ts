@@ -4,22 +4,22 @@
 
 ## Current implementation
 
-| Symbol | Implementation | Compatibility status | Notes |
-|---|---|---|---|
-| `ta.sma` | yes | verified | incremental rolling state |
-| `ta.ema` | yes | verified | incremental state, first-valid seed |
-| `ta.highest` | yes | verified | rolling window |
-| `ta.lowest` | yes | verified | rolling window |
-| `ta.change` | yes | verified | Pine history semantics |
-| `ta.crossover` | yes | verified | current/previous comparison |
-| `ta.crossunder` | yes | verified | current/previous comparison |
-| `ta.rma` | yes | draft | Wilder smoothing node; reference vector pending |
-| `ta.tr` | yes | draft | implicit OHLC source node; reference vector pending |
-| `ta.atr` | yes | draft | composed from `rma(tr(true), length)`; reference vector pending |
-| `ta.wma` | yes | draft | composable finite-window weighted average |
-| `ta.vwma` | yes | draft | source/volume weighted window |
-| `ta.swma` | yes | draft | fixed four-bar 1:2:2:1 kernel |
-| `ta.hma` | yes | draft | composed from WMA nodes |
+| Symbol          | Implementation | Compatibility status | Notes                                                           |
+| --------------- | -------------- | -------------------- | --------------------------------------------------------------- |
+| `ta.sma`        | yes            | verified             | incremental rolling state                                       |
+| `ta.ema`        | yes            | verified             | incremental state, first-valid seed                             |
+| `ta.highest`    | yes            | verified             | rolling window                                                  |
+| `ta.lowest`     | yes            | verified             | rolling window                                                  |
+| `ta.change`     | yes            | verified             | Pine history semantics                                          |
+| `ta.crossover`  | yes            | verified             | current/previous comparison                                     |
+| `ta.crossunder` | yes            | verified             | current/previous comparison                                     |
+| `ta.rma`        | yes            | draft                | Wilder smoothing node; reference vector pending                 |
+| `ta.tr`         | yes            | draft                | implicit OHLC source node; reference vector pending             |
+| `ta.atr`        | yes            | draft                | composed from `rma(tr(true), length)`; reference vector pending |
+| `ta.wma`        | yes            | draft                | composable finite-window weighted average                       |
+| `ta.vwma`       | yes            | draft                | source/volume weighted window                                   |
+| `ta.swma`       | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                   |
+| `ta.hma`        | yes            | draft                | composed from WMA nodes                                         |
 
 ## Compatibility states
 

@@ -43,9 +43,9 @@ for (const entry of manifest.functions) {
   if (entry.impl !== undefined) {
     const implementationPath = resolve(root, entry.impl.module);
     const implementation = await readFile(implementationPath, "utf8");
-    const exported = new RegExp(`export\\s+(?:const|function|class)\\s+${entry.impl.export}\\b`).test(
-      implementation,
-    );
+    const exported = new RegExp(
+      `export\\s+(?:const|function|class)\\s+${entry.impl.export}\\b`,
+    ).test(implementation);
     if (!exported) {
       throw new Error(
         `Manifest implementation mismatch: ta.${entry.name} expects ${entry.impl.export} from ${entry.impl.module}`,
@@ -54,4 +54,6 @@ for (const entry of manifest.functions) {
   }
 }
 
-console.log(`Manifest valid: ${manifest.namespace}.v${manifest.pineVersion} (${manifest.functions.length} functions).`);
+console.log(
+  `Manifest valid: ${manifest.namespace}.v${manifest.pineVersion} (${manifest.functions.length} functions).`,
+);

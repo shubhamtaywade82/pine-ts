@@ -75,11 +75,7 @@ describe("Milestone 1.2 — range and Wilder primitives", () => {
   });
 
   it("memoizes identical indicator expressions within a session", async () => {
-    const bars = [
-      makeBar(1, 10, 12, 9, 10),
-      makeBar(2, 10, 13, 9, 11),
-      makeBar(3, 11, 14, 10, 12),
-    ];
+    const bars = [makeBar(1, 10, 12, 9, 10), makeBar(2, 10, 13, 9, 11), makeBar(3, 11, 14, 10, 12)];
     const runtime = new PineRuntime({
       provider: new FixtureProvider(bars),
       symbol: "TEST",

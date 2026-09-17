@@ -52,7 +52,10 @@
           "status": { "enum": ["verified", "draft", "planned", "unsupported"] },
           "source": { "type": "string" },
           "vectors": { "type": "array", "items": { "type": "string" } },
-          "overloads": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "overloads": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
           "implicitSources": { "type": "array", "items": { "type": "string" } }
         }
       }

@@ -65,7 +65,8 @@ export class PineSession {
   }
 
   public getSymbolInfo(): SymbolInfo {
-    if (this.symbolInfo === undefined) throw new Error("PineSession symbol information is not initialized");
+    if (this.symbolInfo === undefined)
+      throw new Error("PineSession symbol information is not initialized");
     return this.symbolInfo;
   }
 

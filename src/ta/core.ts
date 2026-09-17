@@ -6,13 +6,15 @@ import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
 import { zipSeries } from "../core/series-operators.js";
 
 const requirePositiveLength = (length: number): void => {
-  if (!Number.isInteger(length) || length <= 0) throw new RangeError("length must be a positive integer");
+  if (!Number.isInteger(length) || length <= 0)
+    throw new RangeError("length must be a positive integer");
 };
 
 const requireCompatibleRuntime = (source: Series<number>, other?: Series<number>) => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("TA series require a PineSession-owned source series");
-  if (other !== undefined && other.runtime !== runtime) throw new Error("TA operands must belong to the same PineSession");
+  if (other !== undefined && other.runtime !== runtime)
+    throw new Error("TA operands must belong to the same PineSession");
   return runtime;
 };
 
@@ -113,7 +115,11 @@ export const tr = (handleNa = true): FloatSeries => {
         const previousClose = close.at(1);
         if (isNa(highValue) || isNa(lowValue)) return Number.NaN;
         if (isNa(previousClose)) return handleNa ? highValue - lowValue : Number.NaN;
-        return Math.max(highValue - lowValue, Math.abs(highValue - previousClose), Math.abs(lowValue - previousClose));
+        return Math.max(
+          highValue - lowValue,
+          Math.abs(highValue - previousClose),
+          Math.abs(lowValue - previousClose),
+        );
       },
       commit: (): void => undefined,
     };
@@ -203,7 +209,12 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
   const sqrtLength = Math.max(1, Math.floor(Math.sqrt(length)));
   const fast = wma(source, halfLength);
   const slow = wma(source, length);
-  const leading = zipSeries(fast, slow, "ta.hma.leading", (fastValue, slowValue) => 2 * fastValue - slowValue);
+  const leading = zipSeries(
+    fast,
+    slow,
+    "ta.hma.leading",
+    (fastValue, slowValue) => 2 * fastValue - slowValue,
+  );
   return wma(leading, sqrtLength) as FloatSeries;
 };
 

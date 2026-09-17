@@ -1,1 +1,7 @@
-{"name":"ta.wma","pineVersion":6,"input":{"source":[1,2,3,4],"length":3},"expected":[null,null,2.3333333333333335,2.6666666666666665],"notes":"Weights are 3,2,1 from current to oldest."}
+{
+  "name": "ta.wma",
+  "pineVersion": 6,
+  "input": { "source": [1, 2, 3, 4], "length": 3 },
+  "expected": [null, null, 2.3333333333333335, 2.6666666666666665],
+  "notes": "Weights are 3,2,1 from current to oldest."
+}
