@@ -29,13 +29,8 @@ export class PineRuntime {
   public constructor(private readonly options: RuntimeOptions) {}
 
   public async run(script: PineScript, bars?: readonly Bar[]): Promise<void> {
-    const data =
-      bars ??
-      (await this.options.provider.getHistoricalBars({
-        symbol: this.options.symbol,
-        timeframe: this.options.timeframe,
-      }));
-    this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
+    const data = await this.loadHistoricalBars(bars);
+    const symbolInfo = await this.loadSymbolInfo();
 
     for (let index = 0; index < data.length; index += 1) {
       const bar = data[index];
@@ -43,49 +38,77 @@ export class PineRuntime {
         continue;
       }
 
-      this.ohlcv.commit(bar);
-      await script(this.context(bar, this.createBarState(index, data.length, true, true, true)));
-      this.committedState = this.state.snapshot();
+      this.executeHistoricalBar(script, bar, index, data.length, symbolInfo);
     }
   }
 
   public async runRealtime(script: PineScript): Promise<void> {
-    this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
+    const symbolInfo = await this.loadSymbolInfo();
     let index = 0;
 
     for await (const bar of this.options.provider.streamBars({
       symbol: this.options.symbol,
       timeframe: this.options.timeframe,
     })) {
-      const isNewBar = this.currentBarTime === undefined || bar.time !== this.currentBarTime;
-
-      if (isNewBar) {
-        this.ohlcv.commit(bar);
-        this.currentBarTime = bar.time;
-        this.committedState = this.state.snapshot();
-      } else {
-        this.state.restore(this.committedState);
-        this.ohlcv.replaceCurrent(bar);
-        invalidateAllIndicatorState();
-      }
-
-      await script(
-        this.context(
-          bar,
-          this.createBarState(index, index, isNewBar, Boolean(bar.isClosed), false),
-        ),
-      );
+      const isNewBar = this.prepareRealtimeBar(bar);
+      await script(this.createContext(bar, this.createRealtimeBarState(index, isNewBar), symbolInfo));
 
       if (bar.isClosed) {
         this.committedState = this.state.snapshot();
       }
+
       if (isNewBar) {
         index += 1;
       }
     }
   }
 
-  private context(bar: Bar, barstate: BarState): PineContext {
+  private async loadHistoricalBars(bars?: readonly Bar[]): Promise<readonly Bar[]> {
+    return (
+      bars ??
+      (await this.options.provider.getHistoricalBars({
+        symbol: this.options.symbol,
+        timeframe: this.options.timeframe,
+      }))
+    );
+  }
+
+  private async loadSymbolInfo(): Promise<SymbolInfo> {
+    this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
+    return this.symbolInfo;
+  }
+
+  private executeHistoricalBar(
+    script: PineScript,
+    bar: Bar,
+    index: number,
+    total: number,
+    symbolInfo: SymbolInfo,
+  ): void | Promise<void> {
+    this.ohlcv.commit(bar);
+    const barState = this.createHistoricalBarState(index, total);
+    const result = script(this.createContext(bar, barState, symbolInfo));
+    this.committedState = this.state.snapshot();
+    return result;
+  }
+
+  private prepareRealtimeBar(bar: Bar): boolean {
+    const isNewBar = this.currentBarTime === undefined || bar.time !== this.currentBarTime;
+
+    if (isNewBar) {
+      this.ohlcv.commit(bar);
+      this.currentBarTime = bar.time;
+      this.committedState = this.state.snapshot();
+      return true;
+    }
+
+    this.state.restore(this.committedState);
+    this.ohlcv.replaceCurrent(bar);
+    invalidateAllIndicatorState();
+    return false;
+  }
+
+  private createContext(bar: Bar, barstate: BarState, symbolInfo: SymbolInfo): PineContext {
     return {
       bar,
       open: this.ohlcv.open,
@@ -98,9 +121,18 @@ export class PineRuntime {
       hlc3: this.ohlcv.hlc3,
       ohlc4: this.ohlcv.ohlc4,
       barstate,
-      syminfo: this.symbolInfo!,
+      syminfo: symbolInfo,
       state: this.state,
     };
+  }
+
+  private createHistoricalBarState(index: number, total: number): BarState {
+    return this.createBarState(index, total, true, true, true);
+  }
+
+  private createRealtimeBarState(index: number, isNew: boolean): BarState {
+    const isConfirmed = this.ohlcv.length > 0 && this.ohlcv.close.current !== undefined;
+    return this.createBarState(index, index, isNew, isConfirmed, false);
   }
 
   private createBarState(
