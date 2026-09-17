@@ -20,10 +20,13 @@ const requireLength = (length: number): void => {
   }
 };
 
-const getStateMap = <State>(cache: WeakMap<object, Map<number, State>>, source: object) => {
+const getStateMap = <State>(
+  cache: WeakMap<object, Map<number, State>>,
+  source: object,
+): Map<number, State> => {
   let states = cache.get(source);
   if (states === undefined) {
-    states = new Map();
+    states = new Map<number, State>();
     cache.set(source, states);
   }
   return states;
@@ -62,8 +65,8 @@ export const invalidateIndicatorState = (source: Series<number>): void => {
 export const incrementalEma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
 
-  const states = getStateMap(emaStates, source);
-  const state = getState(states, length, () => ({ processed: 0 }));
+  const states: Map<number, EmaState> = getStateMap(emaStates, source);
+  const state: EmaState = getState(states, length, () => ({ processed: 0 }));
   const alpha = 2 / (length + 1);
 
   while (state.processed < source.length) {
@@ -83,8 +86,8 @@ export const incrementalEma = (source: Series<number>, length: number): number |
 export const incrementalSma = (source: Series<number>, length: number): number | undefined => {
   requireLength(length);
 
-  const states = getStateMap(smaStates, source);
-  const state = getState(states, length, () => ({ processed: 0, queue: [], sum: 0 }));
+  const states: Map<number, SmaState> = getStateMap(smaStates, source);
+  const state: SmaState = getState(states, length, () => ({ processed: 0, queue: [], sum: 0 }));
 
   while (state.processed < source.length) {
     const value = source.get(state.processed++);
