@@ -1,0 +1,7 @@
+{
+  "name": "ta.rma",
+  "pineVersion": 6,
+  "input": { "source": [1, 2, 3, 4, 5], "length": 3 },
+  "expected": [null, null, 2, 3, 4],
+  "notes": "null represents Pine na; RMA seed is the SMA of the first length valid values."
+}
