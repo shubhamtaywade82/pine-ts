@@ -38,7 +38,7 @@ export class PineRuntime {
         continue;
       }
 
-      this.executeHistoricalBar(script, bar, index, data.length, symbolInfo);
+      await this.executeHistoricalBar(script, bar, index, data.length, symbolInfo);
     }
   }
 
@@ -51,7 +51,7 @@ export class PineRuntime {
       timeframe: this.options.timeframe,
     })) {
       const isNewBar = this.prepareRealtimeBar(bar);
-      await script(this.createContext(bar, this.createRealtimeBarState(index, isNewBar), symbolInfo));
+      await script(this.createContext(bar, this.createRealtimeBarState(index, isNewBar, bar), symbolInfo));
 
       if (bar.isClosed) {
         this.committedState = this.state.snapshot();
@@ -78,18 +78,17 @@ export class PineRuntime {
     return this.symbolInfo;
   }
 
-  private executeHistoricalBar(
+  private async executeHistoricalBar(
     script: PineScript,
     bar: Bar,
     index: number,
     total: number,
     symbolInfo: SymbolInfo,
-  ): void | Promise<void> {
+  ): Promise<void> {
     this.ohlcv.commit(bar);
     const barState = this.createHistoricalBarState(index, total);
-    const result = script(this.createContext(bar, barState, symbolInfo));
+    await script(this.createContext(bar, barState, symbolInfo));
     this.committedState = this.state.snapshot();
-    return result;
   }
 
   private prepareRealtimeBar(bar: Bar): boolean {
@@ -130,9 +129,8 @@ export class PineRuntime {
     return this.createBarState(index, total, true, true, true);
   }
 
-  private createRealtimeBarState(index: number, isNew: boolean): BarState {
-    const isConfirmed = this.ohlcv.length > 0 && this.ohlcv.close.current !== undefined;
-    return this.createBarState(index, index, isNew, isConfirmed, false);
+  private createRealtimeBarState(index: number, isNew: boolean, bar: Bar): BarState {
+    return this.createBarState(index, index, isNew, Boolean(bar.isClosed), false);
   }
 
   private createBarState(
