@@ -50,12 +50,12 @@ const createRollingStatistic = (
 
 export const variance = (source: Series<number>, length: number, biased = true): FloatSeries => {
   requirePositiveLength(length);
-  return createRollingStatistic(source, length, "ta.variance", (values) => calculateVariance(values, biased));
+  return createRollingStatistic(source, length, `ta.variance:${biased}`, (values) => calculateVariance(values, biased));
 };
 
 export const stdev = (source: Series<number>, length: number, biased = true): FloatSeries => {
   requirePositiveLength(length);
-  return createRollingStatistic(source, length, "ta.stdev", (values) => Math.sqrt(calculateVariance(values, biased)));
+  return createRollingStatistic(source, length, `ta.stdev:${biased}`, (values) => Math.sqrt(calculateVariance(values, biased)));
 };
 
 export const dev = (source: Series<number>, length: number): FloatSeries => {
