@@ -49,7 +49,7 @@ describe("Milestone 1.2 — range and Wilder primitives", () => {
     ];
     const values: number[] = [];
 
-    await run(bars, (ctx) => {
+    await run(bars, (_ctx) => {
       values.push(ta.atr(3).value);
     });
 
@@ -65,7 +65,7 @@ describe("Milestone 1.2 — range and Wilder primitives", () => {
     ];
     const values: number[] = [];
 
-    await run(bars, (ctx) => {
+    await run(bars, (_ctx) => {
       values.push(ta.tr().value);
     });
 
