@@ -48,3 +48,33 @@ describe("Milestone 1.2 — momentum oscillators", () => {
     expect(values[2]).toBeCloseTo(200);
     expect(values[3]).toBeCloseTo(100);
     expect(values[4]).toBeCloseTo(66.66666666666667);
+  });
+
+  it("calculates RSI using Wilder smoothing", async () => {
+    const values = await run((ctx) => ta.rsi(ctx.close, 3).value);
+    expect(values.slice(0, 3).every(Number.isNaN)).toBe(true);
+    expect(values.slice(3)).toEqual([100, 100]);
+  });
+
+  it("calculates stochastic oscillator from source, high and low", async () => {
+    const values = await run((ctx) => ta.stoch(ctx.close, ctx.high, ctx.low, 3).value);
+    expect(values.slice(0, 2).every(Number.isNaN)).toBe(true);
+    expect(values[2]).toBeCloseTo(75);
+    expect(values[3]).toBeCloseTo(75);
+    expect(values[4]).toBeCloseTo(75);
+  });
+
+  it("calculates Williams %R from implicit OHLC sources", async () => {
+    const values = await run(() => ta.wpr(3).value);
+    expect(values.slice(0, 2).every(Number.isNaN)).toBe(true);
+    expect(values[2]).toBeCloseTo(-25);
+    expect(values[3]).toBeCloseTo(-25);
+    expect(values[4]).toBeCloseTo(-25);
+  });
+
+  it("calculates CMO from rolling gains and losses", async () => {
+    const values = await run((ctx) => ta.cmo(ctx.close, 3).value);
+    expect(values.slice(0, 3).every(Number.isNaN)).toBe(true);
+    expect(values.slice(3)).toEqual([100, 100]);
+  });
+});
