@@ -1,6 +1,6 @@
-import { createSeries, type FloatSeries } from "./series.js";
 import { NodeRegistry } from "./node-registry.js";
 import { PineState } from "./state.js";
+import { createFloatSeries, createSeries, type FloatSeries, type Series } from "./series.js";
 import type { Bar, BarState, SymbolInfo } from "./types.js";
 
 export interface SourceBundle {
@@ -9,16 +9,13 @@ export interface SourceBundle {
   readonly low: FloatSeries;
   readonly close: FloatSeries;
   readonly volume: FloatSeries;
-  readonly time: SeriesLikeNumber;
+  readonly time: Series<number>;
   readonly hl2: FloatSeries;
   readonly hlc3: FloatSeries;
   readonly ohlc4: FloatSeries;
 }
 
-export interface SeriesLikeNumber {
-  readonly current: number | undefined;
-  at(offset: number): number | undefined;
-}
+export type BarExecutor = () => void;
 
 export class PineSession {
   public revision = 0;
@@ -37,21 +34,26 @@ export class PineSession {
   public readonly nodes = new NodeRegistry();
   public readonly state = new PineState();
   public readonly sources: SourceBundle;
-  private readonly orderedSeries: Array<{ _commit(): void; _resetWorking(): void }> = [];
+
+  private readonly orderedSeries: Array<{
+    _commit(): void;
+    _resetWorking(): void;
+  }> = [];
+  private currentTime?: number;
   private symbolInfo?: SymbolInfo;
 
   public constructor() {
-    const open = createSeries<number>(this);
-    const high = createSeries<number>(this);
-    const low = createSeries<number>(this);
-    const close = createSeries<number>(this);
-    const volume = createSeries<number>(this);
-    const time = createSeries<number>(this);
-    const hl2 = createSeries<number>(this);
-    const hlc3 = createSeries<number>(this);
-    const ohlc4 = createSeries<number>(this);
-
-    this.sources = { open, high, low, close, volume, time, hl2, hlc3, ohlc4 };
+    this.sources = {
+      open: createFloatSeries(this),
+      high: createFloatSeries(this),
+      low: createFloatSeries(this),
+      close: createFloatSeries(this),
+      volume: createFloatSeries(this),
+      time: createSeries<number>(this),
+      hl2: createFloatSeries(this),
+      hlc3: createFloatSeries(this),
+      ohlc4: createFloatSeries(this),
+    };
   }
 
   public registerSeries(series: { _commit(): void; _resetWorking(): void }): void {
@@ -63,51 +65,47 @@ export class PineSession {
   }
 
   public getSymbolInfo(): SymbolInfo {
-    if (this.symbolInfo === undefined) {
-      throw new Error("PineSession symbol information is not initialized");
-    }
+    if (this.symbolInfo === undefined) throw new Error("PineSession symbol information is not initialized");
     return this.symbolInfo;
   }
 
-  public processHistoricalBar(bar: Bar, execute: () => void): void {
+  public processHistoricalBar(bar: Bar, execute: BarExecutor): void {
     this.beginBar(bar, true, true, true);
     execute();
     this.confirmBar();
   }
 
-  public processRealtimeTick(bar: Bar, execute: () => void): void {
-    const newBar = this.currentTime !== bar.time;
-    if (newBar) {
-      this.beginBar(bar, false, true, false);
+  public processRealtimeTick(bar: Bar, execute: BarExecutor): void {
+    const isNewBar = this.currentTime === undefined || bar.time !== this.currentTime;
+
+    if (isNewBar) {
+      this.beginBar(bar, false, true, Boolean(bar.isClosed));
       execute();
+      if (bar.isClosed) this.confirmBar();
       return;
     }
 
     this.revision += 1;
     this.state.rollback();
-    this.sourcesUpdate(bar);
-    this.barstate = this.createBarState(false, false, false, Boolean(bar.isClosed));
+    this.updateSources(bar);
+    this.barstate = this.createBarState(false, false, true, Boolean(bar.isClosed));
     execute();
 
-    if (bar.isClosed) {
-      this.confirmBar();
-    }
+    if (bar.isClosed) this.confirmBar();
   }
-
-  private currentTime?: number;
 
   private beginBar(bar: Bar, history: boolean, isNew: boolean, confirmed: boolean): void {
     this.revision += 1;
     this.barIndex += 1;
     this.currentTime = bar.time;
-    this.barstate = this.createBarState(history, isNew, true, confirmed);
-    this.sourcesUpdate(bar);
+    this.barstate = this.createBarState(history, isNew, !history, confirmed);
+    this.updateSources(bar);
   }
 
   private createBarState(
     history: boolean,
     isNew: boolean,
-    isRealtime: boolean,
+    realtime: boolean,
     confirmed: boolean,
   ): BarState {
     return {
@@ -115,14 +113,14 @@ export class PineSession {
       isFirst: this.barIndex === 0,
       isLast: true,
       isHistory: history,
-      isRealtime,
+      isRealtime: realtime,
       isNew,
       isConfirmed: confirmed,
       isLastConfirmedHistory: history,
     };
   }
 
-  private sourcesUpdate(bar: Bar): void {
+  private updateSources(bar: Bar): void {
     this.sources.open._push(bar.open);
     this.sources.high._push(bar.high);
     this.sources.low._push(bar.low);
