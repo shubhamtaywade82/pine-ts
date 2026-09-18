@@ -353,6 +353,39 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/supertrend.basic.json]
 
+  - name: sar
+    signature:
+      params:
+        - { name: start, type: float }
+        - { name: increment, type: float }
+        - { name: maximum, type: float }
+    returns: series<float>
+    implicitSources: [high, low, close]
+    semantics:
+      algorithm: "literal transcription of the pine_sar re-implementation from the v6 Reference Manual entry"
+      warmup: "na on bar 0; bar 1 seeds the trend from close vs close[1] with the SAR at the previous bar's opposite extreme"
+      perBar: "acceleration step toward the extreme point, reversal when price crosses the SAR (reset to the opposite extreme), extreme/acceleration advance on continuing trends (increment capped at maximum), then clamp within the last two bars' lows (uptrend) or highs (downtrend)"
+      na: "na comparisons are false, so na inputs flow through like Pine"
+    impl: { module: src/ta/trend.ts, export: sar }
+    status: draft
+    vectors: [fixtures/v6/ta/sar.basic.json, fixtures/v6/ta/sar.cap.json]
+
+  - name: linreg
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: offset, type: int }
+    returns: series<float>
+    semantics:
+      core: "intercept + slope * (length - 1 - offset) from the least-squares fit over the last length bars with x = 0 at the oldest bar"
+      offset: "0 returns the line value at the current bar; length - 1 at the window start; other integers extrapolate"
+      warmup: "length - 1"
+      na: "na values in the window are included in the calculation and produce an na result"
+    impl: { module: src/ta/trend.ts, export: linreg }
+    status: draft
+    vectors: [fixtures/v6/ta/linreg.basic.json, fixtures/v6/ta/linreg.start.json]
+
 variables:
   barstate:
     type: namespace
@@ -366,7 +399,7 @@ variables:
 
 providerCapabilities:
   ohlcv:
-    requiredBy: [ta.tr, ta.atr, request.security]
+    requiredBy: [ta.tr, ta.atr, ta.sar, request.security]
   fundamentals:
     requiredBy: [request.financial]
     missingBehavior: ProviderCapabilityError

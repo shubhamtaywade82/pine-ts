@@ -1,0 +1,55 @@
+{
+  "name": "ta.sar",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      {
+        "high": 11,
+        "low": 9,
+        "close": 10
+      },
+      {
+        "high": 10.5,
+        "low": 8.5,
+        "close": 9.5
+      },
+      {
+        "high": 10,
+        "low": 8,
+        "close": 9
+      },
+      {
+        "high": 9.5,
+        "low": 7.5,
+        "close": 8
+      },
+      {
+        "high": 11,
+        "low": 8.5,
+        "close": 10.5
+      },
+      {
+        "high": 11.5,
+        "low": 9,
+        "close": 11
+      },
+      {
+        "high": 12,
+        "low": 9.5,
+        "close": 11.5
+      },
+      {
+        "high": 12.5,
+        "low": 10,
+        "close": 12
+      }
+    ],
+    "start": 0.02,
+    "increment": 0.1,
+    "maximum": 0.12
+  },
+  "expected": {
+    "sar": [null, 11, 11, 10.64, 7.5, 7.5, 7.98, 8.4624]
+  },
+  "notes": "Same algorithm with inc=0.1 and max=0.12 so the acceleration factor reaches its cap on the first new extreme; downtrend-to-uptrend reversal on bar 4 seeds the SAR at the old extreme."
+}

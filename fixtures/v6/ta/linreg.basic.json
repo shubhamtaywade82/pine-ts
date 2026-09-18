@@ -1,0 +1,13 @@
+{
+  "name": "ta.linreg",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 4, 8, 16],
+    "length": 3,
+    "offset": 0
+  },
+  "expected": {
+    "linreg": [null, null, 3.8333333333333335, 7.666666666666667, 15.333333333333334]
+  },
+  "notes": "linreg = intercept + slope * (length - 1 - offset) with the least-squares line fitted over the window; offset 0 returns the line value at the current bar. na until length bars and na whenever any window value is na."
+}

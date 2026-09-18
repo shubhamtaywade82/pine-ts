@@ -1,0 +1,55 @@
+{
+  "name": "ta.sar",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      {
+        "high": 11,
+        "low": 9,
+        "close": 10
+      },
+      {
+        "high": 12,
+        "low": 9.5,
+        "close": 11
+      },
+      {
+        "high": 13,
+        "low": 10,
+        "close": 12
+      },
+      {
+        "high": 12.5,
+        "low": 9.5,
+        "close": 10
+      },
+      {
+        "high": 11.5,
+        "low": 8.5,
+        "close": 9
+      },
+      {
+        "high": 10.5,
+        "low": 7.5,
+        "close": 8
+      },
+      {
+        "high": 9.5,
+        "low": 7,
+        "close": 7.5
+      },
+      {
+        "high": 12,
+        "low": 8,
+        "close": 11.5
+      }
+    ],
+    "start": 0.02,
+    "increment": 0.02,
+    "maximum": 0.2
+  },
+  "expected": {
+    "sar": [null, 9, 9, 9.16, 13, 12.91, 12.6936, 12.351984]
+  },
+  "notes": "Official pine_sar algorithm from the v6 reference: bar 0 is na; bar 1 seeds direction from close vs close[1], SAR at the previous opposite extreme; each bar applies the acceleration step, reverses when price crosses the SAR, advances the extreme/acceleration on continuing trends, then clamps SAR within the last two bars' lows (uptrend) or highs (downtrend). Uptrend-to-downtrend reversal on bar 4."
+}
