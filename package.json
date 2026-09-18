@@ -47,7 +47,7 @@
     "manifest:generate": "tsx scripts/generate-ta-inventory.ts",
     "manifest:coverage": "tsx scripts/generate-ta-inventory.ts --coverage",
     "ta:inventory": "pnpm manifest:generate",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm manifest:validate && pnpm test && pnpm spellcheck && pnpm knip && pnpm package:lint && pnpm types:check"
+    "check": "pnpm build && pnpm format:check && pnpm lint && pnpm typecheck && pnpm manifest:validate && pnpm test && pnpm spellcheck && pnpm knip && pnpm package:lint && pnpm types:check"
   },
   "dependencies": {},
   "devDependencies": {
