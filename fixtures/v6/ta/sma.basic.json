@@ -1,0 +1,10 @@
+{
+  "name": "ta.sma",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4],
+    "length": 3
+  },
+  "expected": [null, null, 2, 3],
+  "notes": "Simple rolling mean; na until the window is full."
+}

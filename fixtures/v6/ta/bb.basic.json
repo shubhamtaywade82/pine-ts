@@ -1,0 +1,15 @@
+{
+  "name": "ta.bb",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 3,
+    "mult": 2
+  },
+  "expected": {
+    "middle": [null, null, 2, 3, 4],
+    "upper": [null, null, 3.632993161855452, 4.6329931618554525, 5.6329931618554525],
+    "lower": [null, null, 0.36700683814454793, 1.367006838144548, 2.367006838144548]
+  },
+  "notes": "middle = sma(source, length); upper/lower = middle +/- mult * ta.stdev(source, length)."
+}

@@ -39,6 +39,12 @@ for (const entry of manifest.functions) {
   if (entry.status === "verified" && (entry.vectors?.length ?? 0) === 0) {
     throw new Error(`Verified function has no compatibility vectors: ta.${entry.name}`);
   }
+  if (entry.status === "draft" && entry.impl === undefined) {
+    throw new Error(`Draft function has no implementation contract: ta.${entry.name}`);
+  }
+  if (entry.status === "draft" && (entry.vectors?.length ?? 0) === 0) {
+    throw new Error(`Draft function has no compatibility vectors: ta.${entry.name}`);
+  }
 
   if (entry.impl !== undefined) {
     const implementationPath = resolve(root, entry.impl.module);
@@ -50,6 +56,14 @@ for (const entry of manifest.functions) {
       throw new Error(
         `Manifest implementation mismatch: ta.${entry.name} expects ${entry.impl.export} from ${entry.impl.module}`,
       );
+    }
+  }
+
+  for (const vector of entry.vectors ?? []) {
+    try {
+      await readFile(resolve(root, vector), "utf8");
+    } catch {
+      throw new Error(`Missing compatibility vector for ta.${entry.name}: ${vector}`);
     }
   }
 }

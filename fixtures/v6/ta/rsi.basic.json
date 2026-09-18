@@ -1,0 +1,10 @@
+{
+  "name": "ta.rsi",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 2, 1, 2],
+    "length": 3
+  },
+  "expected": [null, null, null, 66.66666666666666, 44.44444444444444, 62.96296296296296],
+  "notes": "Wilder smoothing; the first value appears on the bar that supplies the length-th change."
+}

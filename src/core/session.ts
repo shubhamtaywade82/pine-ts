@@ -142,11 +142,14 @@ export class PineSession {
   }
 
   private confirmBar(): void {
-    // Commit and reset each series in registration order so later series
-    // observe committed source values: a source that already committed keeps
-    // its working flag until reset, which would skew history offsets such as
-    // at(1) inside downstream node commits.
-    for (const series of this.orderedSeries) {
+    // Commit and reset each series atomically in reverse registration order so
+    // downstream nodes commit first and observe their dependencies' cached
+    // working values for the closing bar. Committing a dependency first resets
+    // it, so a consumer's commit-time at(0) would re-evaluate the dependency
+    // against incremental state that already advanced this bar, corrupting
+    // chains such as an EMA of a derived series. History offsets like at(1)
+    // resolve to the previous committed bar either way.
+    for (const series of this.orderedSeries.toReversed()) {
       series._commit();
       series._resetWorking();
     }

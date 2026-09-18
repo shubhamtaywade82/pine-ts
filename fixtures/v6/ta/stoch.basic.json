@@ -1,0 +1,12 @@
+{
+  "name": "ta.stoch",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4],
+    "peak": [2, 3, 4, 5],
+    "valley": [0.5, 1, 2, 3],
+    "length": 3
+  },
+  "expected": [null, null, 71.42857142857143, 75],
+  "notes": "(source - lowest) / (highest - lowest) * 100 over the window."
+}

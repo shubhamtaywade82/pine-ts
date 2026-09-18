@@ -1,0 +1,31 @@
+{
+  "name": "ta.wpr",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      {
+        "high": 2,
+        "low": 0.5,
+        "close": 1
+      },
+      {
+        "high": 3,
+        "low": 1,
+        "close": 2
+      },
+      {
+        "high": 4,
+        "low": 2,
+        "close": 3
+      },
+      {
+        "high": 5,
+        "low": 3,
+        "close": 4
+      }
+    ],
+    "length": 3
+  },
+  "expected": [null, null, -28.57142857142857, -25],
+  "notes": "William %R: (highest high - close) / (highest high - lowest low) * -100."
+}
