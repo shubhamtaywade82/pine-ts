@@ -4,22 +4,35 @@
 
 ## Current implementation
 
-| Symbol          | Implementation | Compatibility status | Notes                                                           |
-| --------------- | -------------- | -------------------- | --------------------------------------------------------------- |
-| `ta.sma`        | yes            | verified             | incremental rolling state                                       |
-| `ta.ema`        | yes            | verified             | incremental state, first-valid seed                             |
-| `ta.highest`    | yes            | verified             | rolling window                                                  |
-| `ta.lowest`     | yes            | verified             | rolling window                                                  |
-| `ta.change`     | yes            | verified             | Pine history semantics                                          |
-| `ta.crossover`  | yes            | verified             | current/previous comparison                                     |
-| `ta.crossunder` | yes            | verified             | current/previous comparison                                     |
-| `ta.rma`        | yes            | draft                | Wilder smoothing node; reference vector pending                 |
-| `ta.tr`         | yes            | draft                | implicit OHLC source node; reference vector pending             |
-| `ta.atr`        | yes            | draft                | composed from `rma(tr(true), length)`; reference vector pending |
-| `ta.wma`        | yes            | draft                | composable finite-window weighted average                       |
-| `ta.vwma`       | yes            | draft                | source/volume weighted window                                   |
-| `ta.swma`       | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                   |
-| `ta.hma`        | yes            | draft                | composed from WMA nodes                                         |
+| Symbol          | Implementation | Compatibility status | Notes                                                                     |
+| --------------- | -------------- | -------------------- | ------------------------------------------------------------------------- |
+| `ta.sma`        | yes            | verified             | incremental rolling state                                                 |
+| `ta.ema`        | yes            | verified             | incremental state, first-valid seed                                       |
+| `ta.highest`    | yes            | verified             | rolling window                                                            |
+| `ta.lowest`     | yes            | verified             | rolling window                                                            |
+| `ta.change`     | yes            | verified             | Pine history semantics                                                    |
+| `ta.crossover`  | yes            | verified             | current/previous comparison                                               |
+| `ta.crossunder` | yes            | verified             | current/previous comparison                                               |
+| `ta.rma`        | yes            | draft                | Wilder smoothing node; reference vector pending                           |
+| `ta.tr`         | yes            | draft                | implicit OHLC source node; reference vector pending                       |
+| `ta.atr`        | yes            | draft                | composed from `rma(tr(true), length)`; reference vector pending           |
+| `ta.wma`        | yes            | draft                | composable finite-window weighted average                                 |
+| `ta.vwma`       | yes            | draft                | source/volume weighted window                                             |
+| `ta.swma`       | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                             |
+| `ta.hma`        | yes            | draft                | composed from WMA nodes                                                   |
+| `ta.rsi`        | yes            | draft                | Wilder smoothing; first value on the length-th change                     |
+| `ta.roc`        | yes            | draft                | percentage rate of change                                                 |
+| `ta.mom`        | yes            | draft                | `source - source[length]`                                                 |
+| `ta.stoch`      | yes            | draft                | source against peak/valley windows                                        |
+| `ta.wpr`        | yes            | draft                | William %R over high/low windows                                          |
+| `ta.cmo`        | yes            | draft                | rolling gain/loss balance over the last length changes                    |
+| `ta.variance`   | yes            | draft                | biased/unbiased rolling variance                                          |
+| `ta.stdev`      | yes            | draft                | square root of rolling variance                                           |
+| `ta.dev`        | yes            | draft                | mean absolute deviation                                                   |
+| `ta.macd`       | yes            | draft                | `MacdResult` from EMA nodes; reference vector pending                     |
+| `ta.bb`         | yes            | draft                | `BollingerBandsResult` from SMA/stdev nodes; reference vector pending     |
+| `ta.dmi`        | yes            | draft                | `DmiResult` with Wilder-smoothed +DI/-DI/ADX; reference vector pending    |
+| `ta.supertrend` | yes            | draft                | `SupertrendResult` with carry-forward ATR bands; reference vector pending |
 
 ## Compatibility states
 
@@ -32,12 +45,11 @@ Do not promote `draft` to `verified` based on mathematical plausibility or agree
 
 ## Next implementation groups
 
-1. Momentum: `rsi`, `roc`, `mom`, `stoch`, `cmo`, `wpr`.
-2. Volatility/statistics: `stdev`, `variance`, `dev`, `bb`, `bbw`, `kc`, `kcw`.
-3. Trend: `macd`, `dmi`, `adx`, `aroon`, `supertrend`, `sar`, `linreg`.
-4. Volume/flow: `obv`, `pvt`, `pvi`, `nvi`, `mfi`, `vwap`, `accdist`.
-5. Events/windows: `barssince`, `rising`, `falling`, `valuewhen`, `highestbars`, `lowestbars`, pivots.
-6. Composite/multi-return APIs: `macd`, `bb`, `dmi`, `ichimoku`, and other tuple-returning functions.
+1. Trend (remaining): `aroon`, `sar`, `linreg`.
+2. Bands/statistics (remaining): `bbw`, `kc`, `kcw`.
+3. Volume/flow: `obv`, `pvt`, `pvi`, `nvi`, `mfi`, `vwap`, `accdist`.
+4. Events/windows: `barssince`, `rising`, `falling`, `valuewhen`, `highestbars`, `lowestbars`, pivots.
+5. Composite/multi-return APIs (remaining): `ichimoku` and other tuple-returning functions.
 
 ## Compatibility rule
 

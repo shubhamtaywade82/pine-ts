@@ -258,6 +258,7 @@ functions:
     semantics: { denominator: "length when biased, length - 1 otherwise" }
     impl: { module: src/ta/statistics.ts, export: variance }
     status: draft
+    vectors: [fixtures/v6/ta/variance.basic.json]
 
   - name: stdev
     signature:
@@ -269,6 +270,7 @@ functions:
     semantics: { core: "sqrt(ta.variance(source, length, biased))" }
     impl: { module: src/ta/statistics.ts, export: stdev }
     status: draft
+    vectors: [fixtures/v6/ta/stdev.basic.json]
 
   - name: dev
     signature:
@@ -279,36 +281,77 @@ functions:
     semantics: { core: "mean absolute deviation from the rolling SMA" }
     impl: { module: src/ta/statistics.ts, export: dev }
     status: draft
+    vectors: [fixtures/v6/ta/dev.basic.json]
 
   - name: macd
     signature:
       params:
         - { name: source, type: series<float> }
-        - { name: fast_length, type: int }
-        - { name: slow_length, type: int }
-        - { name: signal_length, type: int }
+        - { name: fast_length, type: int, constraints: { min: 1 } }
+        - { name: slow_length, type: int, constraints: { min: 1 } }
+        - { name: signal_length, type: int, constraints: { min: 1 } }
     returns: "tuple(series<float>, series<float>, series<float>)"
-    status: planned
+    semantics:
+      macdLine: "ta.ema(source, fast_length) - ta.ema(source, slow_length)"
+      signalLine: "ta.ema(macdLine, signal_length)"
+      histLine: "macdLine - signalLine"
+      result: "MacdResult { macdLine, signalLine, histLine }"
+      warmup: "defined from the first bar because the EMAs seed immediately"
+    impl: { module: src/ta/composite.ts, export: macd }
+    status: draft
+    vectors: [fixtures/v6/ta/macd.basic.json]
+
   - name: bb
     signature:
       params:
         - { name: source, type: series<float> }
-        - { name: length, type: int }
+        - { name: length, type: int, constraints: { min: 1 } }
         - { name: mult, type: float }
     returns: "tuple(series<float>, series<float>, series<float>)"
-    status: planned
+    semantics:
+      middle: "ta.sma(source, length)"
+      upper: "middle + mult * ta.stdev(source, length)"
+      lower: "middle - mult * ta.stdev(source, length)"
+      result: "BollingerBandsResult { middle, upper, lower }"
+      warmup: "length - 1"
+    impl: { module: src/ta/composite.ts, export: bb }
+    status: draft
+    vectors: [fixtures/v6/ta/bb.basic.json]
+
   - name: dmi
     signature:
       params:
-        - { name: di_length, type: int }
-        - { name: adx_smoothing, type: int }
+        - { name: di_length, type: int, constraints: { min: 1 } }
+        - { name: adx_smoothing, type: int, constraints: { min: 1 } }
     returns: "tuple(series<float>, series<float>, series<float>)"
-    status: planned
+    implicitSources: [high, low, close]
+    semantics:
+      plusDI: "100 * ta.rma(plusDM, di_length) / ta.rma(ta.tr, di_length)"
+      minusDI: "100 * ta.rma(minusDM, di_length) / ta.rma(ta.tr, di_length)"
+      adx: "100 * ta.rma(|plusDI - minusDI| / (plusDI + minusDI == 0 ? 1 : plusDI + minusDI), adx_smoothing)"
+      directionalMovement: "up = ta.change(high); down = -ta.change(low); plus/minus when one dominates and is positive, else 0"
+      result: "DmiResult { plusDI, minusDI, adx }"
+      warmup: "plusDI/minusDI from bar di_length; adx from bar di_length + adx_smoothing - 1"
+      na: "zero smoothed true range yields na DI values, matching Pine division by zero"
+    impl: { module: src/ta/composite.ts, export: dmi }
+    status: draft
+    vectors: [fixtures/v6/ta/dmi.basic.json]
+
   - name: supertrend
     signature:
-      params: [{ name: factor, type: float }, { name: atr_period, type: int }]
+      params:
+        [{ name: factor, type: float }, { name: atr_period, type: int, constraints: { min: 1 } }]
     returns: "tuple(series<float>, series<int>)"
-    status: planned
+    implicitSources: [high, low, close]
+    semantics:
+      bands: "hl2 +/- factor * ta.atr(atr_period) with carry-forward until the raw band tightens or the previous close breaks it"
+      direction: "1 while the previous ATR is na; afterwards -1 when price holds above the trailing upper band (uptrend), 1 when below the lower band (downtrend)"
+      warmup: "supertrend is na until ATR warms up; direction is 1 from the first bar"
+      firstValidBand: "the first valid raw band is adopted directly, matching nz(band[1]) whenever the band is positive"
+      result: "SupertrendResult { supertrend, direction }"
+    impl: { module: src/ta/composite.ts, export: supertrend }
+    status: draft
+    vectors: [fixtures/v6/ta/supertrend.basic.json]
 
 variables:
   barstate:

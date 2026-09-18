@@ -1,0 +1,10 @@
+{
+  "name": "ta.lowest",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 4, 2, 5, 3],
+    "length": 3
+  },
+  "expected": [null, null, 1, 2, 2],
+  "notes": "Rolling window minimum."
+}

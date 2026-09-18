@@ -1,0 +1,10 @@
+{
+  "name": "ta.ema",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 3
+  },
+  "expected": [1, 1.5, 2.25, 3.125, 4.0625],
+  "notes": "Seeded with the first source value, alpha = 2 / (length + 1)."
+}

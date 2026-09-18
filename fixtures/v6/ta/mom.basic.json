@@ -1,0 +1,10 @@
+{
+  "name": "ta.mom",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 4, 7],
+    "length": 2
+  },
+  "expected": [null, null, 3, 5],
+  "notes": "source - source[length]."
+}

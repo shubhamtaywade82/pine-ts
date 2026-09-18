@@ -2,15 +2,15 @@
 export type TaFunctionName =
   | "atr"
   | "bb"
-  | "cmo"
   | "change"
-  | "crossunder"
+  | "cmo"
   | "crossover"
+  | "crossunder"
   | "dev"
   | "dmi"
   | "ema"
-  | "hma"
   | "highest"
+  | "hma"
   | "lowest"
   | "macd"
   | "mom"
@@ -29,15 +29,18 @@ export type TaFunctionName =
   | "wpr";
 export type ImplementedTaFunctionName =
   | "atr"
-  | "cmo"
+  | "bb"
   | "change"
-  | "crossunder"
+  | "cmo"
   | "crossover"
+  | "crossunder"
   | "dev"
+  | "dmi"
   | "ema"
-  | "hma"
   | "highest"
+  | "hma"
   | "lowest"
+  | "macd"
   | "mom"
   | "rma"
   | "roc"
@@ -45,6 +48,7 @@ export type ImplementedTaFunctionName =
   | "sma"
   | "stdev"
   | "stoch"
+  | "supertrend"
   | "swma"
   | "tr"
   | "variance"
@@ -52,19 +56,19 @@ export type ImplementedTaFunctionName =
   | "wma"
   | "wpr";
 export type VerifiedTaFunctionName =
-  "change" | "crossunder" | "crossover" | "ema" | "highest" | "lowest" | "sma";
+  "change" | "crossover" | "crossunder" | "ema" | "highest" | "lowest" | "sma";
 export const taV6FunctionNames = [
   "atr",
   "bb",
-  "cmo",
   "change",
-  "crossunder",
+  "cmo",
   "crossover",
+  "crossunder",
   "dev",
   "dmi",
   "ema",
-  "hma",
   "highest",
+  "hma",
   "lowest",
   "macd",
   "mom",

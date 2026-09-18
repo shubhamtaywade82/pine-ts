@@ -1,0 +1,10 @@
+{
+  "name": "ta.dev",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4],
+    "length": 3
+  },
+  "expected": [null, null, 0.6666666666666666, 0.6666666666666666],
+  "notes": "Mean absolute deviation from the rolling mean."
+}

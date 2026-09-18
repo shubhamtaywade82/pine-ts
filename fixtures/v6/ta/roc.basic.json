@@ -1,0 +1,10 @@
+{
+  "name": "ta.roc",
+  "pineVersion": 6,
+  "input": {
+    "source": [100, 110, 99, 132],
+    "length": 2
+  },
+  "expected": [null, null, -1, 20],
+  "notes": "Percentage rate of change; na when the previous value is 0."
+}

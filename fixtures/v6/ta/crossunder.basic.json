@@ -1,0 +1,10 @@
+{
+  "name": "ta.crossunder",
+  "pineVersion": 6,
+  "input": {
+    "source": [2, 1, 2, 1],
+    "other": [1.5, 1.5, 1.5, 1.5]
+  },
+  "expected": [false, true, false, true],
+  "notes": "source crosses below other: current below, previous at or above; na history yields false."
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ta.stdev",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4],
+    "length": 3,
+    "biased": true
+  },
+  "expected": [null, null, 0.816496580927726, 0.816496580927726],
+  "notes": "Square root of the biased (population) variance."
+}

@@ -9,6 +9,7 @@ export class Series<T> {
   private workingValue: T | undefined;
   private hasWorkingValue = false;
   private workingRevision = -1;
+  private committedRevision = -1;
 
   public constructor(
     private readonly session: PineSession | undefined = undefined,
@@ -36,9 +37,14 @@ export class Series<T> {
 
     if (offset === 0) return this.currentValue();
 
-    // With an uncommitted working value the last committed value is one bar back;
-    // without one the last committed value is the current value.
-    const index = this.hasWorkingValue
+    // While the current bar is open, the newest committed value belongs to the
+    // previous bar — even when the series has not evaluated a working value at
+    // this revision yet (for example a node reading its own history mid
+    // evaluation). Once the bar committed, or for standalone series without a
+    // commit lifecycle, the newest committed value is the current value.
+    const currentBarOpen =
+      this.session !== undefined && this.committedRevision !== this.session.revision;
+    const index = currentBarOpen
       ? this.committedValues.length - offset
       : this.committedValues.length - 1 - offset;
     return index < 0 ? undefined : this.committedValues[index];
@@ -113,6 +119,7 @@ export class Series<T> {
   public _commit(): void {
     if (!this.hasWorkingValue) return;
     this.committedValues.push(this.workingValue as T);
+    if (this.session !== undefined) this.committedRevision = this.session.revision;
     this.node?.commit();
   }
 
