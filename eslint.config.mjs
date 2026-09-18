@@ -28,7 +28,11 @@ export default defineConfig(
     languageOptions: {
       globals: globals.nodeBuiltin,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ["*.config.{mjs,ts}"],
+          defaultProject: "tsconfig.json",
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
@@ -50,6 +54,17 @@ export default defineConfig(
       "unicorn/prefer-optional-catch-binding": "error",
       "unicorn/prefer-regexp-test": "error",
       "unicorn/prefer-string-starts-ends-with": "error",
+    },
+  },
+  {
+    files: ["scripts/**/*.ts", "tests/**/*.{ts,tsx}", "*.config.{mjs,ts}"],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
     },
   },
   {

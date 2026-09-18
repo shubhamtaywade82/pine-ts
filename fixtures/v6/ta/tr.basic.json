@@ -1,0 +1,13 @@
+{
+  "name": "ta.tr",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      { "high": 12, "low": 9, "close": 11 },
+      { "high": 15, "low": 14, "close": 14.5 },
+      { "high": 16, "low": 10, "close": 11 }
+    ],
+    "handle_na": true
+  },
+  "expected": [3, 4, 6]
+}

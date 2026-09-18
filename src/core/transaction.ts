@@ -7,7 +7,7 @@ export interface RealtimeCheckpoint {
 
 /** Tracks a realtime bar's working state separately from committed historical state. */
 export class RealtimeTransaction {
-  private checkpoint?: RealtimeCheckpoint;
+  private checkpoint: RealtimeCheckpoint | undefined;
 
   public begin(committedLength: number, bar: Bar): void {
     this.checkpoint = { committedLength, bar };

@@ -1,1 +1,3 @@
-export { change, crossover, crossunder, ema, highest, lowest, sma } from "./core.js";
+export * from "./core.js";
+export * from "./momentum.js";
+export * from "./statistics.js";

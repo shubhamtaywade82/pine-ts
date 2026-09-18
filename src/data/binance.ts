@@ -1,4 +1,10 @@
-import type { MarketDataProvider, HistoricalBarsRequest, StreamBarsRequest, Bar, SymbolInfo } from "../core/types.js";
+import type {
+  MarketDataProvider,
+  HistoricalBarsRequest,
+  StreamBarsRequest,
+  Bar,
+  SymbolInfo,
+} from "../core/types.js";
 
 /**
  * Adapter boundary for @nemesis-oss/binance-sdk.

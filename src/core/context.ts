@@ -1,59 +1,40 @@
-import type { Bar, BarState, SymbolInfo } from "./types.js";
-import { createSeries, type Series } from "./series.js";
+import { createUserSeries } from "./series-operators.js";
+import type { PineSession } from "./session.js";
+import type { FloatSeries, Series } from "./series.js";
 import type { PineState } from "./state.js";
+import type { Bar, BarState, SymbolInfo } from "./types.js";
 
 export interface PineContext {
   readonly bar: Bar;
-  readonly open: Series<number>;
-  readonly high: Series<number>;
-  readonly low: Series<number>;
-  readonly close: Series<number>;
-  readonly volume: Series<number>;
+  readonly open: FloatSeries;
+  readonly high: FloatSeries;
+  readonly low: FloatSeries;
+  readonly close: FloatSeries;
+  readonly volume: FloatSeries;
   readonly time: Series<number>;
-  readonly hl2: Series<number>;
-  readonly hlc3: Series<number>;
-  readonly ohlc4: Series<number>;
+  readonly hl2: FloatSeries;
+  readonly hlc3: FloatSeries;
+  readonly ohlc4: FloatSeries;
   readonly barstate: BarState;
   readonly syminfo: SymbolInfo;
   readonly state: PineState;
+  readonly series: <T>(key: string, evaluate: () => T) => Series<T>;
 }
 
-export class OhlcvSeries {
-  public readonly open = createSeries<number>();
-  public readonly high = createSeries<number>();
-  public readonly low = createSeries<number>();
-  public readonly close = createSeries<number>();
-  public readonly volume = createSeries<number>();
-  public readonly time = createSeries<number>();
-  public readonly hl2 = createSeries<number>();
-  public readonly hlc3 = createSeries<number>();
-  public readonly ohlc4 = createSeries<number>();
-
-  public commit(bar: Bar): void {
-    this.open.push(bar.open);
-    this.high.push(bar.high);
-    this.low.push(bar.low);
-    this.close.push(bar.close);
-    this.volume.push(bar.volume);
-    this.time.push(bar.time);
-    this.hl2.push((bar.high + bar.low) / 2);
-    this.hlc3.push((bar.high + bar.low + bar.close) / 3);
-    this.ohlc4.push((bar.open + bar.high + bar.low + bar.close) / 4);
-  }
-
-  public replaceCurrent(bar: Bar): void {
-    this.open.replaceCurrent(bar.open);
-    this.high.replaceCurrent(bar.high);
-    this.low.replaceCurrent(bar.low);
-    this.close.replaceCurrent(bar.close);
-    this.volume.replaceCurrent(bar.volume);
-    this.time.replaceCurrent(bar.time);
-    this.hl2.replaceCurrent((bar.high + bar.low) / 2);
-    this.hlc3.replaceCurrent((bar.high + bar.low + bar.close) / 3);
-    this.ohlc4.replaceCurrent((bar.open + bar.high + bar.low + bar.close) / 4);
-  }
-
-  public get length(): number {
-    return this.close.length;
-  }
-}
+export const createContext = (session: PineSession, bar: Bar): PineContext => ({
+  bar,
+  open: session.sources.open,
+  high: session.sources.high,
+  low: session.sources.low,
+  close: session.sources.close,
+  volume: session.sources.volume,
+  time: session.sources.time,
+  hl2: session.sources.hl2,
+  hlc3: session.sources.hlc3,
+  ohlc4: session.sources.ohlc4,
+  barstate: session.barstate,
+  syminfo: session.getSymbolInfo(),
+  state: session.state,
+  series: <T>(key: string, evaluate: () => T): Series<T> =>
+    createUserSeries(session, key, evaluate),
+});

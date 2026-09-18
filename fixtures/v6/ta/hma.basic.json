@@ -1,0 +1,7 @@
+{
+  "name": "ta.hma",
+  "pineVersion": 6,
+  "input": { "source": [1, 2, 3, 4, 5, 6, 7, 8], "length": 4 },
+  "expected": "reference-required",
+  "notes": "HMA is composed from WMA(length/2), WMA(length), and WMA(sqrt(length)); exact Pine warm-up/rounding is pinned by the reference harness before verification."
+}

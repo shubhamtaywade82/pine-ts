@@ -23,17 +23,13 @@ class Provider implements MarketDataProvider {
     const iterator: AsyncIterator<Bar> = {
       next: async () => {
         const value = this.stream[index];
-        if (value === undefined) {
-          return { value: undefined, done: true };
-        }
+        if (value === undefined) return { value: undefined, done: true };
         index += 1;
         return { value, done: false };
       },
     };
 
-    return {
-      [Symbol.asyncIterator]: () => iterator,
-    };
+    return { [Symbol.asyncIterator]: () => iterator };
   };
 
   public getSymbolInfo = async (): Promise<SymbolInfo> => info;
@@ -45,22 +41,14 @@ describe("Milestone 1.1", () => {
     expect(series.current).toBe(30);
     expect(series.at(1)).toBe(20);
     expect(series.at(3)).toBeUndefined();
-    expect(na).toBeUndefined();
+    expect(Number.isNaN(na)).toBe(true);
     expect(nz(undefined, 7)).toBe(7);
     expect(nz(5, 7)).toBe(5);
   });
 
-  it("keeps SMA and EMA incremental across bars", () => {
+  it("requires TA expressions to execute inside a Pine runtime", () => {
     const series = createSeries<number>();
-    expect(ta.sma(series, 3)).toBeUndefined();
-    series.push(1);
-    series.push(2);
-    series.push(3);
-    expect(ta.sma(series, 3)).toBe(2);
-    expect(ta.ema(series, 3)).toBe(2);
-    series.push(5);
-    expect(ta.sma(series, 3)).toBe(10 / 3);
-    expect(ta.ema(series, 3)).toBe(3.5);
+    expect(() => ta.sma(series, 3)).toThrow(/PineSession-owned/);
   });
 
   it("rolls var back on intrabar execution but preserves varip", async () => {
@@ -73,7 +61,7 @@ describe("Milestone 1.1", () => {
     });
     const seen: Array<[number, number, number, boolean]> = [];
 
-    await runtime.runRealtime(ctx => {
+    await runtime.runRealtime((ctx) => {
       const regular = ctx.state.var("regular", () => 0);
       const intrabar = ctx.state.varip("intrabar", () => 0);
       regular.set(regular.value + 1);

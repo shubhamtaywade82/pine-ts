@@ -1,5 +1,14 @@
 export { PineRuntime, type PineScript, type RuntimeOptions } from "./core/runtime.js";
-export { createSeries, type Series } from "./core/series.js";
+export { PineSession, type SourceBundle } from "./core/session.js";
+export {
+  BooleanSeries,
+  FloatSeries,
+  Series,
+  createFloatSeries,
+  createSeries,
+} from "./core/series.js";
+export { IndicatorNode, type IndicatorDef, type SeriesNode } from "./core/series-node.js";
+export { NodeRegistry, nodeKey } from "./core/node-registry.js";
 export { na, isNa, nz, type PineValue } from "./core/na.js";
 export { PineState, type PersistentCell, type PineStateSnapshot } from "./core/state.js";
 export { RealtimeTransaction, type RealtimeCheckpoint } from "./core/transaction.js";

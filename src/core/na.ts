@@ -1,9 +1,13 @@
-/** Pine's `na` value. `undefined` is used internally so TS consumers cannot accidentally treat it as a number. */
-export const na: undefined = undefined;
+/** Numeric representation of Pine's `na`. */
+export const na: number = Number.NaN;
 
 export type PineValue<T> = T | undefined;
 
-export const isNa = <T>(value: PineValue<T>): value is undefined => value === undefined;
+export function isNa(value: number | undefined): value is undefined;
+export function isNa(value: unknown): boolean;
+export function isNa(value: unknown): boolean {
+  return value === undefined || (typeof value === "number" && Number.isNaN(value));
+}
 
 export const nz = (value: number | undefined, replacement = 0): number =>
-  value === undefined || Number.isNaN(value) ? replacement : value;
+  isNa(value) ? replacement : value;

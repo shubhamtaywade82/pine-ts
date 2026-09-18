@@ -91,6 +91,7 @@ After editing, run targeted tests, formatting/lint/type checks, and the full qua
 ## Quality gate
 
 ```text
+pnpm build
 pnpm format:check
 pnpm lint
 pnpm typecheck
@@ -99,10 +100,9 @@ pnpm spellcheck
 pnpm knip
 pnpm package:lint
 pnpm types:check
-pnpm build
 ```
 
-`pnpm check` is the combined quality gate.
+`pnpm check` is the combined quality gate. It runs `pnpm build` first because the package validations (`package:lint`, `types:check`) inspect the built `dist` artifacts.
 
 ## Forbidden shortcuts
 

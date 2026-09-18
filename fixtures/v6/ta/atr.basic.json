@@ -1,0 +1,15 @@
+{
+  "name": "ta.atr",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      { "high": 12, "low": 9, "close": 11 },
+      { "high": 13, "low": 10, "close": 12 },
+      { "high": 14, "low": 11, "close": 13 },
+      { "high": 15, "low": 12, "close": 14 }
+    ],
+    "length": 3
+  },
+  "expected": [null, null, 3, 3],
+  "notes": "ATR is RMA of ta.tr(true)."
+}
