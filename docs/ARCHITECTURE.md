@@ -89,6 +89,8 @@ Do not force GoF patterns into small mathematical functions. A pattern is justif
 
 `Series<T>` stores committed values and supports Pine-style historical offsets: `at(0)` is the current value and `at(1)` is the previous value. Indicator implementations should use incremental state where appropriate and avoid unnecessary whole-history rescans.
 
+The full execution model — the series committed/working/revision state machine, the node `evaluate`/`rollback`/`commit` contract, the session lifecycle (including unconfirmed-bar discard), `var`/`varip` semantics, the `na` model, and the four executable invariants — is specified normatively in [`docs/SEMANTICS.md`](SEMANTICS.md) and enforced by `tests/invariants.test.ts` and `tests/semantics.test.ts`.
+
 ## Pine-specific invariants
 
 - No future-bar reads.
@@ -97,6 +99,8 @@ Do not force GoF patterns into small mathematical functions. A pattern is justif
 - Realtime rollback restores committed `var` state while preserving `varip` behavior.
 - Current realtime bar replacement invalidates affected incremental indicator state.
 - Independent runtimes must not share mutable execution state.
+- Every session-owned series commits exactly one value per confirmed bar, so history offsets stay aligned across series.
+- Historical and realtime committed output are replay-equivalent (I1–I4 in [`docs/SEMANTICS.md`](SEMANTICS.md)).
 
 ## Multi-timeframe requests
 

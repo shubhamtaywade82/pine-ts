@@ -58,7 +58,7 @@ pnpm typecheck
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/SEMANTICS.md`](docs/SEMANTICS.md), and [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md). The runtime's execution semantics — series state machine, node rollback/commit contract, `var`/`varip` lifecycle, `na` model, and the four executable invariants (determinism, replay equivalence, truncation equivalence, chunk invariance) — are specified in [`docs/SEMANTICS.md`](docs/SEMANTICS.md).
 
 ## License
 
