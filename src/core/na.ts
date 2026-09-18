@@ -1,5 +1,5 @@
 /** Numeric representation of Pine's `na`. */
-export const na = Number.NaN;
+export const na: number = Number.NaN;
 
 export type PineValue<T> = T | undefined;
 

@@ -31,8 +31,8 @@ export class PineSession {
     isLastConfirmedHistory: false,
   };
 
-  public readonly nodes = new NodeRegistry();
-  public readonly state = new PineState();
+  public readonly nodes: NodeRegistry = new NodeRegistry();
+  public readonly state: PineState = new PineState();
   public readonly sources: SourceBundle;
 
   private readonly orderedSeries: {
@@ -142,8 +142,14 @@ export class PineSession {
   }
 
   private confirmBar(): void {
-    for (const series of this.orderedSeries) series._commit();
-    for (const series of this.orderedSeries) series._resetWorking();
+    // Commit and reset each series in registration order so later series
+    // observe committed source values: a source that already committed keeps
+    // its working flag until reset, which would skew history offsets such as
+    // at(1) inside downstream node commits.
+    for (const series of this.orderedSeries) {
+      series._commit();
+      series._resetWorking();
+    }
     this.state.commit();
   }
 }

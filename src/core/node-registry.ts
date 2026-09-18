@@ -1,5 +1,4 @@
 import type { Series } from "./series.js";
-import type { SeriesNode } from "./series-node.js";
 
 const stableArgument = (arg: unknown): string => (isSeries(arg) ? `#${arg.id}` : stableValue(arg));
 
@@ -29,10 +28,10 @@ export class NodeRegistry {
   }
 }
 
-export const isSeries = (value: unknown): value is Series<unknown> =>
+const isSeries = (value: unknown): value is Series<unknown> =>
   typeof value === "object" && value !== null && "id" in value && "at" in value;
 
-export const stableValue = (value: unknown): string => {
+const stableValue = (value: unknown): string => {
   if (value === null) return "null";
   if (typeof value === "undefined") return "undefined";
   if (typeof value === "number" && Number.isNaN(value)) return "NaN";
@@ -42,5 +41,3 @@ export const stableValue = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stableValue).join(",")}]`;
   return JSON.stringify(value);
 };
-
-export type NodeFactory<T> = () => SeriesNode<T>;

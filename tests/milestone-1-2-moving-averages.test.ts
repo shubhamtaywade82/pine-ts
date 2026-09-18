@@ -29,7 +29,7 @@ describe("Milestone 1.2 — moving averages", () => {
 
     expect(values.slice(0, 2).every(Number.isNaN)).toBe(true);
     expect(values[2]).toBeCloseTo(14 / 6);
-    expect(values[3]).toBeCloseTo(16 / 6);
+    expect(values[3]).toBeCloseTo(20 / 6);
   });
 
   it("calculates VWMA from price and volume", async () => {

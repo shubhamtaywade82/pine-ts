@@ -77,12 +77,22 @@ export const rsi = (source: Series<number>, length: number): FloatSeries => {
       }),
       evaluate: (state: Readonly<State>): number => {
         const current = source.at(0);
-        if (isNa(current) || !state.seededSource || state.seedCount < length) return Number.NaN;
+        if (isNa(current) || !state.seededSource) return Number.NaN;
         const delta = current - state.previousSource;
         const gain = Math.max(delta, 0);
         const loss = Math.max(-delta, 0);
-        const averageGain = (state.averageGain * (length - 1) + gain) / length;
-        const averageLoss = (state.averageLoss * (length - 1) + loss) / length;
+        // Wilder seeding completes on the bar that supplies the length-th
+        // change, so the seeding bar itself must already report an RSI value.
+        let averageGain: number;
+        let averageLoss: number;
+        if (state.seedCount < length - 1) return Number.NaN;
+        if (state.seedCount === length - 1) {
+          averageGain = (state.gainSum + gain) / length;
+          averageLoss = (state.lossSum + loss) / length;
+        } else {
+          averageGain = (state.averageGain * (length - 1) + gain) / length;
+          averageLoss = (state.averageLoss * (length - 1) + loss) / length;
+        }
         if (averageLoss === 0) return 100;
         if (averageGain === 0) return 0;
         return 100 - 100 / (1 + averageGain / averageLoss);

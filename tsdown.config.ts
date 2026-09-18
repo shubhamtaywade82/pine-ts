@@ -1,8 +1,12 @@
 import { defineConfig } from "tsdown";
+import type { UserConfig } from "tsdown";
 
-export default defineConfig({
+const config: UserConfig = defineConfig({
   entry: ["src/index.ts"],
   format: ["esm"],
+  // The package is ESM ("type": "module"), so emit .js/.d.ts to match the
+  // exports map in package.json instead of the .mjs/.d.mts defaults.
+  outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
   dts: {
     sourcemap: true,
   },
@@ -14,3 +18,5 @@ export default defineConfig({
   attw: "ci-only",
   failOnWarn: "ci-only",
 });
+
+export default config;

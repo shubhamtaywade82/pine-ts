@@ -1,7 +1,8 @@
 import { createContext, type PineContext } from "./context.js";
 import { setCurrentSession } from "./execution-context.js";
-import { PineSession } from "./session.js";
-import type { Bar, MarketDataProvider, PineExecutionMode, SymbolInfo } from "./types.js";
+import { PineSession, type SourceBundle } from "./session.js";
+import type { PineState } from "./state.js";
+import type { Bar, BarState, MarketDataProvider, PineExecutionMode, SymbolInfo } from "./types.js";
 
 export type PineScript = (context: PineContext) => void;
 
@@ -41,15 +42,15 @@ export class PineRuntime {
     }
   }
 
-  public get sources() {
+  public get sources(): SourceBundle {
     return this.session.sources;
   }
 
-  public get state() {
+  public get state(): PineState {
     return this.session.state;
   }
 
-  public get currentBarState() {
+  public get currentBarState(): BarState {
     return this.session.barstate;
   }
 

@@ -26,12 +26,9 @@ type Evaluator = (context: Parameters<PineScript>[0]) => number;
 const run = async (evaluate: Evaluator): Promise<number[]> => {
   const values: number[] = [];
   const runtime = new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1m" });
-  await runtime.run(
-    (ctx) => {
-      values.push(evaluate(ctx));
-    },
-    bars,
-  );
+  await runtime.run((ctx) => {
+    values.push(evaluate(ctx));
+  }, bars);
   return values;
 };
 

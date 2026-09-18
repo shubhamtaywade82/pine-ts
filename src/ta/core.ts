@@ -219,15 +219,10 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
   const sqrtLength = Math.max(1, Math.floor(Math.sqrt(length)));
   const fast = wma(source, halfLength);
   const slow = wma(source, length);
-  const leading = zipSeries(
-    fast,
-    slow,
-    "ta.hma.leading",
-    (fastValue, slowValue) => {
-      if (fastValue === undefined || slowValue === undefined) return Number.NaN;
-      return 2 * fastValue - slowValue;
-    },
-  );
+  const leading = zipSeries(fast, slow, "ta.hma.leading", (fastValue, slowValue) => {
+    if (fastValue === undefined || slowValue === undefined) return Number.NaN;
+    return 2 * fastValue - slowValue;
+  });
   return wma(leading, sqrtLength);
 };
 

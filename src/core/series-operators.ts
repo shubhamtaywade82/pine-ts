@@ -1,25 +1,7 @@
 import { nodeKey } from "./node-registry.js";
 import { IndicatorNode } from "./series-node.js";
 import type { PineSession } from "./session.js";
-import { FloatSeries, Series } from "./series.js";
-
-export const mapSeries = <T, U>(
-  source: Series<T>,
-  name: string,
-  map: (value: T | undefined) => U,
-): Series<U> => {
-  const runtime = source.runtime;
-  if (runtime === undefined) throw new Error("Derived series require a PineSession-owned source");
-
-  return runtime.nodes.getOrCreate(nodeKey(name, source), () => {
-    const definition = {
-      init: (): null => null,
-      evaluate: (): U => map(source.at(0)),
-      commit: (): void => undefined,
-    };
-    return new Series(runtime, new IndicatorNode(definition));
-  });
-};
+import { Series } from "./series.js";
 
 export const zipSeries = <A, B, U>(
   left: Series<A>,
@@ -43,24 +25,6 @@ export const zipSeries = <A, B, U>(
     };
     return new Series(runtime, new IndicatorNode(definition));
   });
-};
-
-export const mapFloatSeries = (
-  source: Series<number>,
-  name: string,
-  map: (value: number | undefined) => number,
-): FloatSeries => {
-  const runtime = source.runtime;
-  if (runtime === undefined) throw new Error("Derived series require a PineSession-owned source");
-
-  return runtime.nodes.getOrCreate(nodeKey(name, source), () => {
-    const definition = {
-      init: (): null => null,
-      evaluate: (): number => map(source.at(0)),
-      commit: (): void => undefined,
-    };
-    return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
 };
 
 export const createUserSeries = <T>(

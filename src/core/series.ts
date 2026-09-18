@@ -4,17 +4,17 @@ import type { SeriesNode } from "./series-node.js";
 export class Series<T> {
   private static nextId = 1;
 
-  public readonly id = Series.nextId++;
+  public readonly id: number = Series.nextId++;
   private readonly committedValues: T[] = [];
   private workingValue: T | undefined;
   private hasWorkingValue = false;
   private workingRevision = -1;
 
   public constructor(
-    private readonly session?: PineSession,
-    private readonly node?: SeriesNode<T>,
+    private readonly session: PineSession | undefined = undefined,
+    private readonly node: SeriesNode<T> | undefined = undefined,
   ) {
-    session?.registerSeries(this);
+    this.session?.registerSeries(this);
   }
 
   public get current(): T | undefined {
@@ -34,24 +34,28 @@ export class Series<T> {
       throw new RangeError("Series history offset must be a non-negative integer");
     }
 
-    if (offset === 0) {
-      if (this.hasWorkingValue) {
-        const revision = this.session?.revision ?? 0;
-        if (this.workingRevision !== revision) {
-          this.workingValue = this.node?.evaluate();
-          this.hasWorkingValue = true;
-          this.workingRevision = revision;
-        }
-        return this.workingValue;
-      }
+    if (offset === 0) return this.currentValue();
 
-      return this.committedValues[this.committedValues.length - 1];
-    }
-
+    // With an uncommitted working value the last committed value is one bar back;
+    // without one the last committed value is the current value.
     const index = this.hasWorkingValue
       ? this.committedValues.length - offset
       : this.committedValues.length - 1 - offset;
     return index < 0 ? undefined : this.committedValues[index];
+  }
+
+  private currentValue(): T | undefined {
+    const revision = this.session?.revision ?? 0;
+    // Derived series re-evaluate whenever the session revision advances, even
+    // after a working-value reset, so historical bars never observe the stale
+    // committed value from the previous bar.
+    if (this.node !== undefined && this.workingRevision !== revision) {
+      this.workingValue = this.node.evaluate();
+      this.hasWorkingValue = true;
+      this.workingRevision = revision;
+    }
+    if (this.hasWorkingValue) return this.workingValue;
+    return this.committedValues[this.committedValues.length - 1];
   }
 
   public history(): readonly T[] {
@@ -59,20 +63,26 @@ export class Series<T> {
   }
 
   public push(value: T): void {
+    // Standalone (session-less) series have no commit lifecycle, so the pushed
+    // value is immediately the committed current value.
+    if (this.session === undefined) {
+      this.committedValues.push(value);
+      return;
+    }
     this.workingValue = value;
     this.hasWorkingValue = true;
-    this.workingRevision = this.session?.revision ?? 0;
-    if (this.session === undefined) this.committedValues.push(value);
+    this.workingRevision = this.session.revision;
   }
 
   public replaceCurrent(value: T): void {
-    this.workingValue = value;
-    this.hasWorkingValue = true;
-    this.workingRevision = this.session?.revision ?? 0;
     if (this.session === undefined) {
       if (this.committedValues.length === 0) this.committedValues.push(value);
       else this.committedValues[this.committedValues.length - 1] = value;
+      return;
     }
+    this.workingValue = value;
+    this.hasWorkingValue = true;
+    this.workingRevision = this.session.revision;
   }
 
   public truncate(length: number): void {
@@ -118,30 +128,25 @@ export class Series<T> {
 }
 
 export class FloatSeries extends Series<number> {
-  public override at(offset: number): number {
-    return super.at(offset) ?? Number.NaN;
-  }
-
+  // `current`/`value` follow Pine float semantics: a missing value reads as `na`
+  // (NaN). History offsets keep `undefined` so callers can distinguish missing
+  // history from a computed na value.
   public override get current(): number {
-    return this.at(0);
+    return this.at(0) ?? Number.NaN;
   }
 
   public override get value(): number {
-    return this.at(0);
+    return this.at(0) ?? Number.NaN;
   }
 }
 
 export class BooleanSeries extends Series<boolean> {
-  public override at(offset: number): boolean {
-    return super.at(offset) ?? false;
-  }
-
   public override get current(): boolean {
-    return this.at(0);
+    return this.at(0) ?? false;
   }
 
   public override get value(): boolean {
-    return this.at(0);
+    return this.at(0) ?? false;
   }
 }
 
