@@ -1,0 +1,12 @@
+{
+  "name": "ta.rising",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 11, 12, 11.5, 11, 10.5, 10.5, 11],
+    "length": 2
+  },
+  "expected": {
+    "rising": [false, false, true, false, false, false, false, false]
+  },
+  "notes": "Strictly increasing chain over the current value and the last 2 non-na prior values (12 > 11 > 10 on bar 2). Equal adjacent values (bars 5-6) break strictness."
+}

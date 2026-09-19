@@ -72,10 +72,12 @@ functions:
         - { name: source, type: series<float> }
         - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
-    semantics: { warmup: length - 1 }
+    semantics:
+      warmup: length - 1
+      na: "v6 remark: na values are ignored; the window collects the last length non-na values, and a na current value yields na"
     impl: { module: src/ta/core.ts, export: highest }
     status: verified
-    vectors: [fixtures/v6/ta/highest.basic.json]
+    vectors: [fixtures/v6/ta/highest.basic.json, fixtures/v6/ta/highest.na.json]
 
   - name: lowest
     signature:
@@ -83,7 +85,9 @@ functions:
         - { name: source, type: series<float> }
         - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
-    semantics: { warmup: length - 1 }
+    semantics:
+      warmup: length - 1
+      na: "v6 remark: na values are ignored; the window collects the last length non-na values, and a na current value yields na"
     impl: { module: src/ta/core.ts, export: lowest }
     status: verified
     vectors: [fixtures/v6/ta/lowest.basic.json]
@@ -255,7 +259,9 @@ functions:
         - { name: length, type: int, constraints: { min: 1 } }
         - { name: biased, type: bool, default: true }
     returns: series<float>
-    semantics: { denominator: "length when biased, length - 1 otherwise" }
+    semantics:
+      denominator: "length when biased, length - 1 otherwise"
+      na: "v6 remark: na values are ignored; the window collects the last length non-na values"
     impl: { module: src/ta/statistics.ts, export: variance }
     status: draft
     vectors: [fixtures/v6/ta/variance.basic.json]
@@ -267,10 +273,12 @@ functions:
         - { name: length, type: int, constraints: { min: 1 } }
         - { name: biased, type: bool, default: true }
     returns: series<float>
-    semantics: { core: "sqrt(ta.variance(source, length, biased))" }
+    semantics:
+      core: "sqrt(ta.variance(source, length, biased))"
+      na: "v6 remark: na values are ignored; the window collects the last length non-na values"
     impl: { module: src/ta/statistics.ts, export: stdev }
     status: draft
-    vectors: [fixtures/v6/ta/stdev.basic.json]
+    vectors: [fixtures/v6/ta/stdev.basic.json, fixtures/v6/ta/stdev.na.json]
 
   - name: dev
     signature:
@@ -278,7 +286,9 @@ functions:
         - { name: source, type: series<float> }
         - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
-    semantics: { core: "mean absolute deviation from the rolling SMA" }
+    semantics:
+      core: "mean absolute deviation from the rolling SMA"
+      na: "v6 remark: na values are ignored; the window collects the last length non-na values"
     impl: { module: src/ta/statistics.ts, export: dev }
     status: draft
     vectors: [fixtures/v6/ta/dev.basic.json]
@@ -386,6 +396,274 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/linreg.basic.json, fixtures/v6/ta/linreg.start.json]
 
+  - name: bbw
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: mult, type: float }
+    returns: series<float>
+    semantics:
+      core: "(((basis + dev) - (basis - dev)) / basis) * 100 with basis = ta.sma(source, length), dev = mult * ta.stdev(source, length)"
+      scale: "the v6 reference re-implementation multiplies by 100, so the result is a percentage"
+      warmup: "length - 1"
+      na: "inherited from the sma/stdev windows; a zero basis divides to na"
+    impl: { module: src/ta/bands.ts, export: bbw }
+    status: draft
+    vectors: [fixtures/v6/ta/bbw.basic.json]
+
+  - name: kc
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: mult, type: float }
+        - { name: useTrueRange, type: bool, default: true }
+    returns: "tuple(series<float>, series<float>, series<float>)"
+    implicitSources: [high, low, close]
+    semantics:
+      basis: "ta.ema(source, length)"
+      span: "ta.tr when useTrueRange, otherwise (high - low)"
+      rangeEma: "ta.ema(span, length)"
+      bands: "[basis, basis + rangeEma * mult, basis - rangeEma * mult]"
+      result: "KeltnerChannelsResult { middle, upper, lower }"
+      warmup: "defined from the first bar because the EMAs seed immediately"
+    impl: { module: src/ta/bands.ts, export: kc }
+    status: draft
+    vectors: [fixtures/v6/ta/kc.basic.json, fixtures/v6/ta/kc.range.json]
+
+  - name: kcw
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: mult, type: float }
+        - { name: useTrueRange, type: bool, default: true }
+    returns: series<float>
+    implicitSources: [high, low, close]
+    semantics:
+      core: "((basis + rangeEma * mult) - (basis - rangeEma * mult)) / basis from the ta.kc components"
+      scale: "unlike ta.bbw the v6 reference re-implementation has no * 100 here"
+      na: "a zero basis divides to na"
+    impl: { module: src/ta/bands.ts, export: kcw }
+    status: draft
+    vectors: [fixtures/v6/ta/kcw.basic.json]
+
+  - name: obv
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [close, volume]
+    semantics:
+      core: "ta.cum(math.sign(ta.change(close)) * volume) per the official v6 re-implementation"
+      na: "a na change (first bar or na close) or na volume contributes nothing, matching cum() skipping na terms"
+      firstBar: "0"
+    impl: { module: src/ta/volume.ts, export: obv }
+    status: draft
+    vectors: [fixtures/v6/ta/obv.basic.json]
+
+  - name: pvt
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [close, volume]
+    semantics:
+      core: "ta.cum((ta.change(close) / close[1]) * volume) per the official v6 re-implementation"
+      na: "a zero previous close divides to na, so the bar contributes nothing"
+      firstBar: "0"
+    impl: { module: src/ta/volume.ts, export: pvt }
+    status: draft
+    vectors: [fixtures/v6/ta/pvt.basic.json]
+
+  - name: pvi
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [close, volume]
+    semantics:
+      core: "seeds at 1.0 and updates only when volume > volume[1]: prev + ((close - close[1]) / close[1]) * prev"
+      carry: "a zero or na close on either side carries the previous value; a na current volume makes the comparison false"
+      seed: "nz(prev, 0) == 0 promotes back to the 1.0 seed"
+    impl: { module: src/ta/volume.ts, export: pvi }
+    status: draft
+    vectors: [fixtures/v6/ta/pvi.basic.json]
+
+  - name: nvi
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [close, volume]
+    semantics:
+      core: "seeds at 1.0 and updates only when volume < volume[1]: prev + ((close - close[1]) / close[1]) * prev"
+      carry: "same carry rules as ta.pvi"
+    impl: { module: src/ta/volume.ts, export: nvi }
+    status: draft
+    vectors: [fixtures/v6/ta/nvi.basic.json]
+
+  - name: mfi
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    implicitSources: [volume]
+    semantics:
+      core: "official v6 re-implementation with math.sum windows, not Wilder smoothing"
+      upper: "math.sum(volume * (ta.change(source) <= 0 ? 0 : source), length)"
+      lower: "math.sum(volume * (ta.change(source) >= 0 ? 0 : source), length)"
+      value: "100 - 100 / (1 + upper / lower)"
+      naComparisons: "Pine v6 comparisons against na are false, so the first bar's na change adds volume * source to BOTH windows"
+      na: "na when the window holds fewer than length non-na flows, and na when lower = 0 (division by zero)"
+      warmup: "first value on bar length - 1"
+    impl: { module: src/ta/volume.ts, export: mfi }
+    status: draft
+    vectors: [fixtures/v6/ta/mfi.basic.json]
+
+  - name: vwap
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - {
+            name: anchor,
+            type: series<bool>,
+            default: "daily boundary change in the symbol timezone",
+          }
+    returns: series<float>
+    implicitSources: [volume, time]
+    semantics:
+      core: "anchored cumulative sum(source * volume) / sum(volume)"
+      anchor: "the anchor condition resets the sums; the anchor bar itself starts the new accumulation window"
+      default: "v6 documents the default anchor as timeframe.change('1D'); pine-ts derives it from bar times and the symbol timezone"
+      na: "na until the first anchor fires; bars with a na source or na volume contribute nothing"
+      planned: "the stdev_mult tuple overload [vwap, upper, lower] is planned and not shipped because the v6 reference does not document the band formula"
+    impl: { module: src/ta/volume.ts, export: vwap }
+    status: draft
+    vectors: [fixtures/v6/ta/vwap.basic.json, fixtures/v6/ta/vwap.anchor.json]
+
+  - name: accdist
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [high, low, close, volume]
+    semantics:
+      core: "ta.cum(((close - low) - (high - close)) / (high - low) * volume), the standard Chaikin accumulation/distribution line"
+      provenance: "the v6 reference entry documents the variable but ships no re-implementation, so the formula follows the TradingView chart indicator"
+      na: "a zero bar range divides to na, so the bar contributes nothing"
+    impl: { module: src/ta/volume.ts, export: accdist }
+    status: draft
+    vectors: [fixtures/v6/ta/accdist.basic.json]
+
+  - name: barssince
+    signature:
+      params:
+        - { name: condition, type: series<bool> }
+    returns: series<int>
+    semantics:
+      value: "0 when the condition holds on the current bar; the bar distance to the last true bar otherwise"
+      na: "na when the condition has never been true"
+      pineTs: "numeric na surfaces as FloatSeries NaN per the repo convention"
+    impl: { module: src/ta/events.ts, export: barssince }
+    status: draft
+    vectors: [fixtures/v6/ta/barssince.basic.json]
+
+  - name: rising
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<bool>
+    semantics:
+      core: "strictly increasing chain over the current value and the last length non-na prior values"
+      na: "v6 remark: na values are ignored; the function calculates on the length quantity of non-na values, and a na current value yields false"
+      warmup: "false until length non-na prior values exist"
+    impl: { module: src/ta/events.ts, export: rising }
+    status: draft
+    vectors: [fixtures/v6/ta/rising.basic.json]
+
+  - name: falling
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<bool>
+    semantics:
+      core: "strictly decreasing chain over the current value and the last length non-na prior values"
+      na: "same model as ta.rising"
+    impl: { module: src/ta/events.ts, export: falling }
+    status: draft
+    vectors: [fixtures/v6/ta/falling.basic.json]
+
+  - name: valuewhen
+    signature:
+      params:
+        - { name: condition, type: series<bool> }
+        - { name: source, type: series<float> }
+        - { name: occurrence, type: int, constraints: { min: 0 } }
+    returns: series<float>
+    semantics:
+      core: "value of source on the nth most recent bar where condition was true; 0 is the most recent occurrence and the current bar counts"
+      na: "na until enough occurrences exist"
+      pineTs: "generic over the source value type; na surfaces as undefined on Series<T>"
+    impl: { module: src/ta/events.ts, export: valuewhen }
+    status: draft
+    vectors: [fixtures/v6/ta/valuewhen.basic.json]
+
+  - name: highestbars
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<int>
+    semantics:
+      core: "offset to the highest bar over the last length non-na values, reported as a negative bar count"
+      ties: "the v6 reference does not document tie-breaking; pine-ts resolves ties toward the most recent bar (offset closest to zero)"
+      na: "na during warm-up or on a na current value; numeric na surfaces as FloatSeries NaN"
+    impl: { module: src/ta/events.ts, export: highestbars }
+    status: draft
+    vectors: [fixtures/v6/ta/highestbars.basic.json]
+
+  - name: lowestbars
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<int>
+    semantics:
+      core: "offset to the lowest bar over the last length non-na values, reported as a negative bar count"
+      ties: "same most-recent tie rule as ta.highestbars"
+      na: "same model as ta.highestbars"
+    impl: { module: src/ta/events.ts, export: lowestbars }
+    status: draft
+    vectors: [fixtures/v6/ta/lowestbars.basic.json]
+
+  - name: pivothigh
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: leftbars, type: int, constraints: { min: 1 } }
+        - { name: rightbars, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    implicitSources: [high]
+    semantics:
+      core: "price of the pivot high point or na; the candidate sits rightbars back and must be strictly greater than every non-na neighbor in the leftbars + rightbars window"
+      confirmation: "the value only appears once the right side fully elapsed (no lookahead)"
+      ties: "the v6 reference does not document tie behavior; pine-ts requires strict dominance, so an equal neighbor blocks the pivot"
+      na: "na neighbors are ignored (v6 'na values are ignored' convention); na when the window is incomplete"
+      overloads: "pivothigh(leftbars, rightbars) uses the session high series"
+    impl: { module: src/ta/events.ts, export: pivothigh }
+    status: draft
+    vectors: [fixtures/v6/ta/pivothigh.basic.json]
+
+  - name: pivotlow
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: leftbars, type: int, constraints: { min: 1 } }
+        - { name: rightbars, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    implicitSources: [low]
+    semantics:
+      core: "mirror of ta.pivothigh: the candidate must be strictly lower than every non-na neighbor"
+      overloads: "pivotlow(leftbars, rightbars) uses the session low series"
+    impl: { module: src/ta/events.ts, export: pivotlow }
+    status: draft
+    vectors: [fixtures/v6/ta/pivotlow.basic.json]
+
 variables:
   barstate:
     type: namespace
@@ -399,7 +677,23 @@ variables:
 
 providerCapabilities:
   ohlcv:
-    requiredBy: [ta.tr, ta.atr, ta.sar, request.security]
+    requiredBy:
+      [
+        ta.tr,
+        ta.atr,
+        ta.sar,
+        ta.wpr,
+        ta.kc,
+        ta.kcw,
+        ta.obv,
+        ta.pvt,
+        ta.pvi,
+        ta.nvi,
+        ta.mfi,
+        ta.vwap,
+        ta.accdist,
+        request.security,
+      ]
   fundamentals:
     requiredBy: [request.financial]
     missingBehavior: ProviderCapabilityError

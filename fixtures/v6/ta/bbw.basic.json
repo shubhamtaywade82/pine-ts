@@ -1,0 +1,13 @@
+{
+  "name": "ta.bbw",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 3,
+    "mult": 2
+  },
+  "expected": {
+    "bbw": [null, null, 163.2993161855452, 108.8662107903635, 81.64965809277261]
+  },
+  "notes": "Official v6 re-implementation: (((basis + dev) - (basis - dev)) / basis) * 100 with basis = ta.sma(source, length), dev = mult * ta.stdev(source, length). The reference multiplies by 100."
+}

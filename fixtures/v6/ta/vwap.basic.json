@@ -1,0 +1,13 @@
+{
+  "name": "ta.vwap",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 11, 10.5, 11.2],
+    "volume": [100, 200, 150, 300],
+    "anchor": "single-session"
+  },
+  "expected": {
+    "vwap": [10, 10.666666666666666, 10.61111111111111, 10.846666666666666]
+  },
+  "notes": "Anchored cumulative sum(source * volume) / sum(volume). All bars share one session, so the default daily anchor never resets after the first bar."
+}

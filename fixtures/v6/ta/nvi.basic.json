@@ -1,0 +1,12 @@
+{
+  "name": "ta.nvi",
+  "pineVersion": 6,
+  "input": {
+    "close": [10, 11, 10, 11, 10.5],
+    "volume": [100, 150, 120, 200, 180]
+  },
+  "expected": {
+    "nvi": [1, 1, 0.9090909090909091, 0.9090909090909091, 0.8677685950413223]
+  },
+  "notes": "Official v6 re-implementation: seeds at 1.0 and updates only when volume < volume[1]; otherwise carries. Bars 2 and 4 update because volume fell."
+}

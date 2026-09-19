@@ -1,0 +1,12 @@
+{
+  "name": "ta.highestbars",
+  "pineVersion": 6,
+  "input": {
+    "source": [5, 1, 2, 3, 3, 4, 2, 1],
+    "length": 3
+  },
+  "expected": {
+    "highestbars": [null, null, -2, 0, 0, 0, -1, -2]
+  },
+  "notes": "Negative offset to the highest bar over the last 3 non-na values. Bar 4 pins the tie rule: the max 3 appears at offsets 0 and 1 and resolves to the most recent bar (0)."
+}

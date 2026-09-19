@@ -324,6 +324,51 @@ const scenarios: readonly Scenario[] = [
       capture["above"] = ctx.series("above", () => (spread.value ?? Number.NaN) > 0);
     },
   },
+  {
+    name: "volume-cumulative",
+    build: (_ctx, capture) => {
+      capture["obv"] = ta.obv();
+      capture["pvt"] = ta.pvt();
+      capture["accdist"] = ta.accdist();
+    },
+  },
+  {
+    name: "volume-index",
+    build: (_ctx, capture) => {
+      capture["pvi"] = ta.pvi();
+      capture["nvi"] = ta.nvi();
+    },
+  },
+  {
+    name: "mfi-window",
+    build: (ctx, capture) => {
+      capture["mfi14"] = ta.mfi(ctx.hlc3, 14);
+    },
+  },
+  {
+    name: "vwap-daily-anchor",
+    build: (ctx, capture) => {
+      capture["vwap"] = ta.vwap(ctx.close);
+    },
+  },
+  {
+    name: "events-stateful",
+    build: (ctx, capture) => {
+      const aboveMid = ctx.series("above-mid", () => ctx.close.value > 100);
+      capture["barssince"] = ta.barssince(aboveMid);
+      capture["valuewhen"] = ta.valuewhen(aboveMid, ctx.close, 0);
+      capture["valuewhen1"] = ta.valuewhen(aboveMid, ctx.close, 1);
+    },
+  },
+  {
+    name: "keltner-bands",
+    build: (ctx, capture) => {
+      const channels = ta.kc(ctx.close, 9, 2, true);
+      capture["middle"] = channels.middle;
+      capture["upper"] = channels.upper;
+      capture["kcw"] = ta.kcw(ctx.close, 9, 2, false);
+    },
+  },
 ];
 
 describe("Phase 0 invariants", () => {

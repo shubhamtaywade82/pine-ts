@@ -1,0 +1,12 @@
+{
+  "name": "ta.pvt",
+  "pineVersion": 6,
+  "input": {
+    "close": [10, 11, 10.5, 11.55],
+    "volume": [100, 200, 150, 300]
+  },
+  "expected": {
+    "pvt": [0, 20, 13.181818181818182, 43.1818181818182]
+  },
+  "notes": "Official v6 re-implementation: ta.cum((ta.change(close) / close[1]) * volume)."
+}

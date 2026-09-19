@@ -1,0 +1,24 @@
+{
+  "name": "ta.kcw",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      { "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.0, "volume": 1 },
+      { "open": 9.7, "high": 9.8, "low": 9.4, "close": 9.5, "volume": 1 },
+      { "open": 9.5, "high": 10.4, "low": 9.3, "close": 10.2, "volume": 1 },
+      { "open": 10.2, "high": 10.3, "low": 9.9, "close": 10.1, "volume": 1 },
+      { "open": 10.1, "high": 10.9, "low": 9.8, "close": 10.8, "volume": 1 },
+      { "open": 10.8, "high": 11.6, "low": 10.5, "close": 11.5, "volume": 1 }
+    ],
+    "length": 3,
+    "mult": 2,
+    "useTrueRange": true
+  },
+  "expected": {
+    "kcw": [
+      0.8, 0.5333333333333332, 0.48120300751879697, 0.3188044831880448, 0.3647270545890823,
+      0.3741089250071284
+    ]
+  },
+  "notes": "Official v6 re-implementation: ((basis + rangeEma * mult) - (basis - rangeEma * mult)) / basis. Unlike ta.bbw there is no * 100. Values derive from the kc.basic.json channels."
+}

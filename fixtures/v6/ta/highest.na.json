@@ -1,0 +1,12 @@
+{
+  "name": "ta.highest",
+  "pineVersion": 6,
+  "input": {
+    "source": [3, null, 5, null, 2, 4],
+    "length": 3
+  },
+  "expected": {
+    "highest": [null, null, null, null, 5, 5]
+  },
+  "notes": "Pine v6 remark: na values in the source are ignored, so the window extends back to collect 3 non-na values. Bar 4 (value 2) sees [3, 5, 2] and reports 5."
+}
