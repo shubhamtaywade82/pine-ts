@@ -11,12 +11,14 @@ export type TaFunctionName =
   | "ema"
   | "highest"
   | "hma"
+  | "linreg"
   | "lowest"
   | "macd"
   | "mom"
   | "rma"
   | "roc"
   | "rsi"
+  | "sar"
   | "sma"
   | "stdev"
   | "stoch"
@@ -39,12 +41,14 @@ export type ImplementedTaFunctionName =
   | "ema"
   | "highest"
   | "hma"
+  | "linreg"
   | "lowest"
   | "macd"
   | "mom"
   | "rma"
   | "roc"
   | "rsi"
+  | "sar"
   | "sma"
   | "stdev"
   | "stoch"
@@ -69,12 +73,14 @@ export const taV6FunctionNames = [
   "ema",
   "highest",
   "hma",
+  "linreg",
   "lowest",
   "macd",
   "mom",
   "rma",
   "roc",
   "rsi",
+  "sar",
   "sma",
   "stdev",
   "stoch",

@@ -1,0 +1,13 @@
+{
+  "name": "ta.linreg",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 3, 5, 7, 9],
+    "length": 4,
+    "offset": 3
+  },
+  "expected": {
+    "linreg": [null, null, null, 1, 3]
+  },
+  "notes": "offset = length - 1 returns the line value at the oldest bar of the window (the intercept). Perfectly linear source pins exact values."
+}
