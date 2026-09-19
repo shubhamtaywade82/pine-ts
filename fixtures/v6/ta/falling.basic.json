@@ -1,0 +1,12 @@
+{
+  "name": "ta.falling",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 11, 12, 11.5, 11, 10.5, 10.5, 11],
+    "length": 2
+  },
+  "expected": {
+    "falling": [false, false, false, false, true, true, false, false]
+  },
+  "notes": "Strictly decreasing chain over the current value and the last 2 non-na prior values. Bars 4 and 5 fall twice in a row; the equal pair at bars 5-6 breaks the run."
+}

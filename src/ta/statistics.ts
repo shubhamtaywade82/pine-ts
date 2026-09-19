@@ -3,21 +3,12 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
 import { requirePositiveLength } from "./validation.js";
+import { collectNonNaWindow } from "./window.js";
 
 const requireCompatibleRuntime = (source: Series<number>) => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("TA series require a PineSession-owned source series");
   return runtime;
-};
-
-const windowValues = (source: Series<number>, length: number): number[] | undefined => {
-  const values: number[] = [];
-  for (let offset = 0; offset < length; offset += 1) {
-    const value = source.at(offset);
-    if (isNa(value)) return undefined;
-    values.push(value);
-  }
-  return values;
 };
 
 const calculateVariance = (values: readonly number[], biased: boolean): number => {
@@ -27,6 +18,13 @@ const calculateVariance = (values: readonly number[], biased: boolean): number =
   return denominator > 0 ? squaredDeviation / denominator : Number.NaN;
 };
 
+/**
+ * Shared rolling-statistic window: the last `length` non-na values of the
+ * source. Pine v6 documents this for the statistics family as "na values in
+ * the source series are ignored; the function calculates on the length
+ * quantity of non-na values". A na current value yields na, matching the
+ * verified `ta.sma` model; fewer than `length` non-na values yield na.
+ */
 const createRollingStatistic = (
   source: Series<number>,
   length: number,
@@ -39,8 +37,10 @@ const createRollingStatistic = (
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        const values = windowValues(source, length);
-        return values === undefined ? Number.NaN : evaluateWindow(values);
+        if (isNa(source.at(0))) return Number.NaN;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return Number.NaN;
+        return evaluateWindow(window.map((entry) => entry.value));
       },
       commit: (): void => undefined,
     };

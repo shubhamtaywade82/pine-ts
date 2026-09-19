@@ -1,0 +1,16 @@
+{
+  "name": "ta.accdist",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      { "high": 11.0, "low": 9.0, "close": 10.0, "volume": 100 },
+      { "high": 12.0, "low": 10.0, "close": 11.5, "volume": 200 },
+      { "high": 11.5, "low": 9.5, "close": 11.0, "volume": 150 },
+      { "high": 12.0, "low": 11.0, "close": 11.8, "volume": 300 }
+    ]
+  },
+  "expected": {
+    "accdist": [0, 100, 175, 355.00000000000045]
+  },
+  "notes": "Standard Chaikin accumulation/distribution line: ta.cum(((close - low) - (high - close)) / (high - low) * volume). The v6 reference entry ships no re-implementation, so the formula follows the TradingView chart indicator."
+}

@@ -4,6 +4,7 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
 import { zipSeries } from "../core/series-operators.js";
+import { collectNonNaWindow } from "./window.js";
 
 const requirePositiveLength = (length: number): void => {
   if (!Number.isInteger(length) || length <= 0)
@@ -226,6 +227,14 @@ export const hma = (source: Series<number>, length: number): FloatSeries => {
   return wma(leading, sqrtLength);
 };
 
+/**
+ * ta.highest — highest value over the last `length` non-na values.
+ *
+ * Pine v6 remark: "na values in the source series are ignored", so na bars
+ * inside the window are skipped and the scan extends back to collect `length`
+ * non-na values. A na current value yields na, matching the verified `ta.sma`
+ * model; fewer than `length` non-na values (warm-up) yield na as well.
+ */
 export const highest = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
@@ -234,13 +243,11 @@ export const highest = (source: Series<number>, length: number): FloatSeries => 
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        if (runtime.barIndex < length - 1) return Number.NaN;
+        if (isNa(source.at(0))) return Number.NaN;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return Number.NaN;
         let result = -Infinity;
-        for (let offset = 0; offset < length; offset += 1) {
-          const value = source.at(offset);
-          if (isNa(value)) return Number.NaN;
-          result = Math.max(result, value);
-        }
+        for (const { value } of window) result = Math.max(result, value);
         return result;
       },
       commit: (): void => undefined,
@@ -249,6 +256,11 @@ export const highest = (source: Series<number>, length: number): FloatSeries => 
   }) as FloatSeries;
 };
 
+/**
+ * ta.lowest — lowest value over the last `length` non-na values.
+ *
+ * Same na and warm-up model as {@link highest}.
+ */
 export const lowest = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
@@ -257,13 +269,11 @@ export const lowest = (source: Series<number>, length: number): FloatSeries => {
       warmupBars: length - 1,
       init: (): null => null,
       evaluate: (): number => {
-        if (runtime.barIndex < length - 1) return Number.NaN;
+        if (isNa(source.at(0))) return Number.NaN;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return Number.NaN;
         let result = Infinity;
-        for (let offset = 0; offset < length; offset += 1) {
-          const value = source.at(offset);
-          if (isNa(value)) return Number.NaN;
-          result = Math.min(result, value);
-        }
+        for (const { value } of window) result = Math.min(result, value);
         return result;
       },
       commit: (): void => undefined,

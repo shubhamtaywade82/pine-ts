@@ -1,0 +1,23 @@
+{
+  "name": "ta.kc",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      { "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.0, "volume": 1 },
+      { "open": 9.7, "high": 9.8, "low": 9.4, "close": 9.5, "volume": 1 },
+      { "open": 9.5, "high": 10.4, "low": 9.3, "close": 10.2, "volume": 1 },
+      { "open": 10.2, "high": 10.3, "low": 9.9, "close": 10.1, "volume": 1 },
+      { "open": 10.1, "high": 10.9, "low": 9.8, "close": 10.8, "volume": 1 },
+      { "open": 10.8, "high": 11.6, "low": 10.5, "close": 11.5, "volume": 1 }
+    ],
+    "length": 3,
+    "mult": 2,
+    "useTrueRange": false
+  },
+  "expected": {
+    "middle": [10.0, 9.75, 9.975, 10.0375, 10.41875, 10.959375],
+    "upper": [14.0, 12.15, 12.274999999999999, 11.5875, 12.29375, 12.996875],
+    "lower": [6.0, 7.35, 7.675, 8.487499999999999, 8.54375, 8.921875]
+  },
+  "notes": "Same bars as kc.basic.json but useTrueRange = false, so the band range is (high - low) per the v6 reference entry."
+}

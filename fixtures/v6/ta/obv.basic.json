@@ -1,0 +1,12 @@
+{
+  "name": "ta.obv",
+  "pineVersion": 6,
+  "input": {
+    "close": [10, 11, 10.5, 10.5, 11],
+    "volume": [100, 200, 150, 300, 50]
+  },
+  "expected": {
+    "obv": [0, 200, 50, 50, 100]
+  },
+  "notes": "Official v6 re-implementation: ta.cum(math.sign(ta.change(close)) * volume). The first bar has a na change and contributes 0; an unchanged close contributes sign(0) = 0."
+}

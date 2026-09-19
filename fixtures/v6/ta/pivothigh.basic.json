@@ -1,0 +1,13 @@
+{
+  "name": "ta.pivothigh",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 5, 2, 1, 3, 4, 3, 2, 5, 5, 4, 3, 2],
+    "leftbars": 2,
+    "rightbars": 2
+  },
+  "expected": {
+    "pivothigh": [null, null, null, null, 5, null, null, null, 4, null, null, null, null, null]
+  },
+  "notes": "The candidate sits rightbars back and must be strictly greater than every non-na neighbor in the leftbars + rightbars window. Bars 9-10 form equal highs (5, 5): the equal neighbor at bar 10 breaks strict dominance, so no pivot is reported at bar 11."
+}
