@@ -38,6 +38,7 @@ export class PineSession {
   private readonly orderedSeries: {
     _commit(): void;
     _resetWorking(): void;
+    _rollback(): void;
   }[] = [];
   private currentTime?: number;
   private symbolInfo?: SymbolInfo;
@@ -56,7 +57,11 @@ export class PineSession {
     };
   }
 
-  public registerSeries(series: { _commit(): void; _resetWorking(): void }): void {
+  public registerSeries(series: {
+    _commit(): void;
+    _resetWorking(): void;
+    _rollback(): void;
+  }): void {
     this.orderedSeries.push(series);
   }
 
@@ -88,7 +93,10 @@ export class PineSession {
     }
 
     this.revision += 1;
-    this.state.rollback();
+    // Discard the previous revision's working state explicitly: series
+    // working values, node working state, and `var` cells go back to the last
+    // committed state. `varip` cells are intentionally preserved.
+    this.rollbackWorkingState();
     this.updateSources(bar);
     this.barstate = this.createBarState(false, false, true, Boolean(bar.isClosed), true);
     execute();
@@ -106,8 +114,19 @@ export class PineSession {
     this.revision += 1;
     this.barIndex += 1;
     this.currentTime = bar.time;
+    // A realtime bar that never confirmed leaves working state behind: tick
+    // values the historical execution model would not have produced. Roll it
+    // back before the new bar starts so realtime stays replay-equivalent —
+    // an unconfirmed bar vanishes exactly like a bar that never happened.
+    // After a confirmed bar (and in historical execution) this is a no-op.
+    this.rollbackWorkingState();
     this.barstate = this.createBarState(history, isNew, !history, confirmed, isLast);
     this.updateSources(bar);
+  }
+
+  private rollbackWorkingState(): void {
+    for (const series of this.orderedSeries) series._rollback();
+    this.state.rollback();
   }
 
   private createBarState(

@@ -1,3 +1,13 @@
+/**
+ * Persistent script variable cell.
+ *
+ * - `var` cells roll back to their committed value on every realtime
+ *   revision and promote on bar confirmation: at bar open the value equals
+ *   the last confirmed bar's final value, exactly as in historical
+ *   execution.
+ * - `varip` cells are never rolled back: intrabar updates persist
+ *   immediately across ticks and bars (Pine `varip` semantics).
+ */
 export interface PersistentCell<T> {
   readonly name: string;
   readonly value: T;
@@ -63,10 +73,12 @@ export class PineState {
     return cell;
   }
 
+  /** Restores `var` cells to their committed values. `varip` cells are intentionally untouched. */
   public rollback(): void {
     for (const cell of this.vars.values()) cell._rollback();
   }
 
+  /** Promotes `var` cells to their working values on bar confirmation. */
   public commit(): void {
     for (const cell of this.vars.values()) cell._commit();
   }

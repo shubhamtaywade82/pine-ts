@@ -1,6 +1,27 @@
 import type { PineSession } from "./session.js";
 import type { SeriesNode } from "./series-node.js";
 
+/**
+ * A Pine-like time series owned by a {@link PineSession}.
+ *
+ * State machine (see docs/SEMANTICS.md for the full contract):
+ *
+ * - `committedValues` — closed bars only. This is the series history that
+ *   `at(offset > 0)` reads and `history()` exposes.
+ * - `workingValue` — the current bar's not-yet-confirmed value. Updated by
+ *   source pushes, or lazily by evaluating the backing node.
+ * - `workingRevision` — the session revision the working value was computed
+ *   at. Whenever the session advances the revision (new bar or realtime
+ *   tick), the next `at(0)` re-evaluates.
+ * - `committedRevision` — the revision at which the last commit happened;
+ *   distinguishes "current bar still open" from "bar confirmed" when
+ *   resolving history offsets.
+ *
+ * On every confirmed bar a session-owned series commits exactly one value:
+ * the working value if the script read it during the bar, otherwise the
+ * node's evaluation at commit time. History offsets therefore mean "n bars
+ * ago" unconditionally, the same way Pine series indexing does.
+ */
 export class Series<T> {
   private static nextId = 1;
 
@@ -117,6 +138,16 @@ export class Series<T> {
   }
 
   public _commit(): void {
+    // Pine semantics: every session-owned series produces one committed
+    // value per confirmed bar, even when the script did not read it during
+    // the bar. Evaluating a node-backed series here keeps history offsets
+    // aligned across all series in the graph. Dependencies still hold their
+    // working values at this point because the session commits in reverse
+    // registration order, so the evaluation observes the same dependency
+    // state as during script execution.
+    if (this.session !== undefined && this.node !== undefined && !this.hasWorkingValue) {
+      this.currentValue();
+    }
     if (!this.hasWorkingValue) return;
     this.committedValues.push(this.workingValue as T);
     if (this.session !== undefined) this.committedRevision = this.session.revision;
@@ -127,6 +158,16 @@ export class Series<T> {
     this.workingValue = undefined;
     this.hasWorkingValue = false;
     this.workingRevision = -1;
+  }
+
+  /**
+   * Realtime revision discard: drop the working value and restore the
+   * backing node to its committed state. Committed history is untouched —
+   * an unconfirmed tick never becomes visible in `at(offset > 0)`.
+   */
+  public _rollback(): void {
+    this._resetWorking();
+    this.node?.rollback();
   }
 
   public get runtime(): PineSession | undefined {
