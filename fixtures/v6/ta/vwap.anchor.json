@@ -1,0 +1,13 @@
+{
+  "name": "ta.vwap",
+  "pineVersion": 6,
+  "input": {
+    "source": [12, 10, 10.5, 12, 10.8, 11.5],
+    "volume": [100, 200, 150, 300, 250, 100],
+    "anchor": [true, false, false, true, false, false]
+  },
+  "expected": {
+    "vwap": [12, 10.666666666666666, 10.61111111111111, 12, 11.454545454545455, 11.461538461538462]
+  },
+  "notes": "The anchor condition (source > 11.9, expressible as a series over the source) resets the accumulation on bars 0 and 3; the anchor bar itself starts the new window."
+}

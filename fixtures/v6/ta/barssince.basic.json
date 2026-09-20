@@ -1,0 +1,13 @@
+{
+  "name": "ta.barssince",
+  "pineVersion": 6,
+  "input": {
+    "open": [10, 9.5, 10.2, 10.0, 10.6],
+    "close": [9.5, 10.2, 10.0, 10.6, 10.3],
+    "condition": "close > open"
+  },
+  "expected": {
+    "barssince": [null, 0, 1, 0, 1]
+  },
+  "notes": "0 on a bar where the condition holds; the bar distance to the last true bar otherwise; na when the condition has never been true (bar 0 here)."
+}

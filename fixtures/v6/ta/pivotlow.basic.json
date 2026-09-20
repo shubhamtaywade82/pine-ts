@@ -1,0 +1,13 @@
+{
+  "name": "ta.pivotlow",
+  "pineVersion": 6,
+  "input": {
+    "source": [5, 4, 1, 4, 5, 3, 2, 3, 4, 1, 1, 2, 3, 4],
+    "leftbars": 2,
+    "rightbars": 2
+  },
+  "expected": {
+    "pivotlow": [null, null, null, null, 1, null, null, null, 2, null, null, null, null, null]
+  },
+  "notes": "Mirror of pivothigh.basic.json: the candidate must be strictly lower than every non-na neighbor. The equal lows at bars 9-10 (1, 1) block the pivot at bar 11."
+}

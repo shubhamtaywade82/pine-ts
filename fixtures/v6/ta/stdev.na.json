@@ -1,0 +1,13 @@
+{
+  "name": "ta.stdev",
+  "pineVersion": 6,
+  "input": {
+    "source": [3, null, 5, null, 2, 4],
+    "length": 3,
+    "biased": true
+  },
+  "expected": {
+    "stdev": [null, null, null, null, 1.247219128924647, 1.247219128924647]
+  },
+  "notes": "Pine v6 remark: na values are ignored and the function calculates on the length quantity of non-na values. Bar 4 computes over [3, 5, 2]; bar 5 over [5, 2, 4]."
+}

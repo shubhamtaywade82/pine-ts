@@ -1,0 +1,12 @@
+{
+  "name": "ta.pvi",
+  "pineVersion": 6,
+  "input": {
+    "close": [10, 11, 10, 11, 10.5],
+    "volume": [100, 150, 120, 200, 180]
+  },
+  "expected": {
+    "pvi": [1, 1.1, 1.1, 1.2100000000000002, 1.2100000000000002]
+  },
+  "notes": "Official v6 re-implementation: seeds at 1.0 and updates only when volume > volume[1], multiplying by (1 + (close - close[1]) / close[1]); otherwise carries the previous value. Bars 2 and 5 carry because volume fell."
+}

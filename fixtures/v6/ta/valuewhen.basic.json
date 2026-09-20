@@ -1,0 +1,13 @@
+{
+  "name": "ta.valuewhen",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 12, 10.5, 13, 11.5, 10],
+    "condition": "source > 11"
+  },
+  "expected": {
+    "occurrence0": [null, 12, 12, 13, 11.5, 11.5],
+    "occurrence1": [null, null, null, 12, 13, 13]
+  },
+  "notes": "occurrence 0 is the most recent condition bar (the current bar counts); occurrence 1 is the previous one. na until enough occurrences exist."
+}
