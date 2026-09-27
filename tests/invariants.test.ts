@@ -16,7 +16,7 @@
  *                          commit
  */
 import { describe, expect, it } from "vitest";
-import { array, PineRuntime, math, ta } from "../src/index.js";
+import { array, map, matrix, PineRuntime, math, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto", minTick: 0.25 };
@@ -501,6 +501,46 @@ const scenarios: readonly Scenario[] = [
         capture["devP"] = ctx.series("pivot-dev-p", () => developing?.get(0) ?? Number.NaN);
       };
     })(),
+  },
+  {
+    name: "var-map-counts",
+    // A var map keyed by rounded close: mutates in place every bar, so the
+    // journal must roll uncommitted puts back while the committed size and
+    // the max stored value grow monotonically.
+    build: (ctx, capture) => {
+      const cell = ctx.state.var("counts", () => map.newMap<number, number>());
+      const counts = cell.value;
+      const bucket = Math.round(ctx.close.value ?? 0);
+      map.put(counts, bucket, (map.get(counts, bucket) ?? 0) + 1);
+      capture["size"] = ctx.series("map-size", () => map.size(counts));
+      capture["max"] = ctx.series("map-max", () => array.max(map.values(counts)) ?? Number.NaN);
+    },
+  },
+  {
+    name: "var-matrix-window",
+    // The rolling-window idiom from the Matrices concept page: a var matrix
+    // whose oldest row is dropped once full, a fresh row of OHLC pushed per
+    // bar, and row-wise statistics read back through series captures.
+    build: (ctx, capture) => {
+      const cell = ctx.state.var("window", () => matrix.newMatrix<number>(0, 4));
+      const window = cell.value;
+      if (matrix.rows(window) === 5) matrix.remove_row(window, 0);
+      matrix.add_row(
+        window,
+        0,
+        array.from(
+          ctx.open.value ?? Number.NaN,
+          ctx.high.value ?? Number.NaN,
+          ctx.low.value ?? Number.NaN,
+          ctx.close.value ?? Number.NaN,
+        ),
+      );
+      capture["rows"] = ctx.series("matrix-rows", () => matrix.rows(window));
+      capture["avg"] = ctx.series("matrix-avg", () => matrix.avg(window));
+      capture["trace"] = ctx.series("matrix-trace", () =>
+        matrix.rows(window) === 4 ? matrix.trace(window) : Number.NaN,
+      );
+    },
   },
 ];
 
