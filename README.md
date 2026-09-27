@@ -44,6 +44,33 @@ Trading Bot
    +--> Renderer adapters
 ```
 
+## Usage
+
+```ts
+import { BinanceClient } from "@nemesis-oss/binance-sdk";
+import { BinanceProvider, PineRuntime, ta, type PineScript } from "@nemesis-oss/pine-ts";
+
+const client = new BinanceClient();
+const provider = new BinanceProvider({ market: client.spot.market, socket: client.spot.ws });
+const runtime = new PineRuntime({ provider, symbol: "BTCUSDT", timeframe: "15" });
+
+const script: PineScript = (ctx) => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow = ta.ema(ctx.close, 21);
+  // Each ctx.scope id is an independent Pine call site with its own state.
+  const trend = ctx.scope("trend", () => ta.sma(ctx.close, 50));
+  if (ctx.barstate.isconfirmed && ta.crossover(fast, slow).value) {
+    console.log("cross up", ctx.close.value, trend.value);
+  }
+};
+
+await runtime.run(script); // historical bars; a still-forming last kline runs as the open realtime bar
+await runtime.runRealtime(script); // continues on the kline stream
+```
+
+`@nemesis-oss/binance-sdk` is not a runtime dependency: `BinanceProvider`
+consumes its market surfaces structurally.
+
 ## Development
 
 Requires Node.js 22+.

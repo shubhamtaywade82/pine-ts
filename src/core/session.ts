@@ -1,4 +1,5 @@
 import { NodeRegistry } from "./node-registry.js";
+import { ScopeStack } from "./scope.js";
 import { PineState } from "./state.js";
 import { createFloatSeries, createSeries, type FloatSeries, type Series } from "./series.js";
 import type { Bar, BarState, SymbolInfo } from "./types.js";
@@ -18,29 +19,70 @@ export interface SourceBundle {
 
 export type BarExecutor = () => void;
 
+/**
+ * Outcome of feeding one realtime update to the session.
+ *
+ * - `processed` — the script executed on the update.
+ * - `out_of_order` — the update's bar opens before the current bar; bars
+ *   never move backwards, so it is discarded.
+ * - `bar_already_confirmed` — the update belongs to the current bar, but that
+ *   bar was already confirmed (closed and committed); committed history is
+ *   immutable, so it is discarded.
+ */
+export type RealtimeTickOutcome = "processed" | "out_of_order" | "bar_already_confirmed";
+
+export interface HistoricalBarFlags {
+  /** The bar is the dataset's last bar (`barstate.islast`). */
+  readonly isLast: boolean;
+  /** The bar is the last confirmed historical bar (`barstate.islastconfirmedhistory`). */
+  readonly isLastConfirmedHistory: boolean;
+}
+
+export interface PineSessionOptions {
+  /** Maximum history offset for every series (Pine `max_bars_back`, 1..5000). */
+  readonly maxBarsBack?: number | undefined;
+}
+
+/** Pine's largest historical buffer: `max_bars_back()` accepts at most 5000. */
+const MAX_BARS_BACK_LIMIT = 5000;
+
+const resolveMaxBarsBack = (value: number | undefined): number => {
+  const resolved = value ?? MAX_BARS_BACK_LIMIT;
+  if (!Number.isInteger(resolved) || resolved < 1 || resolved > MAX_BARS_BACK_LIMIT) {
+    throw new RangeError(`maxBarsBack must be an integer in [1, ${MAX_BARS_BACK_LIMIT}]`);
+  }
+  return resolved;
+};
+
+const INITIAL_BAR_STATE: BarState = {
+  index: -1,
+  isFirst: false,
+  isLast: false,
+  isHistory: false,
+  isRealtime: false,
+  isNew: false,
+  isConfirmed: false,
+  isLastConfirmedHistory: false,
+  isfirst: false,
+  islast: false,
+  ishistory: false,
+  isrealtime: false,
+  isnew: false,
+  isconfirmed: false,
+  islastconfirmedhistory: false,
+};
+
 export class PineSession {
   public revision = 0;
   public barIndex = -1;
-  public barstate: BarState = {
-    index: -1,
-    isFirst: false,
-    isLast: false,
-    isHistory: false,
-    isRealtime: false,
-    isNew: false,
-    isConfirmed: false,
-    isLastConfirmedHistory: false,
-    isfirst: false,
-    islast: false,
-    ishistory: false,
-    isrealtime: false,
-    isnew: false,
-    isconfirmed: false,
-    islastconfirmedhistory: false,
-  };
+  /** Pine `last_bar_index`: the dataset's last bar index, then each realtime bar's index. */
+  public lastBarIndex = -1;
+  public barstate: BarState = INITIAL_BAR_STATE;
 
-  public readonly nodes: NodeRegistry = new NodeRegistry();
-  public readonly state: PineState = new PineState();
+  public readonly maxBarsBack: number;
+  public readonly scopes: ScopeStack = new ScopeStack();
+  public readonly nodes: NodeRegistry = new NodeRegistry(this.scopes);
+  public readonly state: PineState = new PineState(this.scopes);
   public readonly sources: SourceBundle;
 
   private readonly orderedSeries: {
@@ -48,10 +90,13 @@ export class PineSession {
     _resetWorking(): void;
     _rollback(): void;
   }[] = [];
-  private currentTime?: number;
+  private nextSeriesId = 1;
+  private currentBar?: Bar;
+  private currentBarConfirmed = false;
   private symbolInfo?: SymbolInfo;
 
-  public constructor() {
+  public constructor(options: PineSessionOptions = {}) {
+    this.maxBarsBack = resolveMaxBarsBack(options.maxBarsBack);
     this.sources = {
       open: createFloatSeries(this),
       high: createFloatSeries(this),
@@ -64,6 +109,12 @@ export class PineSession {
       ohlc4: createFloatSeries(this),
       bar_index: createSeries<number>(this),
     };
+  }
+
+  public allocateSeriesId(): number {
+    const id = this.nextSeriesId;
+    this.nextSeriesId += 1;
+    return id;
   }
 
   public registerSeries(series: {
@@ -85,51 +136,110 @@ export class PineSession {
     return this.symbolInfo;
   }
 
-  public processHistoricalBar(bar: Bar, execute: BarExecutor, isLast: boolean): void {
-    this.beginBar(bar, true, true, true, isLast);
+  /** Symbol timezone when symbol information is initialized. */
+  public get timezone(): string | undefined {
+    return this.symbolInfo?.timezone;
+  }
+
+  /**
+   * Declares how many bars the historical dataset holds so `last_bar_index`
+   * is known on every historical bar, as in Pine.
+   */
+  public expectHistoricalBars(count: number): void {
+    if (!Number.isInteger(count) || count < 0) {
+      throw new RangeError("Historical bar count must be a non-negative integer");
+    }
+    this.lastBarIndex = this.barIndex + count;
+  }
+
+  public processHistoricalBar(bar: Bar, execute: BarExecutor, flags: HistoricalBarFlags): void {
+    this.beginBar(bar, {
+      history: true,
+      confirmed: true,
+      isLast: flags.isLast,
+      isLastConfirmedHistory: flags.isLastConfirmedHistory,
+    });
     execute();
     this.confirmBar();
   }
 
-  public processRealtimeTick(bar: Bar, execute: BarExecutor): void {
-    const isNewBar = this.currentTime === undefined || bar.time !== this.currentTime;
+  public processRealtimeTick(bar: Bar, execute: BarExecutor): RealtimeTickOutcome {
+    const previous = this.currentBar;
+    if (previous !== undefined && bar.time < previous.time) return "out_of_order";
 
-    if (isNewBar) {
-      this.beginBar(bar, false, true, Boolean(bar.isClosed), true);
-      execute();
-      if (bar.isClosed) this.confirmBar();
-      return;
+    const isNewBar = bar.time !== previous?.time;
+    if (!isNewBar && this.currentBarConfirmed) return "bar_already_confirmed";
+
+    // Pine always executes a realtime bar one last time on its closing tick
+    // and commits it. When the feed moves to a new bar without an explicit
+    // close for the open one, its last received update is the closing tick.
+    if (isNewBar && previous !== undefined && !this.currentBarConfirmed) {
+      this.closeOpenBar(previous, execute);
     }
 
+    const confirmed = Boolean(bar.isClosed);
+    this.currentBar = bar;
+    if (isNewBar) {
+      this.beginBar(bar, {
+        history: false,
+        confirmed,
+        isLast: true,
+        isLastConfirmedHistory: false,
+      });
+      this.lastBarIndex = Math.max(this.lastBarIndex, this.barIndex);
+    } else {
+      this.revision += 1;
+      // Discard the previous revision's working state explicitly: series
+      // working values, node working state, and `var` cells go back to the
+      // last committed state. `varip` cells are intentionally preserved.
+      this.rollbackWorkingState();
+      this.updateSources(bar);
+      this.barstate = this.createBarState({
+        history: false,
+        isNew: false,
+        confirmed,
+        isLast: true,
+        isLastConfirmedHistory: false,
+      });
+    }
+
+    execute();
+    if (confirmed) this.confirmBar();
+    return "processed";
+  }
+
+  private closeOpenBar(bar: Bar, execute: BarExecutor): void {
     this.revision += 1;
-    // Discard the previous revision's working state explicitly: series
-    // working values, node working state, and `var` cells go back to the last
-    // committed state. `varip` cells are intentionally preserved.
     this.rollbackWorkingState();
     this.updateSources(bar);
-    this.barstate = this.createBarState(false, false, true, Boolean(bar.isClosed), true);
+    this.barstate = this.createBarState({
+      history: this.barstate.isHistory,
+      isNew: false,
+      confirmed: true,
+      isLast: this.barstate.isLast,
+      isLastConfirmedHistory: false,
+    });
     execute();
-
-    if (bar.isClosed) this.confirmBar();
+    this.confirmBar();
   }
 
   private beginBar(
     bar: Bar,
-    history: boolean,
-    isNew: boolean,
-    confirmed: boolean,
-    isLast: boolean,
+    flags: {
+      readonly history: boolean;
+      readonly confirmed: boolean;
+      readonly isLast: boolean;
+      readonly isLastConfirmedHistory: boolean;
+    },
   ): void {
     this.revision += 1;
     this.barIndex += 1;
-    this.currentTime = bar.time;
-    // A realtime bar that never confirmed leaves working state behind: tick
-    // values the historical execution model would not have produced. Roll it
-    // back before the new bar starts so realtime stays replay-equivalent —
-    // an unconfirmed bar vanishes exactly like a bar that never happened.
-    // After a confirmed bar (and in historical execution) this is a no-op.
+    this.currentBar = bar;
+    this.currentBarConfirmed = false;
+    // The previous bar is always confirmed by now, so this only clears reset
+    // working values; it never discards uncommitted bar state.
     this.rollbackWorkingState();
-    this.barstate = this.createBarState(history, isNew, !history, confirmed, isLast);
+    this.barstate = this.createBarState({ ...flags, isNew: true });
     this.updateSources(bar);
   }
 
@@ -138,30 +248,31 @@ export class PineSession {
     this.state.rollback();
   }
 
-  private createBarState(
-    history: boolean,
-    isNew: boolean,
-    realtime: boolean,
-    confirmed: boolean,
-    isLast: boolean,
-  ): BarState {
+  private createBarState(flags: {
+    readonly history: boolean;
+    readonly isNew: boolean;
+    readonly confirmed: boolean;
+    readonly isLast: boolean;
+    readonly isLastConfirmedHistory: boolean;
+  }): BarState {
+    const { history, isNew, confirmed, isLast, isLastConfirmedHistory } = flags;
     return {
       index: this.barIndex,
       isFirst: this.barIndex === 0,
       isLast,
       isHistory: history,
-      isRealtime: realtime,
+      isRealtime: !history,
       isNew,
       isConfirmed: confirmed,
-      isLastConfirmedHistory: history && isLast,
+      isLastConfirmedHistory,
       // Pine v6 lowercase aliases
       isfirst: this.barIndex === 0,
       islast: isLast,
       ishistory: history,
-      isrealtime: realtime,
+      isrealtime: !history,
       isnew: isNew,
       isconfirmed: confirmed,
-      islastconfirmedhistory: history && isLast,
+      islastconfirmedhistory: isLastConfirmedHistory,
     };
   }
 
@@ -191,5 +302,6 @@ export class PineSession {
       series._resetWorking();
     }
     this.state.commit();
+    this.currentBarConfirmed = true;
   }
 }

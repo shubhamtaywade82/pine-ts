@@ -4,7 +4,7 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
 import { zipSeries } from "../core/series-operators.js";
-import { collectNonNaWindow } from "./window.js";
+import { collectCommittedNonNa, collectNonNaWindow } from "./window.js";
 
 const requirePositiveLength = (length: number): void => {
   if (!Number.isInteger(length) || length <= 0)
@@ -29,7 +29,10 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
     }
     const definition = {
       warmupBars: length - 1,
-      init: (): State => ({ buffer: [], sum: 0 }),
+      init: (): State => {
+        const buffer = collectCommittedNonNa(source, length);
+        return { buffer, sum: buffer.reduce((total, value) => total + value, 0) };
+      },
       evaluate: (state: Readonly<State>): number => {
         const value = source.at(0);
         if (isNa(value) || state.buffer.length < length - 1) return Number.NaN;

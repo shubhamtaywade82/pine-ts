@@ -1,7 +1,8 @@
 import { nodeKey } from "./node-registry.js";
 import { IndicatorNode } from "./series-node.js";
 import type { PineSession } from "./session.js";
-import { Series } from "./series.js";
+import { FloatSeries, Series } from "./series.js";
+import { isNa } from "./na.js";
 
 export const zipSeries = <A, B, U>(
   left: Series<A>,
@@ -43,4 +44,30 @@ export const createUserSeries = <T>(
     };
     return new Series(session, new IndicatorNode(definition));
   });
+};
+
+/**
+ * Pine `fixnan(source)`: replaces na values with the previous nearest non-na
+ * value. Leading na values (before the first non-na) stay na.
+ */
+export const fixnan = (source: Series<number>): FloatSeries => {
+  const runtime = source.runtime;
+  if (runtime === undefined) throw new Error("fixnan requires a PineSession-owned source series");
+  return runtime.nodes.getOrCreate(nodeKey("fixnan", source), () => {
+    interface State {
+      last: number;
+    }
+    const resolve = (state: Readonly<State>): number => {
+      const value = source.at(0);
+      return isNa(value) ? state.last : value;
+    };
+    const definition = {
+      init: (): State => ({ last: Number.NaN }),
+      evaluate: resolve,
+      commit: (state: State): void => {
+        state.last = resolve(state);
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
 };

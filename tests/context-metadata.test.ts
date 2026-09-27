@@ -95,6 +95,83 @@ describe("calendar and time functions", () => {
   });
 });
 
+describe("calendar functions in a timezone", () => {
+  // 2026-09-27T20:00:30Z is Monday 2026-09-28 01:30:30 in Asia/Kolkata (UTC+5:30).
+  const ts = Date.UTC(2026, 8, 27, 20, 0, 30);
+
+  it.each(["Asia/Kolkata", "UTC+5:30", "GMT+05:30", "UTC+0530"])(
+    "resolves calendar fields in %s",
+    (timezone) => {
+      expect(time.year(ts, timezone)).toBe(2026);
+      expect(time.month(ts, timezone)).toBe(9);
+      expect(time.dayofmonth(ts, timezone)).toBe(28);
+      expect(time.dayofweek(ts, timezone)).toBe(2); // Monday
+      expect(time.hour(ts, timezone)).toBe(1);
+      expect(time.minute(ts, timezone)).toBe(30);
+      expect(time.second(ts, timezone)).toBe(30);
+    },
+  );
+
+  it("supports negative UTC offsets", () => {
+    expect(time.hour(ts, "UTC-5")).toBe(15);
+    expect(time.dayofmonth(ts, "GMT-5")).toBe(27);
+  });
+
+  it("computes ISO weeks across a year boundary in the requested timezone", () => {
+    // 2027-01-01T00:00Z is Friday: ISO week 53 of 2026 in UTC.
+    const newYear = Date.UTC(2027, 0, 1);
+    expect(time.weekofyear(newYear, "UTC")).toBe(53);
+    // 2026-12-28T23:00Z is Tuesday 2026-12-29 in Asia/Kolkata: week 53.
+    expect(time.weekofyear(Date.UTC(2026, 11, 28, 23), "Asia/Kolkata")).toBe(53);
+    // 2026-09-28 (Monday) is ISO week 40.
+    expect(time.weekofyear(ts, "Asia/Kolkata")).toBe(40);
+  });
+
+  it("rejects invalid timezones and non-finite timestamps", () => {
+    expect(() => time.hour(ts, "Mars/Olympus")).toThrow(RangeError);
+    expect(() => time.hour(ts, "UTC+15")).toThrow(RangeError);
+    expect(() => time.hour(Number.NaN)).toThrow(RangeError);
+  });
+
+  it("defaults to syminfo.timezone inside a script and exposes bar-time fields", async () => {
+    const kolkataInfo: SymbolInfo = { ticker: "NIFTY", timezone: "Asia/Kolkata" };
+    const provider: MarketDataProvider = {
+      getHistoricalBars: async () => [],
+      streamBars: () => ({
+        [Symbol.asyncIterator]: async function* (): AsyncGenerator<Bar> {
+          yield* [];
+        },
+      }),
+      getSymbolInfo: async () => kolkataInfo,
+    };
+    const runtime = new PineRuntime({ provider, symbol: "NIFTY", timeframe: "1" });
+    const observed: number[][] = [];
+    await runtime.run(
+      (ctx) => {
+        observed.push([time.hour(ctx.bar.time), ctx.hour, ctx.minute, ctx.dayofweek, ctx.year]);
+      },
+      [{ time: ts, open: 1, high: 1, low: 1, close: 1, volume: 1, isClosed: true }],
+    );
+
+    expect(observed).toEqual([[1, 1, 30, 2, 2026]]);
+  });
+
+  it("exposes the parsed timeframe on the context", async () => {
+    let intraday: boolean | undefined;
+    let multiplier: number | undefined;
+    await runWithBars(
+      [{ time: ts, open: 1, high: 1, low: 1, close: 1, volume: 1, isClosed: true }],
+      (ctx) => {
+        intraday = ctx.timeframe.isintraday;
+        multiplier = ctx.timeframe.multiplier;
+      },
+      "15",
+    );
+    expect(intraday).toBe(true);
+    expect(multiplier).toBe(15);
+  });
+});
+
 describe("timeframe calculations", () => {
   it("converts timeframes to seconds and back", () => {
     expect(timeframe.in_seconds("1")).toBe(60);

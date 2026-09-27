@@ -68,6 +68,26 @@
 
 Do not promote `draft` to `verified` based on mathematical plausibility or agreement with another TA library.
 
+## Length qualifiers and conditional calls
+
+Verified against the v6 Reference Manual (2026-09): `sma`, `wma`, `vwma`,
+`highest`, `lowest`, `highestbars`, `lowestbars`, `change`, `mom`, `roc`,
+`cmo`, `stoch`, `wpr`, `mfi`, `variance`, `stdev`, `dev`, `linreg`, `bb`,
+`bbw`, `rising`, `falling`, `percentrank`, and both percentile functions take a
+`series int` length; `ema`, `rma`, `rsi`, `atr`, `hma`, `kc`, and `kcw` take a
+`simple int` length. Changing a `series int` length yields the value computed
+over the argument's history: history-reading implementations do this
+directly, and the incremental ones (`sma`, `cmo`, `mfi`) seed a new node from
+committed history. A `ta.*` call that does not execute on a bar keeps its
+state and carries its last value forward (see `docs/SEMANTICS.md`).
+
+## Missing v6 `ta` symbols
+
+`alma`, `cci`, `cog`, `correlation`, `max`, `median`, `min`, `mode`,
+`pivot_point_levels`, `range`, `rci`, `tsi`, and the variables `iii`, `wad`,
+`wvad`. `api-manifest/ta.v6.json` now lists exactly the reference manual's `ta`
+symbols (see `api-manifest/v6-reference-index.json`).
+
 ## Next implementation groups
 
 1. Composite/multi-return APIs (remaining): `ta.vwap` `stdev_mult` tuple overload (blocked on the v6 reference documenting the band formula), other tuple-returning functions.

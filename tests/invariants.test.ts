@@ -176,7 +176,6 @@ const runRealtimeChunked = async (
     provider: new Provider([], ticks),
     symbol: "TEST",
     timeframe: "1m",
-    executionMode: "realtime",
   });
   await runtime.runRealtime((ctx) => scenario.build(ctx, capture));
   return outputsOf(capture);

@@ -161,11 +161,11 @@ export const mfi = (source: Series<number>, length: number): FloatSeries => {
       lower: number[];
     }
     /** na flows (na volume or na src) never enter the windows. */
-    const flows = (): { readonly upper: number; readonly lower: number } | undefined => {
-      const src = source.at(0);
-      const volumeValue = volume.at(0);
+    const flows = (offset = 0): { readonly upper: number; readonly lower: number } | undefined => {
+      const src = source.at(offset);
+      const volumeValue = volume.at(offset);
       if (isNa(volumeValue) || isNa(src)) return undefined;
-      const previous = source.at(1);
+      const previous = source.at(offset + 1);
       const change = previous === undefined || isNa(previous) ? undefined : src - previous;
       // na change comparisons are false in Pine v6, so both branches pick src.
       const upper = change !== undefined && change <= 0 ? 0 : volumeValue * src;
@@ -180,7 +180,21 @@ export const mfi = (source: Series<number>, length: number): FloatSeries => {
     };
     const definition = {
       warmupBars: length,
-      init: (): State => ({ upper: [], lower: [] }),
+      // Seed from committed history (newest first) so a node created mid-run
+      // (a new `series int` length) matches one that had been running all along.
+      init: (): State => {
+        const state: State = { upper: [], lower: [] };
+        let offset = 0;
+        while (state.upper.length < length) {
+          offset += 1;
+          if (source.at(offset) === undefined) break;
+          const flow = flows(offset);
+          if (flow === undefined) continue;
+          state.upper.push(flow.upper);
+          state.lower.push(flow.lower);
+        }
+        return state;
+      },
       evaluate: (state: Readonly<State>): number => {
         const flow = flows();
         const upperWindow = flow === undefined ? state.upper : [flow.upper, ...state.upper];

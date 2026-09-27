@@ -7,8 +7,10 @@ export type TaFunctionName =
   | "bbw"
   | "change"
   | "cmo"
+  | "cross"
   | "crossover"
   | "crossunder"
+  | "cum"
   | "dev"
   | "dmi"
   | "ema"
@@ -26,6 +28,9 @@ export type TaFunctionName =
   | "mom"
   | "nvi"
   | "obv"
+  | "percentile_linear_interpolation"
+  | "percentile_nearest_rank"
+  | "percentrank"
   | "pivothigh"
   | "pivotlow"
   | "pvi"
@@ -55,8 +60,10 @@ export type ImplementedTaFunctionName =
   | "bbw"
   | "change"
   | "cmo"
+  | "cross"
   | "crossover"
   | "crossunder"
+  | "cum"
   | "dev"
   | "dmi"
   | "ema"
@@ -74,6 +81,9 @@ export type ImplementedTaFunctionName =
   | "mom"
   | "nvi"
   | "obv"
+  | "percentile_linear_interpolation"
+  | "percentile_nearest_rank"
+  | "percentrank"
   | "pivothigh"
   | "pivotlow"
   | "pvi"
@@ -105,8 +115,10 @@ export const taV6FunctionNames = [
   "bbw",
   "change",
   "cmo",
+  "cross",
   "crossover",
   "crossunder",
+  "cum",
   "dev",
   "dmi",
   "ema",
@@ -124,6 +136,9 @@ export const taV6FunctionNames = [
   "mom",
   "nvi",
   "obv",
+  "percentile_linear_interpolation",
+  "percentile_nearest_rank",
+  "percentrank",
   "pivothigh",
   "pivotlow",
   "pvi",

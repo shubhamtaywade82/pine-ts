@@ -66,7 +66,6 @@ const runRealtime = async (ticks: readonly Bar[], script: PineScript): Promise<P
     provider: new Provider([], ticks),
     symbol: "TEST",
     timeframe: "1m",
-    executionMode: "realtime",
   });
   await runtime.runRealtime(script);
   return runtime;
@@ -192,21 +191,30 @@ describe("Phase 0 — per-bar commit and history alignment", () => {
 });
 
 describe("Phase 0 — var / varip lifecycle", () => {
-  it("discards unconfirmed bar state when the next bar opens", async () => {
-    // Bar 1 streams two ticks and never confirms; bar 2 arrives and confirms.
-    // Historical execution never saw bar 1, so it must leave no trace.
+  it("closes an unconfirmed bar on its last update when the next bar opens", async () => {
+    // Bar 1 streams two ticks and never sends an explicit close; bar 2 arrives
+    // and confirms. Pine always executes a realtime bar on its closing tick and
+    // commits it, so bar 1 commits with its last received values (close 101).
     const ticks = [tick(1, 100, false), tick(1, 101, false), tick(2, 103, true)];
+    const confirmations: Array<[number, boolean]> = [];
     const runtime = await runRealtime(ticks, (ctx) => {
       const acc = ctx.state.var("acc", () => 0);
       acc.set(acc.value + 1);
+      confirmations.push([ctx.close.value, ctx.barstate.isconfirmed]);
     });
 
     const acc = runtime.state.var("acc", () => 0);
-    // Only bar 2's increment survived; bar 1's unconfirmed increments vanished.
-    expect(acc.value).toBe(1);
-    // Committed history contains exactly the confirmed bar.
-    expect(runtime.sources.close.history()).toEqual([103]);
+    // One committed increment per bar; intrabar increments rolled back.
+    expect(acc.value).toBe(2);
+    expect(runtime.sources.close.history()).toEqual([101, 103]);
     expect(runtime.barIndex).toBe(1);
+    // The synthesized closing execution replays the last update as confirmed.
+    expect(confirmations).toEqual([
+      [100, false],
+      [101, false],
+      [101, true],
+      [103, true],
+    ]);
   });
 
   it("keeps varip accumulating across unconfirmed ticks and bars", async () => {
@@ -217,8 +225,9 @@ describe("Phase 0 — var / varip lifecycle", () => {
     });
 
     const counter = runtime.state.varip("counter", () => 0);
-    // varip never rolls back: all three executions left a permanent +1.
-    expect(counter.value).toBe(3);
+    // varip never rolls back: all four executions (two ticks, bar 1's
+    // closing execution, bar 2) left a permanent +1.
+    expect(counter.value).toBe(4);
   });
 
   it("exposes var state through user series with replay-aligned history", async () => {

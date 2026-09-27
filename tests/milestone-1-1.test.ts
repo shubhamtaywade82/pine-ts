@@ -57,7 +57,6 @@ describe("Milestone 1.1", () => {
       provider: new Provider(events),
       symbol: "TEST",
       timeframe: "1m",
-      executionMode: "realtime",
     });
     const seen: Array<[number, number, number, boolean]> = [];
 

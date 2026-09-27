@@ -201,7 +201,27 @@ export const cmo = (source: Series<number>, length: number): FloatSeries => {
     }
     const definition = {
       warmupBars: length,
-      init: (): State => ({ changes: [], sumGain: 0, sumLoss: 0 }),
+      // Seed from committed history so a node created mid-run (a new
+      // `series int` length) matches one that had been running all along.
+      init: (): State => {
+        const changes: number[] = [];
+        let offset = 0;
+        while (changes.length < length) {
+          offset += 1;
+          const current = source.at(offset);
+          const previous = source.at(offset + 1);
+          if (current === undefined || previous === undefined) break;
+          if (!isNa(current) && !isNa(previous)) changes.push(current - previous);
+        }
+        changes.reverse();
+        let sumGain = 0;
+        let sumLoss = 0;
+        for (const delta of changes) {
+          sumGain += Math.max(delta, 0);
+          sumLoss += Math.max(-delta, 0);
+        }
+        return { changes, sumGain, sumLoss };
+      },
       evaluate: (state: Readonly<State>): number => {
         const current = source.at(0);
         const previous = source.at(1);
