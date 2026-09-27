@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/pine-ts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pine Script v6-inspired trading runtime and API for TypeScript trading systems",
   "license": "MIT AND MPL-2.0",
   "author": "Shubham Taywade",
