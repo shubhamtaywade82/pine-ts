@@ -36,7 +36,18 @@ export type {
   StreamBarsRequest,
   SymbolInfo,
 } from "./core/types.js";
-export { BinanceProvider, type BinanceMarketClient } from "./data/binance.js";
+export {
+  BinanceProvider,
+  ProviderCapabilityError,
+  toBinanceInterval,
+  type BinanceExchangeInfo,
+  type BinanceExchangeSymbol,
+  type BinanceKline,
+  type BinanceKlineInterval,
+  type BinanceKlineSocket,
+  type BinanceMarketRest,
+  type BinanceProviderOptions,
+} from "./data/binance.js";
 
 export * as ta from "./ta/index.js";
 export * as math from "./math/index.js";
