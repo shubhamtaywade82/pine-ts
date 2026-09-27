@@ -187,7 +187,8 @@ export class PineArray<T> {
       this.restoreWindow(previous);
     });
     const data = this.backing.data;
-    for (let left = this.from, right = this.to - 1; left < right; left += 1, right -= 1) {
+    const end = this.root ? data.length : this.to;
+    for (let left = this.from, right = end - 1; left < right; left += 1, right -= 1) {
       const swap = data[left]!;
       data[left] = data[right]!;
       data[right] = swap;

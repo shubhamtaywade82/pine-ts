@@ -16,7 +16,7 @@
  *                          commit
  */
 import { describe, expect, it } from "vitest";
-import { PineRuntime, math, ta } from "../src/index.js";
+import { array, PineRuntime, math, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto", minTick: 0.25 };
@@ -445,6 +445,60 @@ const scenarios: readonly Scenario[] = [
       capture["sum"] = math.sum(ctx.close, 7);
       capture["mintick"] = math.roundToMintick(ctx.close);
     },
+  },
+  {
+    name: "var-array-grow",
+    build: (ctx, capture) => {
+      const cell = ctx.state.var("grow", () => array.newFloat(0));
+      const grow = cell.value;
+      array.push(grow, ctx.close.value);
+      capture["size"] = ctx.series("grow-size", () => array.size(grow));
+      capture["last"] = ctx.series("grow-last", () => array.last(grow) ?? Number.NaN);
+      capture["sum"] = ctx.series("grow-sum", () => array.sum(grow));
+    },
+  },
+  {
+    name: "var-array-window",
+    build: (ctx, capture) => {
+      // The rolling-window idiom from the v6 array.new_float example:
+      // drop the head once full, push the close, average the window.
+      const cell = ctx.state.var("win", () => array.newFloat(0));
+      const window = cell.value;
+      if (array.size(window) === 5) array.remove(window, 0);
+      array.push(window, ctx.close.value);
+      capture["sma5"] = ctx.series("win-avg", () => array.avg(window));
+      capture["median5"] = ctx.series("win-median", () => array.median(window));
+    },
+  },
+  {
+    name: "var-array-slice",
+    build: (ctx, capture) => {
+      // A var parent mutated per bar, read through a per-bar slice view.
+      const cell = ctx.state.var("parent", () => array.newFloat(0));
+      const parent = cell.value;
+      array.push(parent, ctx.close.value);
+      capture["tail"] = ctx.series("tail", () =>
+        array.size(parent) >= 3 ? array.sum(array.slice(parent, array.size(parent) - 3, array.size(parent))) : Number.NaN,
+      );
+    },
+  },
+  {
+    name: "pivot-levels",
+    // The per-bar arrays live in mutable outer bindings: memoized user
+    // series closures capture their bar-0 environment, so the capture rule
+    // (SEMANTICS.md) requires series reads, never frozen locals.
+    build: (() => {
+      let traditional: ReturnType<typeof ta.pivotPointLevels> | undefined;
+      let developing: ReturnType<typeof ta.pivotPointLevels> | undefined;
+      return (ctx: Context, capture: Capture) => {
+        const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+        traditional = ta.pivotPointLevels("Traditional", anchor);
+        developing = ta.pivotPointLevels("Camarilla", anchor, true);
+        capture["p"] = ctx.series("pivot-p", () => traditional?.get(0) ?? Number.NaN);
+        capture["r1"] = ctx.series("pivot-r1", () => traditional?.get(1) ?? Number.NaN);
+        capture["devP"] = ctx.series("pivot-dev-p", () => developing?.get(0) ?? Number.NaN);
+      };
+    })(),
   },
 ];
 

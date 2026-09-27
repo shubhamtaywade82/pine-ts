@@ -200,21 +200,12 @@ export const pivotPointLevels = (
         evaluate: (state: Readonly<PivotState>): PineArray<number> => {
           const { high, low, close, open } = readSources();
           const anchored = anchor.at(0) ?? false;
-          if (anchored) {
-            if (!state.hasData) return PineArray.createRoot<number>(naLevels());
-            return PineArray.createRoot<number>(
-              computeRawLevels(
-                type,
-                state.periodHigh,
-                state.periodLow,
-                state.periodClose,
-                state.periodOpen,
-                open,
-              ),
-            );
-          }
           if (developing) {
-            if (!state.hasData) {
+            // A developing pivot tracks the running period. On the anchor
+            // bar (and before any anchor has fired) the window is the
+            // current bar alone; afterwards it is the bars since the anchor
+            // merged with the current bar.
+            if (anchored || !state.hasData) {
               return PineArray.createRoot<number>(
                 computeRawLevels(type, high, low, close, open, open),
               );
@@ -225,6 +216,19 @@ export const pivotPointLevels = (
                 Math.max(state.periodHigh, high),
                 Math.min(state.periodLow, low),
                 close,
+                state.periodOpen,
+                open,
+              ),
+            );
+          }
+          if (anchored) {
+            if (!state.hasData) return PineArray.createRoot<number>(naLevels());
+            return PineArray.createRoot<number>(
+              computeRawLevels(
+                type,
+                state.periodHigh,
+                state.periodLow,
+                state.periodClose,
                 state.periodOpen,
                 open,
               ),
