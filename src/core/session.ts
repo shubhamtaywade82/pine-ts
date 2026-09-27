@@ -13,6 +13,7 @@ export interface SourceBundle {
   readonly hl2: FloatSeries;
   readonly hlc3: FloatSeries;
   readonly ohlc4: FloatSeries;
+  readonly bar_index: Series<number>;
 }
 
 export type BarExecutor = () => void;
@@ -29,6 +30,13 @@ export class PineSession {
     isNew: false,
     isConfirmed: false,
     isLastConfirmedHistory: false,
+    isfirst: false,
+    islast: false,
+    ishistory: false,
+    isrealtime: false,
+    isnew: false,
+    isconfirmed: false,
+    islastconfirmedhistory: false,
   };
 
   public readonly nodes: NodeRegistry = new NodeRegistry();
@@ -54,6 +62,7 @@ export class PineSession {
       hl2: createFloatSeries(this),
       hlc3: createFloatSeries(this),
       ohlc4: createFloatSeries(this),
+      bar_index: createSeries<number>(this),
     };
   }
 
@@ -145,6 +154,14 @@ export class PineSession {
       isNew,
       isConfirmed: confirmed,
       isLastConfirmedHistory: history && isLast,
+      // Pine v6 lowercase aliases
+      isfirst: this.barIndex === 0,
+      islast: isLast,
+      ishistory: history,
+      isrealtime: realtime,
+      isnew: isNew,
+      isconfirmed: confirmed,
+      islastconfirmedhistory: history && isLast,
     };
   }
 
@@ -158,6 +175,7 @@ export class PineSession {
     this.sources.hl2._push((bar.high + bar.low) / 2);
     this.sources.hlc3._push((bar.high + bar.low + bar.close) / 3);
     this.sources.ohlc4._push((bar.open + bar.high + bar.low + bar.close) / 4);
+    this.sources.bar_index._push(this.barIndex);
   }
 
   private confirmBar(): void {

@@ -26,6 +26,7 @@ export type PineExecutionMode = "historical" | "realtime";
 
 export interface BarState {
   readonly index: number;
+  // camelCase
   readonly isFirst: boolean;
   readonly isLast: boolean;
   readonly isHistory: boolean;
@@ -33,6 +34,14 @@ export interface BarState {
   readonly isNew: boolean;
   readonly isConfirmed: boolean;
   readonly isLastConfirmedHistory: boolean;
+  // Pine v6 lowercase aliases
+  readonly isfirst: boolean;
+  readonly islast: boolean;
+  readonly ishistory: boolean;
+  readonly isrealtime: boolean;
+  readonly isnew: boolean;
+  readonly isconfirmed: boolean;
+  readonly islastconfirmedhistory: boolean;
 }
 
 export interface HistoricalBarsRequest {

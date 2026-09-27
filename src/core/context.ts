@@ -15,6 +15,9 @@ export interface PineContext {
   readonly hl2: FloatSeries;
   readonly hlc3: FloatSeries;
   readonly ohlc4: FloatSeries;
+  readonly bar_index: Series<number>;
+  /** Equal to the total number of historical bars minus 1 (last bar's index). */
+  readonly last_bar_index: number;
   readonly barstate: BarState;
   readonly syminfo: SymbolInfo;
   readonly state: PineState;
@@ -32,6 +35,8 @@ export const createContext = (session: PineSession, bar: Bar): PineContext => ({
   hl2: session.sources.hl2,
   hlc3: session.sources.hlc3,
   ohlc4: session.sources.ohlc4,
+  bar_index: session.sources.bar_index,
+  last_bar_index: session.barIndex,
   barstate: session.barstate,
   syminfo: session.getSymbolInfo(),
   state: session.state,
