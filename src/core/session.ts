@@ -12,6 +12,7 @@ export interface SourceBundle {
   readonly time: Series<number>;
   readonly hl2: FloatSeries;
   readonly hlc3: FloatSeries;
+  readonly hlcc4: FloatSeries;
   readonly ohlc4: FloatSeries;
 }
 
@@ -53,6 +54,7 @@ export class PineSession {
       time: createSeries<number>(this),
       hl2: createFloatSeries(this),
       hlc3: createFloatSeries(this),
+      hlcc4: createFloatSeries(this),
       ohlc4: createFloatSeries(this),
     };
   }
@@ -157,6 +159,7 @@ export class PineSession {
     this.sources.time._push(bar.time);
     this.sources.hl2._push((bar.high + bar.low) / 2);
     this.sources.hlc3._push((bar.high + bar.low + bar.close) / 3);
+    this.sources.hlcc4._push((bar.high + bar.low + 2 * bar.close) / 4);
     this.sources.ohlc4._push((bar.open + bar.high + bar.low + bar.close) / 4);
   }
 
