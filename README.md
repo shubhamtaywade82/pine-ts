@@ -90,10 +90,14 @@ Runnable examples use local sample data and do not require exchange credentials:
 ```bash
 pnpm exec tsx examples/historical-sma-crossover.ts
 pnpm exec tsx examples/realtime-bar-updates.ts
+pnpm exec tsx examples/simple-backtest-loop.ts
+pnpm exec tsx examples/rsi-momentum-filter.ts
 ```
 
 The first example detects SMA crossover signals from historical bars. The second
 shows how repeated updates to a realtime bar are evaluated before confirmation.
+The third runs a simulated trade backtest tracking cash, positions, and net PnL.
+The fourth demonstrates combining an RSI oscillator with an EMA trend filter.
 
 ## Roadmap
 

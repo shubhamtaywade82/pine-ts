@@ -28,6 +28,6 @@ await runtime.runRealtime((context) => {
   const averageText = Number.isNaN(average) ? "na" : average.toFixed(2);
   console.log(
     `time=${context.bar.time} close=${context.close.value} sma(2)=${averageText} ` +
-    `new=${context.barstate.isNew} confirmed=${context.barstate.isConfirmed}`,
+      `new=${context.barstate.isNew} confirmed=${context.barstate.isConfirmed}`,
   );
 });
