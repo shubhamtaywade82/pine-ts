@@ -139,6 +139,31 @@ execution.
 - `ctx.state.varip(name, init)` — a persistent cell that is never rolled
   back: intrabar updates persist immediately across ticks and bars.
 
+## Arrays (mutable reference types)
+
+Pine arrays are mutable reference types, so cell rollback alone cannot
+restore them: an aborted realtime revision that pushed onto a `var` array
+would leave the mutation behind. pine-ts therefore journals every in-place
+array mutation on the owning session and replays the journal in reverse
+during `rollbackWorkingState` — the array counterpart of a `var` cell
+restoring its committed value. Bar confirmation discards the journal, making
+the mutations permanent. Arrays mutated outside script execution (no ambient
+session) skip the journal; nothing can roll them back, exactly like
+standalone series.
+
+`varip` cells promote the backing stores they reference through a
+duck-typed `_setVarip` hook: promoted backings stop journaling (and any
+already-journaled mutations become permanent), so varip array updates
+finalize on every tick. `var` cells mark with `false` symmetrically, so an
+array reassigned between cells follows its new cell's semantics.
+
+Slices (`array.slice`) are **views**: an absolute `[from, to)` window over
+the parent's backing store. Writes through a slice land in the parent at the
+window position, and — per the v6 reference — slice windows are never
+remapped when the parent mutates. A parent that shrinks past a window leaves
+that slice raising `Slice is out of bounds of the parent array` on its next
+use, the documented Pine behavior.
+
 ## na model
 
 - `na` for floats is `Number.NaN`. `isNa` treats both `undefined` and `NaN`

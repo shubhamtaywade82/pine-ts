@@ -31,10 +31,10 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 ## Phase 3 — Core namespaces
 
 - [x] `math.*` (24/24 built-ins; scalar/series dual-mode, per-session seeded `math.random`, `round_to_mintick` reads `SymbolInfo.minTick`)
-- [ ] `array.*` (unblocks `ta.pivot_point_levels` and `str.split`)
+- [x] `array.*` (50/55 built-ins; transactional mutation journal with var/varip rollback semantics, slice views as write-through windows, skip-na statistics; the five drawing-array constructors land with the drawing namespaces. Unblocked `ta.pivot_point_levels` and `str.split`.)
 - [ ] `matrix.*`
 - [ ] `map.*`
-- [x] `str.*` (17/18 built-ins; `str.split` lands with `array.*`; Java-style `str.format`/`str.tostring` patterns, DST-aware `str.format_time`)
+- [x] `str.*` (18/18 built-ins; Java-style `str.format`/`str.tostring` patterns, DST-aware `str.format_time`, `str.split` over the array namespace)
 - [ ] `color.*`
 - [ ] `input.*`
 

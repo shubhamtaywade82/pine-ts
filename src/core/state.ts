@@ -62,11 +62,7 @@ export type PineStateSnapshot = ReadonlyMap<string, unknown>;
  */
 const markValue = (value: unknown, varip: boolean): void => {
   const marker = value as { _setVarip?: (enabled: boolean) => void } | null;
-  if (
-    typeof marker === "object" &&
-    marker !== null &&
-    typeof marker._setVarip === "function"
-  ) {
+  if (typeof marker === "object" && marker !== null && typeof marker._setVarip === "function") {
     marker._setVarip(varip);
   }
 };

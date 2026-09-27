@@ -1,0 +1,30 @@
+{
+  "name": "array.push_pop",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [1, 2],
+        "ops": [["push", 3]],
+        "observe": "array"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["pop"]],
+        "observe": "both"
+      },
+      {
+        "start": [],
+        "ops": [["push", 5], ["pop"]],
+        "observe": "both"
+      }
+    ]
+  },
+  "expected": {
+    "push_pop": [
+      [1, 2, 3],
+      [3, [1, 2]],
+      [5, []]
+    ]
+  }
+}

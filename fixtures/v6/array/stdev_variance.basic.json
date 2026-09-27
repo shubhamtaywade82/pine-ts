@@ -1,0 +1,52 @@
+{
+  "name": "array.stdev_variance",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [2, 4, 4, 4, 5, 5, 7, 9],
+        "biased": true
+      },
+      {
+        "values": [2, 4, 4, 4, 5, 5, 7, 9],
+        "biased": false
+      },
+      {
+        "values": [5],
+        "biased": true
+      },
+      {
+        "values": [5],
+        "biased": false
+      },
+      {
+        "values": [null, 3, 3],
+        "biased": true
+      },
+      {
+        "values": [null, 3, 3],
+        "biased": false
+      },
+      {
+        "values": [],
+        "biased": true
+      },
+      {
+        "values": [],
+        "biased": false
+      }
+    ]
+  },
+  "expected": {
+    "stdev_variance": [
+      [4.0, 2.0],
+      [4.571428571428571, 2.138089935299395],
+      [0.0, 0.0],
+      [null, null],
+      [0.0, 0.0],
+      [0.0, 0.0],
+      [null, null],
+      [null, null]
+    ]
+  }
+}

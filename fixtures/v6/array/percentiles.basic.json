@@ -1,0 +1,37 @@
+{
+  "name": "array.percentiles",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [1, 2, 3, 4],
+        "percentage": 50
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "percentage": 25
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "percentage": 100
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "percentage": 0
+      },
+      {
+        "values": [null, 5, 1],
+        "percentage": 50
+      }
+    ]
+  },
+  "expected": {
+    "percentiles": [
+      [2.0, 2.5],
+      [1.0, 1.75],
+      [4.0, 4.0],
+      [1.0, 1.0],
+      [1.0, 3.0]
+    ]
+  }
+}

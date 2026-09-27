@@ -812,9 +812,20 @@ functions:
     returns: array<float>
     semantics:
       core: "pivot point levels for Traditional, Fibonacci, Woodie, Classic, DM, and Camarilla types, reset by the anchor condition"
-      levels: "an array of 11 levels [P, R1, S1, R2, S2, R3, S3, R4, S4, R5, S5] per the v6 reference"
-      blocked: "planned; blocked on the array namespace and timeframe anchoring"
-    status: planned
+      levels: "an array of 11 levels [P, R1, S1, R2, S2, R3, S3, R4, S4, R5, S5] per the v6 reference; levels a type does not define stay na"
+      formulas: "TradingView's own Pivot Points Standard definitions (support article 43000521824); Woodie uses the current period's open, DM's doji check compares the completed period's open and close"
+      anchor: "on an anchor bar the levels come from the period that just closed; developing=true recalculates on the running period (bars since the last anchor, or bar zero when no anchor has fired)"
+      errors: "developing with type Woodie raises a runtime error (the v6 reference contract)"
+      pineTs: "returns the current bar's PineArray<number> directly (Pine-shaped array.get usage); the accumulation lives in a session-owned node with the evaluate/commit split, so realtime revisions roll back cleanly"
+    impl: { module: src/ta/pivot.ts, export: pivotPointLevels }
+    status: draft
+    vectors:
+      - fixtures/v6/array/pivot_traditional.basic.json
+      - fixtures/v6/array/pivot_classic.basic.json
+      - fixtures/v6/array/pivot_woodie.basic.json
+      - fixtures/v6/array/pivot_dm.basic.json
+      - fixtures/v6/array/pivot_camarilla.basic.json
+      - fixtures/v6/array/pivot_camarilla_developing.basic.json
 
   - name: barssince
     signature:

@@ -1,0 +1,685 @@
+namespace: array
+pineVersion: 6
+status: partial
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  "array<T>": PineArray<T>
+  "array<int/float>": PineArray<number>
+  "array<bool>": PineArray<boolean>
+  "array<string>": PineArray<string>
+  "array<color>": PineArray<string>
+  "na element (numeric)": "NaN"
+  "na element (bool/string/color)": undefined
+  "na array id": undefined
+functions:
+  - name: abs
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "array<int/float>"
+    semantics:
+      na: "new array with element-wise absolute values, na preserved; empty or all-na input returns na (undefined array id), per the v6 Arrays page blanket rule"
+    impl: { module: src/array/core.ts, export: abs }
+    status: draft
+    vectors: [fixtures/v6/array/abs.basic.json]
+
+  - name: avg
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na: mean of non-na elements; na when empty or all elements na"
+    impl: { module: src/array/statistics.ts, export: avg }
+    status: draft
+    vectors: [fixtures/v6/array/avg.basic.json]
+
+  - name: binary_search
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: val, type: "int/float" }
+    returns: "series int"
+    semantics:
+      preconditions: "array sorted ascending and na-free (reference: correct results require it)"
+      empty: "returns -1"
+    impl: { module: src/array/statistics.ts, export: binary_search }
+    status: draft
+    vectors: [fixtures/v6/array/binary_search.basic.json]
+
+  - name: binary_search_leftmost
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: val, type: "int/float" }
+    returns: "series int"
+    semantics:
+      found: "first index of val"
+      absent: "index of the last element below val, or 0 when val sorts before the first element"
+      empty: "returns 0"
+    impl: { module: src/array/statistics.ts, export: binary_search_leftmost }
+    status: draft
+    vectors: [fixtures/v6/array/binary_search.basic.json]
+
+  - name: binary_search_rightmost
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: val, type: "int/float" }
+    returns: "series int"
+    semantics:
+      found: "last index of val"
+      absent: "first index above val, or size when val sorts after the last element"
+      empty: "returns 0"
+    impl: { module: src/array/statistics.ts, export: binary_search_rightmost }
+    status: draft
+    vectors: [fixtures/v6/array/binary_search.basic.json]
+
+  - name: clear
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: void
+    semantics:
+      slices: "removes the window from the parent backing; sibling slice windows are not remapped"
+    impl: { module: src/array/core.ts, export: clear }
+    status: draft
+    vectors: [fixtures/v6/array/reverse_clear_concat.basic.json]
+
+  - name: concat
+    signature:
+      params:
+        - { name: id1, type: "any array type" }
+        - { name: id2, type: "any array type" }
+    returns: "array<type>"
+    semantics:
+      mutation: "pushes every id2 element onto id1 (mutating it) and returns id1, per the reference"
+    impl: { module: src/array/core.ts, export: concat }
+    status: draft
+    vectors: [fixtures/v6/array/reverse_clear_concat.basic.json]
+
+  - name: copy
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "array<type>"
+    semantics:
+      independence: "shallow copy: same element references, independent structure (v6 Arrays page)"
+    impl: { module: src/array/core.ts, export: copy }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: covariance
+    signature:
+      params:
+        - { name: id1, type: "array<int/float>" }
+        - { name: id2, type: "array<int/float>" }
+        - { name: biased, type: bool, default: true }
+    returns: "series float"
+    semantics:
+      na: "skip-na over index pairs where both elements are non-na"
+      sizes: "pine-ts decision: arrays of different sizes raise a RangeError (pairing by index is otherwise undefined); the v6 reference only documents na for the both-empty case"
+    impl: { module: src/array/statistics.ts, export: covariance }
+    status: draft
+    vectors: [fixtures/v6/array/covariance.basic.json]
+
+  - name: every
+    signature:
+      params:
+        - { name: id, type: "array<bool/int/float>" }
+    returns: "series bool"
+    semantics:
+      coercion: "numeric zero is false, all other numbers true (v6 remark); na elements are false — an na condition is never true"
+    impl: { module: src/array/core.ts, export: every }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: fill
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+        - { name: index_from, type: int, default: 0 }
+        - { name: index_to, type: int, default: na }
+    returns: void
+    semantics:
+      indexing: "index_to is exclusive; na index_to fills to the end"
+      errors: "negative or inverted bounds raise out-of-bounds (pine-ts decision: fill indexes are forward-only)"
+    impl: { module: src/array/core.ts, export: fill }
+    status: draft
+    vectors: [fixtures/v6/array/fill.basic.json]
+
+  - name: first
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "series <type>"
+    semantics:
+      errors: "runtime error on an empty array (v6 reference)"
+    impl: { module: src/array/core.ts, export: first }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: from
+    signature:
+      params:
+        - { name: arg0, type: "<arg..._type>" }
+        - { name: "...", type: "<arg..._type>" }
+    returns: "array<type>"
+    semantics:
+      typing: "element type inferred from the arguments (TS generics); pine-ts requires at least one argument, mirroring array.from(arg0, ...) — an empty from() has no inferable type"
+    impl: { module: src/array/core.ts, export: from }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: get
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: index, type: int }
+    returns: "series <type>"
+    semantics:
+      indexing: "negative indices count back from the end (-1 is the last element), per the v6 remark"
+      errors: "Index {index} is out of bounds. Array size is {size}"
+    impl: { module: src/array/core.ts, export: get }
+    status: draft
+    vectors: [fixtures/v6/array/get.basic.json]
+
+  - name: includes
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+    returns: "series bool"
+    semantics:
+      na: "pine-ts decision: an na search value matches na elements (na-aware equality)"
+    impl: { module: src/array/core.ts, export: includes }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: indexof
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+    returns: "series int"
+    semantics:
+      result: "first matching index, or -1"
+      na: "na-aware equality as in includes"
+    impl: { module: src/array/core.ts, export: indexof }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: insert
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: index, type: int }
+        - { name: value, type: "element type" }
+    returns: void
+    semantics:
+      indexing: "negative indices count back from the end (insert before the resolved position)"
+      errors: "resolved index must be a valid read position (0..size-1); appending is push"
+      slices: "inserting through a slice shifts the parent and grows the slice window"
+    impl: { module: src/array/core.ts, export: insert }
+    status: draft
+    vectors: [fixtures/v6/array/insert_remove.basic.json]
+
+  - name: join
+    signature:
+      params:
+        - { name: id, type: "array<int/float/string>" }
+        - { name: separator, type: string, default: '""' }
+    returns: "series string"
+    semantics:
+      na: "numeric na prints as NaN, matching str.tostring"
+    impl: { module: src/array/core.ts, export: join }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: last
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "series <type>"
+    semantics:
+      errors: "runtime error on an empty array (v6 reference)"
+    impl: { module: src/array/core.ts, export: last }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: lastindexof
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+    returns: "series int"
+    semantics:
+      result: "last matching index, or -1"
+      na: "na-aware equality as in includes"
+    impl: { module: src/array/core.ts, export: lastindexof }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: max
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: nth, type: int, default: 0 }
+    returns: "series float"
+    semantics:
+      na: "skip-na; nth out of range or empty/all-na yields na (pine-ts decision for negative nth)"
+    impl: { module: src/array/statistics.ts, export: max }
+    status: draft
+    vectors: [fixtures/v6/array/max.basic.json]
+
+  - name: median
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all-na"
+    impl: { module: src/array/statistics.ts, export: median }
+    status: draft
+    vectors: [fixtures/v6/array/median.basic.json]
+
+  - name: min
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: nth, type: int, default: 0 }
+    returns: "series float"
+    semantics:
+      na: "skip-na; nth out of range or empty/all-na yields na (pine-ts decision for negative nth)"
+    impl: { module: src/array/statistics.ts, export: min }
+    status: draft
+    vectors: [fixtures/v6/array/min.basic.json]
+
+  - name: mode
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "series float"
+    semantics:
+      ties: "most frequent value; if none exists, the smallest value (v6 reference), mirroring ta.mode"
+      na: "na when empty or all-na (the v6 Arrays page's 'no mode found' case)"
+    impl: { module: src/array/statistics.ts, export: mode }
+    status: draft
+    vectors: [fixtures/v6/array/mode.basic.json]
+
+  - name: new
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: "<array_type>", default: na }
+    returns: "array<type>"
+    semantics:
+      pineName: "array.new<type>() — the template form; the manifest name drops the angle brackets to satisfy the identifier schema"
+      na: "typed constructors pin the per-type na element (numbers use NaN); the generic form fills with undefined when no initial value is supplied, so number arrays should prefer newFloat/newInt"
+      errors: "Cannot create an array with a negative size; Array is too large. Maximum size is 100000"
+    impl: { module: src/array/core.ts, export: newArray }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: new_bool
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: bool, default: na }
+    returns: "array<bool>"
+    semantics:
+      na: "na bool element is undefined"
+    impl: { module: src/array/core.ts, export: newBool }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: new_color
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: color, default: na }
+    returns: "array<color>"
+    semantics:
+      representation: "pine-ts encodes color as #RRGGBB[AA] strings until the color namespace lands"
+    impl: { module: src/array/core.ts, export: newColor }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: new_float
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: "int/float", default: na }
+    returns: "array<float>"
+    semantics:
+      na: "na float element is NaN"
+    impl: { module: src/array/core.ts, export: newFloat }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: new_int
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: "int/float", default: na }
+    returns: "array<int>"
+    semantics:
+      na: "na int element is NaN (pine-ts types int and float as number)"
+    impl: { module: src/array/core.ts, export: newInt }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: new_string
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: string, default: na }
+    returns: "array<string>"
+    semantics:
+      na: "na string element is undefined"
+    impl: { module: src/array/core.ts, export: newString }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: percentile_linear_interpolation
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: percentage, type: "int/float" }
+    returns: "series float"
+    semantics:
+      na: "skip-na (v6 Arrays page blanket rule — unlike the ta.* window variant, whose window is strict)"
+      formula: "linear interpolation at (percentage / 100) * (count - 1) on the ascending sort"
+    impl: { module: src/array/statistics.ts, export: percentile_linear_interpolation }
+    status: draft
+    vectors: [fixtures/v6/array/percentiles.basic.json]
+
+  - name: percentile_nearest_rank
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: percentage, type: "int/float" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all-na"
+      formula: "nearest-rank: ceil(percentage / 100 * count) on the ascending sort, clamped"
+    impl: { module: src/array/statistics.ts, export: percentile_nearest_rank }
+    status: draft
+    vectors: [fixtures/v6/array/percentiles.basic.json]
+
+  - name: percentrank
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: index, type: int }
+    returns: "series float"
+    semantics:
+      formula: "percentage of non-na elements less than or equal to the reference element at index (the reference's weak convention: the maximum reads 100)"
+      na: "na when the reference element is na or the array is empty/all-na"
+    impl: { module: src/array/statistics.ts, export: percentrank }
+    status: draft
+    vectors: [fixtures/v6/array/percentrank.basic.json]
+
+  - name: pop
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "series <type>"
+    semantics:
+      errors: "Cannot use pop() if array is empty. (v6 runtime error text)"
+      slices: "removes the window's last element from the parent and shrinks the window"
+    impl: { module: src/array/core.ts, export: pop }
+    status: draft
+    vectors: [fixtures/v6/array/push_pop.basic.json]
+
+  - name: push
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+    returns: void
+    semantics:
+      errors: "Array is too large. Maximum size is 100000"
+      slices: "inserts at the window's end position in the parent"
+    impl: { module: src/array/core.ts, export: push }
+    status: draft
+    vectors: [fixtures/v6/array/push_pop.basic.json]
+
+  - name: range
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all-na"
+    impl: { module: src/array/statistics.ts, export: range }
+    status: draft
+    vectors: [fixtures/v6/array/range.basic.json]
+
+  - name: remove
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: index, type: int }
+    returns: "series <type>"
+    semantics:
+      indexing: "negative indices count back from the end"
+      slices: "removes from the parent and shrinks the window; sibling windows are not remapped (the documented out-of-bounds hazard)"
+    impl: { module: src/array/core.ts, export: remove }
+    status: draft
+    vectors: [fixtures/v6/array/insert_remove.basic.json]
+
+  - name: reverse
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: void
+    semantics:
+      slices: "reverses only the window range in the parent backing"
+    impl: { module: src/array/core.ts, export: reverse }
+    status: draft
+    vectors: [fixtures/v6/array/reverse_clear_concat.basic.json]
+
+  - name: set
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: index, type: int }
+        - { name: value, type: "element type" }
+    returns: void
+    semantics:
+      indexing: "negative indices count back from the end"
+      errors: "Index {index} is out of bounds. Array size is {size}"
+      slices: "writes through to the parent (the v6 slice contract)"
+    impl: { module: src/array/core.ts, export: set }
+    status: draft
+    vectors: [fixtures/v6/array/slice.basic.json]
+
+  - name: shift
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "series <type>"
+    semantics:
+      errors: "Cannot use shift() if array is empty. (v6 runtime error text)"
+    impl: { module: src/array/core.ts, export: shift }
+    status: draft
+    vectors: [fixtures/v6/array/shift_unshift.basic.json]
+
+  - name: size
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+    returns: "series int"
+    semantics:
+      na: "runtime error when called on an na array id (undefined in pine-ts)"
+      slices: "window size; raises Slice is out of bounds of the parent array when the parent shrank past the window"
+    impl: { module: src/array/core.ts, export: size }
+    status: draft
+    vectors: [fixtures/v6/array/constructors.basic.json]
+
+  - name: slice
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: index_from, type: int }
+        - { name: index_to, type: int }
+    returns: "array<type>"
+    semantics:
+      view: "write-through view over an absolute [index_from, index_to) window of the parent's backing (v6 reference)"
+      errors: "Index 'from' should be less than index 'to'; bounds follow 0 <= from < size, from < to <= size"
+    impl: { module: src/array/core.ts, export: slice }
+    status: draft
+    vectors: [fixtures/v6/array/slice.basic.json]
+
+  - name: some
+    signature:
+      params:
+        - { name: id, type: "array<bool/int/float>" }
+    returns: "series bool"
+    semantics:
+      coercion: "numeric zero false, non-zero true, na false (v6 remarks)"
+    impl: { module: src/array/core.ts, export: some }
+    status: draft
+    vectors: [fixtures/v6/array/every_some_join.basic.json]
+
+  - name: sort
+    signature:
+      params:
+        - { name: id, type: "array<int/float/string>" }
+        - { name: order, type: sort_order, default: order.ascending }
+    returns: void
+    semantics:
+      order: "order.ascending (default) or order.descending (src/order)"
+      na: "pine-ts decision: na elements sink to the end in both directions"
+      sort_field: "overload deferred until user-defined types exist"
+    impl: { module: src/array/core.ts, export: sort }
+    status: draft
+    vectors: [fixtures/v6/array/sort.basic.json]
+
+  - name: sort_indices
+    signature:
+      params:
+        - { name: id, type: "array<int/float/string>" }
+        - { name: order, type: sort_order, default: order.ascending }
+    returns: "array<int>"
+    semantics:
+      result: "index permutation reading the array in sorted order; na element indices last; the array is not modified"
+      sort_field: "overload deferred until user-defined types exist"
+    impl: { module: src/array/core.ts, export: sort_indices }
+    status: draft
+    vectors: [fixtures/v6/array/sort.basic.json]
+
+  - name: standardize
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "array<float>"
+    semantics:
+      formula: "(x - mean) / stdev with the population stdev"
+      na: "na elements preserved in place; empty or all-na input returns an empty array (the v6 Arrays page exception); zero stdev standardizes every element to na"
+    impl: { module: src/array/statistics.ts, export: standardize }
+    status: draft
+    vectors: [fixtures/v6/array/standardize.basic.json]
+
+  - name: stdev
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: biased, type: bool, default: true }
+    returns: "series float"
+    semantics:
+      biased: "true divides by n (population), false by n - 1 (sample)"
+      na: "skip-na; na when empty, all-na, or a single-element sample"
+    impl: { module: src/array/statistics.ts, export: stdev }
+    status: draft
+    vectors: [fixtures/v6/array/stdev_variance.basic.json]
+
+  - name: sum
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all-na"
+    impl: { module: src/array/statistics.ts, export: sum }
+    status: draft
+    vectors: [fixtures/v6/array/sum.basic.json]
+
+  - name: unshift
+    signature:
+      params:
+        - { name: id, type: "any array type" }
+        - { name: value, type: "element type" }
+    returns: void
+    semantics:
+      slices: "inserts at the window start in the parent backing"
+    impl: { module: src/array/core.ts, export: unshift }
+    status: draft
+    vectors: [fixtures/v6/array/shift_unshift.basic.json]
+
+  - name: variance
+    signature:
+      params:
+        - { name: id, type: "array<int/float>" }
+        - { name: biased, type: bool, default: true }
+    returns: "series float"
+    semantics:
+      biased: "true divides by n (population), false by n - 1 (sample)"
+      na: "skip-na; na when empty, all-na, or a single-element sample"
+    impl: { module: src/array/statistics.ts, export: variance }
+    status: draft
+    vectors: [fixtures/v6/array/stdev_variance.basic.json]
+
+  - name: new_box
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: box, default: na }
+    returns: "array<box>"
+    semantics:
+      defer: "planned with the box drawing namespace (Phase G)"
+    status: planned
+
+  - name: new_label
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: label, default: na }
+    returns: "array<label>"
+    semantics:
+      defer: "planned with the label drawing namespace (Phase G)"
+    status: planned
+
+  - name: new_line
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: line, default: na }
+    returns: "array<line>"
+    semantics:
+      defer: "planned with the line drawing namespace (Phase G)"
+    status: planned
+
+  - name: new_linefill
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: linefill, default: na }
+    returns: "array<linefill>"
+    semantics:
+      defer: "planned with the linefill drawing namespace (Phase G)"
+    status: planned
+
+  - name: new_table
+    signature:
+      params:
+        - { name: size, type: int, default: 0 }
+        - { name: initial_value, type: table, default: na }
+    returns: "array<table>"
+    semantics:
+      defer: "planned with the table drawing namespace (Phase G)"
+    status: planned
+
+variables: {}

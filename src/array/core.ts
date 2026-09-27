@@ -19,19 +19,18 @@ export type ColorArray = PineArray<string>;
 /** The `na` element for a freshly sized array of each element type. */
 const numericNa = Number.NaN;
 
-export const newFloat = (size = 0, initialValue?: number): FloatArray => {
+const numericArray = (size: number, initialValue: number | undefined): FloatArray => {
   validateSize(size);
   const array = PineArray.createRoot<number>();
   array.backing.data = Array.from({ length: size }, () => initialValue ?? numericNa);
   return array;
 };
 
-export const newInt = (size = 0, initialValue?: number): IntArray => {
-  validateSize(size);
-  const array = PineArray.createRoot<number>();
-  array.backing.data = Array.from({ length: size }, () => initialValue ?? numericNa);
-  return array;
-};
+export const newFloat = (size = 0, initialValue?: number): FloatArray =>
+  numericArray(size, initialValue);
+
+export const newInt = (size = 0, initialValue?: number): IntArray =>
+  numericArray(size, initialValue);
 
 export const newBool = (size = 0, initialValue?: boolean): BoolArray => {
   validateSize(size);
@@ -40,19 +39,18 @@ export const newBool = (size = 0, initialValue?: boolean): BoolArray => {
   return array;
 };
 
-export const newString = (size = 0, initialValue?: string): StringArray => {
+const textualArray = (size: number, initialValue: string | undefined): StringArray => {
   validateSize(size);
   const array = PineArray.createRoot<string>();
   array.backing.data = Array.from({ length: size }, (): string | undefined => initialValue);
   return array;
 };
 
-export const newColor = (size = 0, initialValue?: string): ColorArray => {
-  validateSize(size);
-  const array = PineArray.createRoot<string>();
-  array.backing.data = Array.from({ length: size }, (): string | undefined => initialValue);
-  return array;
-};
+export const newString = (size = 0, initialValue?: string): StringArray =>
+  textualArray(size, initialValue);
+
+export const newColor = (size = 0, initialValue?: string): ColorArray =>
+  textualArray(size, initialValue);
 
 /**
  * v6 `array.new<type>(size, initial_value)`. The typed constructors above
@@ -174,7 +172,7 @@ export const includes = <T>(id: PineArray<T>, value: T | undefined): boolean => 
 export const indexof = <T>(id: PineArray<T>, value: T | undefined): number => {
   const elements = id.toArray();
   for (let index = 0; index < elements.length; index += 1) {
-    if (elementsEqual(elements[index]!, value)) return index;
+    if (elementsEqual(elements[index], value)) return index;
   }
   return -1;
 };
@@ -183,7 +181,7 @@ export const indexof = <T>(id: PineArray<T>, value: T | undefined): number => {
 export const lastindexof = <T>(id: PineArray<T>, value: T | undefined): number => {
   const elements = id.toArray();
   for (let index = elements.length - 1; index >= 0; index -= 1) {
-    if (elementsEqual(elements[index]!, value)) return index;
+    if (elementsEqual(elements[index], value)) return index;
   }
   return -1;
 };
@@ -213,18 +211,26 @@ export const some = (id: PineArray<boolean | number>): boolean => {
  * v6 `array.join(id, separator)` — stringifies with `str.tostring` na
  * formatting: numeric `na` prints as `NaN`.
  */
-export const join = (id: PineArray<number | string>, separator = ""): string => {
-  return id
-    .toArray()
-    .map((element) =>
-      typeof element === "number" ? floatToString(element) : element === undefined ? "NaN" : element,
-    )
-    .join(separator);
+const joinElement = (element: NumericOrTextual | undefined): string => {
+  if (typeof element === "number") return Number.isNaN(element) ? "NaN" : String(element);
+  return element ?? "NaN";
 };
 
-const floatToString = (value: number): string => {
-  if (Number.isNaN(value)) return "NaN";
-  return String(value);
+export const join = (id: PineArray<number | string>, separator = ""): string =>
+  id.toArray().map(joinElement).join(separator);
+
+type NumericOrTextual = number | string;
+
+/** Signed comparison of two non-na values: numeric by value, otherwise textual. */
+const orderedCompare = (left: NumericOrTextual, right: NumericOrTextual): number => {
+  if (typeof left === "number" && typeof right === "number") {
+    if (left === right) return 0;
+    return left < right ? -1 : 1;
+  }
+  const leftText = String(left);
+  const rightText = String(right);
+  if (leftText === rightText) return 0;
+  return leftText < rightText ? -1 : 1;
 };
 
 /**
@@ -259,14 +265,9 @@ export const sort_indices = (
     if (leftNa && rightNa) return 0;
     if (leftNa) return 1;
     if (rightNa) return -1;
-    if (typeof left === "number" && typeof right === "number") {
-      return (left === right ? 0 : left < right ? -1 : 1) * direction;
-    }
-    const leftText = String(left);
-    const rightText = String(right);
-    return (leftText === rightText ? 0 : leftText < rightText ? -1 : 1) * direction;
+    return orderedCompare(left!, right!) * direction;
   };
-  indices.sort((left, right) => compareValues(elements[left]!, elements[right]!));
+  indices.sort((left, right) => compareValues(elements[left], elements[right]));
   return PineArray.createRoot<number>(indices);
 };
 

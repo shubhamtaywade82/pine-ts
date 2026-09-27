@@ -1,0 +1,24 @@
+{
+  "name": "array.slice",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [1, 2, 3, 4, 5],
+        "ops": [["set_slice", 1, 4, 0, 99]],
+        "observe": "array"
+      },
+      {
+        "start": [1, 2, 3, 4, 5],
+        "ops": [["push_slice", 1, 4, 77]],
+        "observe": "array"
+      }
+    ]
+  },
+  "expected": {
+    "slice": [
+      [1, 99, 3, 4, 5],
+      [1, 2, 3, 4, 77, 5]
+    ]
+  }
+}

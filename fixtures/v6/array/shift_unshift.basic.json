@@ -1,0 +1,24 @@
+{
+  "name": "array.shift_unshift",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [1, 2],
+        "ops": [["unshift", 0]],
+        "observe": "array"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["shift"]],
+        "observe": "both"
+      }
+    ]
+  },
+  "expected": {
+    "shift_unshift": [
+      [0, 1, 2],
+      [1, [2, 3]]
+    ]
+  }
+}

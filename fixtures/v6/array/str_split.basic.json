@@ -1,0 +1,31 @@
+{
+  "name": "array.str_split",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "a,b,c",
+        "separator": ","
+      },
+      {
+        "source": "a,b,c,",
+        "separator": ","
+      },
+      {
+        "source": "abc",
+        "separator": ""
+      },
+      {
+        "source": "",
+        "separator": ","
+      },
+      {
+        "source": "no-separator",
+        "separator": "-"
+      }
+    ]
+  },
+  "expected": {
+    "str_split": [["a", "b", "c"], ["a", "b", "c", ""], ["abc"], [""], ["no", "separator"]]
+  }
+}

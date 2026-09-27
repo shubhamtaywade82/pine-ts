@@ -51,9 +51,7 @@ describe("Phase 4 — array constructors", () => {
     expect(array.get(generic, 0)).toBeUndefined();
 
     expect(() => array.newFloat(-1)).toThrow("Cannot create an array with a negative size");
-    expect(() => array.newFloat(100_001)).toThrow(
-      "Array is too large. Maximum size is 100000",
-    );
+    expect(() => array.newFloat(100_001)).toThrow("Array is too large. Maximum size is 100000");
   });
 
   it("builds arrays from arguments and copies independently", () => {
@@ -158,9 +156,7 @@ describe("Phase 4 — slices (write-through views)", () => {
 
   it("validates slice bounds and reports parent shrink", () => {
     const parent = array.from(1, 2, 3, 4, 5);
-    expect(() => array.slice(parent, 3, 3)).toThrow(
-      "Index 'from' should be less than index 'to'",
-    );
+    expect(() => array.slice(parent, 3, 3)).toThrow("Index 'from' should be less than index 'to'");
     expect(() => array.slice(parent, 0, 6)).toThrow();
     const view = array.slice(parent, 3, 5);
     array.remove(parent, 0);
@@ -422,7 +418,7 @@ describe("Phase 4 — str.split", () => {
   it("splits on separators and propagates na", () => {
     const parts = str.split("a,b,c", ",")!;
     expect(parts.toArray()).toEqual(["a", "b", "c"]);
-    expect(str.split("a,b,c,", ",").toArray()).toEqual(["a", "b", "c", ""]);
+    expect(str.split("a,b,c,", ",")?.toArray()).toEqual(["a", "b", "c", ""]);
     expect(str.split("abc", "")!.toArray()).toEqual(["abc"]);
     expect(str.split(undefined, ",")).toBeUndefined();
     expect(str.split("abc", undefined)).toBeUndefined();
@@ -432,9 +428,9 @@ describe("Phase 4 — str.split", () => {
 
 describe("Phase 4 — ta.pivot_point_levels", () => {
   it("computes Traditional levels from the previous anchor period", async () => {
-    const levelsPerBar: (number[] | undefined)[] = [];
+    const levelsPerBar: Array<Array<number | undefined>> = [];
     const script: PineScript = (ctx) => {
-      const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
       const levels = ta.pivotPointLevels("Traditional", anchor);
       levelsPerBar.push(levels.toArray());
     };
@@ -463,7 +459,7 @@ describe("Phase 4 — ta.pivot_point_levels", () => {
   it("freezes non-developing levels between anchors", async () => {
     const pivotPerBar: number[] = [];
     const script: PineScript = (ctx) => {
-      const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
       const levels = ta.pivotPointLevels("Classic", anchor);
       pivotPerBar.push(levels.get(0) ?? Number.NaN);
     };
@@ -485,7 +481,7 @@ describe("Phase 4 — ta.pivot_point_levels", () => {
   it("developing levels recalculate on the running period", async () => {
     const pivotPerBar: number[] = [];
     const script: PineScript = (ctx) => {
-      const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
       const levels = ta.pivotPointLevels("Traditional", anchor, true);
       pivotPerBar.push(levels.get(0) ?? Number.NaN);
     };
@@ -511,10 +507,10 @@ describe("Phase 4 — ta.pivot_point_levels", () => {
   });
 
   it("fills absent levels with na per type and rejects Woodie+developing", async () => {
-    const dmPerBar: (number[] | undefined)[] = [];
-    const fibPerBar: (number[] | undefined)[] = [];
+    const dmPerBar: Array<Array<number | undefined>> = [];
+    const fibPerBar: Array<Array<number | undefined>> = [];
     const script: PineScript = (ctx) => {
-      const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
       dmPerBar.push(ta.pivotPointLevels("DM", anchor).toArray());
       fibPerBar.push(ta.pivotPointLevels("Fibonacci", anchor).toArray());
     };
@@ -546,7 +542,7 @@ describe("Phase 4 — ta.pivot_point_levels", () => {
     const woodieP: number[] = [];
     const dmP: number[] = [];
     const script: PineScript = (ctx) => {
-      const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
       woodieP.push(ta.pivotPointLevels("Woodie", anchor).get(0) ?? Number.NaN);
       dmP.push(ta.pivotPointLevels("DM", anchor).get(0) ?? Number.NaN);
     };

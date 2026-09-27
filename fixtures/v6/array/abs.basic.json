@@ -1,0 +1,23 @@
+{
+  "name": "array.abs",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [-1, 2, null]
+      },
+      {
+        "values": [null, null]
+      },
+      {
+        "values": []
+      },
+      {
+        "values": [-2.5]
+      }
+    ]
+  },
+  "expected": {
+    "abs": [[1, 2, null], null, null, [2.5]]
+  }
+}

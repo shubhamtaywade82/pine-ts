@@ -1,0 +1,31 @@
+{
+  "name": "array.get",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [10, 20, 30],
+        "ops": [["get", 0]],
+        "observe": "value"
+      },
+      {
+        "start": [10, 20, 30],
+        "ops": [["get", -1]],
+        "observe": "value"
+      },
+      {
+        "start": [10, 20, 30],
+        "ops": [["get", -3]],
+        "observe": "value"
+      },
+      {
+        "start": [1, null, 3],
+        "ops": [["get", 1]],
+        "observe": "value"
+      }
+    ]
+  },
+  "expected": {
+    "get": [10, 30, 10, null]
+  }
+}

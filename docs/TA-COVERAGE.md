@@ -85,9 +85,15 @@ Do not promote `draft` to `verified` based on mathematical plausibility or agree
 ## Next implementation groups
 
 1. `ta.vwap` `stdev_mult` tuple overload (blocked on the v6 reference documenting the band formula).
-2. `ta.pivot_point_levels` — planned in the manifest; blocked on the `array` namespace (returns `array<float>`) and timeframe anchoring.
-3. Promote `draft` built-ins to `verified` by pinning reference vectors against real TradingView output; `pnpm fixtures:verify` re-runs every shipped fixture against the runtime.
-4. Aroon-style helpers built from `ta.highestbars` / `ta.lowestbars` once user demand exists (Aroon itself is not a Pine v6 built-in).
+2. Promote `draft` built-ins to `verified` by pinning reference vectors against real TradingView output; `pnpm fixtures:verify` re-runs every shipped fixture against the runtime.
+3. Aroon-style helpers built from `ta.highestbars` / `ta.lowestbars` once user demand exists (Aroon itself is not a Pine v6 built-in).
+
+`ta.pivot_point_levels` shipped with the `array` namespace: all six types
+(Traditional, Fibonacci, Woodie, Classic, DM, Camarilla) with anchor and
+developing modes, TradingView's own Pivot Points Standard formulas, and the
+Woodie+developing runtime error. The five `array.new_*` drawing constructors
+(`box`/`label`/`line`/`linefill`/`table`) remain planned with the drawing
+namespaces.
 
 The catalog-completion group is done: every `ta` symbol in the v6 Reference
 Manual now has a manifest entry — running aggregates (`cum`/`max`/`min`),

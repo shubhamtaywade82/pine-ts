@@ -5,13 +5,7 @@ import { IndicatorNode } from "../core/series-node.js";
 import { Series } from "../core/series.js";
 
 /** The six `ta.pivot_point_levels` calculation types. */
-export type PivotType =
-  | "Traditional"
-  | "Fibonacci"
-  | "Woodie"
-  | "Classic"
-  | "DM"
-  | "Camarilla";
+export type PivotType = "Traditional" | "Fibonacci" | "Woodie" | "Classic" | "DM" | "Camarilla";
 
 const LEVEL_COUNT = 11;
 
@@ -105,11 +99,9 @@ const computeRawLevels = (
       ];
     }
     case "DM": {
-      const x = isOpenCloseNeutral(previousOpen, close)
-        ? high + low + 2 * close
-        : close > previousOpen
-          ? 2 * high + low + close
-          : 2 * low + high + close;
+      let x = 2 * low + high + close;
+      if (isOpenCloseNeutral(previousOpen, close)) x = high + low + 2 * close;
+      else if (close > previousOpen) x = 2 * high + low + close;
       return [x / 4, x / 2 - low, x / 2 - high, na, na, na, na, na, na, na, na];
     }
     case "Camarilla": {

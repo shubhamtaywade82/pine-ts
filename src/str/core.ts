@@ -172,10 +172,7 @@ export const tonumber = (source: PineString): number =>
  * element (pine-ts decision: no Java-style character fission); trailing
  * empty fields are preserved, matching JavaScript split semantics.
  */
-export const split = (
-  source: PineString,
-  separator: PineString,
-): PineArray<string> | undefined => {
+export const split = (source: PineString, separator: PineString): PineArray<string> | undefined => {
   if (source === undefined || separator === undefined) return undefined;
   if (separator === "") return PineArray.createRoot<string>([source]);
   return PineArray.createRoot<string>(source.split(separator));

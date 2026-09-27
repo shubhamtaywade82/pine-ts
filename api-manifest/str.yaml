@@ -237,7 +237,10 @@ functions:
         - { name: separator, type: string }
     returns: array<string>
     semantics:
-      blocked: "returns array<string>; lands together with the array namespace (Phase 3 continuation)"
-    status: planned
+      na: "na source or na separator yields na"
+      edges: "pine-ts decisions: an empty separator yields the source as a single element (no Java-style character fission); trailing empty fields are preserved"
+    impl: { module: src/str/core.ts, export: split }
+    status: draft
+    vectors: [fixtures/v6/array/str_split.basic.json]
 
 variables: {}

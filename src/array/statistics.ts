@@ -68,9 +68,7 @@ export const median = (id: PineArray<number>): number => {
   if (values.length === 0) return emptyResult;
   const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? sorted[middle]!
-    : (sorted[middle - 1]! + sorted[middle]!) / 2;
+  return sorted.length % 2 === 1 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
 };
 
 /**
@@ -86,10 +84,7 @@ export const mode = (id: PineArray<number>): number => {
   let best: number | undefined;
   let bestCount = 0;
   for (const [value, count] of frequencies) {
-    if (
-      count > bestCount ||
-      (count === bestCount && value < (best ?? Number.POSITIVE_INFINITY))
-    ) {
+    if (count > bestCount || (count === bestCount && value < (best ?? Number.POSITIVE_INFINITY))) {
       best = value;
       bestCount = count;
     }
@@ -140,7 +135,10 @@ export const covariance = (
   if (pairs.length === 0) return emptyResult;
   const meanLeft = pairs.reduce((total, pair) => total + pair[0], 0) / pairs.length;
   const meanRight = pairs.reduce((total, pair) => total + pair[1], 0) / pairs.length;
-  const product = pairs.reduce((total, pair) => total + (pair[0] - meanLeft) * (pair[1] - meanRight), 0);
+  const product = pairs.reduce(
+    (total, pair) => total + (pair[0] - meanLeft) * (pair[1] - meanRight),
+    0,
+  );
   const denominator = biased ? pairs.length : pairs.length - 1;
   if (denominator <= 0) return emptyResult;
   return product / denominator;

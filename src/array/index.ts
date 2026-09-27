@@ -1,8 +1,4 @@
-export {
-  MAX_ARRAY_SIZE,
-  PineArray,
-  type ArrayBacking,
-} from "./pine-array.js";
+export { MAX_ARRAY_SIZE, PineArray, type ArrayBacking } from "./pine-array.js";
 export {
   abs,
   clear,

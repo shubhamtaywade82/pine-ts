@@ -1,0 +1,30 @@
+{
+  "name": "array.sort",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [3, null, 1, 2],
+        "ops": [["sort", "ascending"]],
+        "observe": "array"
+      },
+      {
+        "start": [3, null, 1, 2],
+        "ops": [["sort", "descending"]],
+        "observe": "array"
+      },
+      {
+        "start": [5, -2, 0, 9, 1],
+        "ops": [["sort", "ascending"]],
+        "observe": "array"
+      }
+    ]
+  },
+  "expected": {
+    "sort": [
+      [1, 2, 3, null],
+      [3, 2, 1, null],
+      [-2, 0, 1, 5, 9]
+    ]
+  }
+}

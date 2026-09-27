@@ -478,7 +478,9 @@ const scenarios: readonly Scenario[] = [
       const parent = cell.value;
       array.push(parent, ctx.close.value);
       capture["tail"] = ctx.series("tail", () =>
-        array.size(parent) >= 3 ? array.sum(array.slice(parent, array.size(parent) - 3, array.size(parent))) : Number.NaN,
+        array.size(parent) >= 3
+          ? array.sum(array.slice(parent, array.size(parent) - 3, array.size(parent)))
+          : Number.NaN,
       );
     },
   },
@@ -491,7 +493,7 @@ const scenarios: readonly Scenario[] = [
       let traditional: ReturnType<typeof ta.pivotPointLevels> | undefined;
       let developing: ReturnType<typeof ta.pivotPointLevels> | undefined;
       return (ctx: Context, capture: Capture) => {
-        const anchor = ctx.series("anchor", () => ctx.time.value % 5 === 0);
+        const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
         traditional = ta.pivotPointLevels("Traditional", anchor);
         developing = ta.pivotPointLevels("Camarilla", anchor, true);
         capture["p"] = ctx.series("pivot-p", () => traditional?.get(0) ?? Number.NaN);

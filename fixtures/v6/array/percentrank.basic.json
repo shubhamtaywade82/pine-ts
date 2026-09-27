@@ -1,0 +1,31 @@
+{
+  "name": "array.percentrank",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [1, 2, 3, 4],
+        "index": 0
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "index": 3
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "index": -1
+      },
+      {
+        "values": [1, 2, 3, 4],
+        "index": 1
+      },
+      {
+        "values": [null, 2],
+        "index": 0
+      }
+    ]
+  },
+  "expected": {
+    "percentrank": [25.0, 100.0, 100.0, 50.0, null]
+  }
+}

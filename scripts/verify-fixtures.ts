@@ -5,7 +5,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { PineRuntime, math, str, ta } from "../src/index.js";
+import { array, PineRuntime, math, str, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
@@ -476,4 +476,377 @@ for (const [name, build] of Object.entries(strBuilders)) {
     }
   }
   report(`${name}.basic.json`, name, ok);
+}
+
+// ---------------------------------------------------------------------------
+// array fixtures
+// ---------------------------------------------------------------------------
+
+const arrayFixturesDir = resolve(import.meta.dirname, "../fixtures/v6/array");
+
+type NestedValue = number | boolean | string | null | NestedValue[];
+type ArrayCase = Record<string, unknown>;
+
+const loadArrayFixture = async (name: string) =>
+  JSON.parse(await readFile(resolve(arrayFixturesDir, `${name}.basic.json`), "utf8")) as {
+    input: { cases: ArrayCase[] };
+    expected: Record<string, NestedValue[]>;
+  };
+
+const nestedEqual = (left: unknown, right: unknown): boolean => {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((item, i) => nestedEqual(item, right[i]));
+  }
+  if (typeof left === "number" && typeof right === "number") {
+    if (Number.isNaN(left) && Number.isNaN(right)) return true;
+    return Math.abs(left - right) < 1e-9;
+  }
+  const norm = (value: unknown): unknown => {
+    if (value === undefined) return null;
+    if (typeof value === "number" && Number.isNaN(value)) return null;
+    return value;
+  };
+  return norm(left) === norm(right);
+};
+
+const toElements = (values: readonly unknown[]): Array<number | undefined> =>
+  values.map((value) => (value === null ? Number.NaN : (value as number)));
+
+/** Builds a fresh float array from possibly-na elements (empty stays empty). */
+const mk = (values: ReadonlyArray<number | undefined>): array.FloatArray =>
+  values.length === 0 ? array.newFloat(0) : array.from(values[0] ?? Number.NaN, ...values.slice(1));
+
+const observeElements = (values: ReadonlyArray<number | undefined>): NestedValue =>
+  values.map((element) => (element === undefined || Number.isNaN(element) ? null : element));
+
+const naOrValue = (value: number | undefined): NestedValue =>
+  value === undefined || Number.isNaN(value) ? null : value;
+
+interface OpOutcome {
+  readonly id: array.FloatArray;
+  last: number | undefined;
+}
+
+const runOps = (start: readonly unknown[], ops: readonly unknown[][]): OpOutcome => {
+  const elements = toElements(start);
+  const id = mk(elements);
+  let last: number | undefined;
+  for (const op of ops) {
+    const [name, ...args] = op as [string, ...unknown[]];
+    switch (name) {
+      case "push":
+        array.push(id, args[0] as number);
+        last = undefined;
+        break;
+      case "unshift":
+        array.unshift(id, args[0] as number);
+        last = undefined;
+        break;
+      case "pop":
+        last = array.pop(id);
+        break;
+      case "shift":
+        last = array.shift(id);
+        break;
+      case "get":
+        last = array.get(id, args[0] as number);
+        break;
+      case "set":
+        array.set(id, args[0] as number, args[1] as number);
+        last = undefined;
+        break;
+      case "insert":
+        array.insert(id, args[0] as number, args[1] as number);
+        last = undefined;
+        break;
+      case "remove":
+        last = array.remove(id, args[0] as number);
+        break;
+      case "clear":
+        array.clear(id);
+        last = undefined;
+        break;
+      case "fill":
+        array.fill(
+          id,
+          args[0] as number,
+          args[1] as number | undefined,
+          args[2] as number | undefined,
+        );
+        last = undefined;
+        break;
+      case "reverse":
+        array.reverse(id);
+        last = undefined;
+        break;
+      case "sort":
+        array.sort(id, args[0] as "ascending" | "descending");
+        last = undefined;
+        break;
+      case "concat":
+        for (const value of args[0] as number[]) array.push(id, value);
+        last = undefined;
+        break;
+      case "set_slice": {
+        const view = array.slice(id, args[0] as number, args[1] as number);
+        array.set(view, args[2] as number, args[3] as number);
+        last = undefined;
+        break;
+      }
+      case "push_slice": {
+        const view = array.slice(id, args[0] as number, args[1] as number);
+        array.push(view, args[2] as number);
+        last = undefined;
+        break;
+      }
+      case "first":
+        last = array.first(id);
+        break;
+      case "last":
+        last = array.last(id);
+        break;
+      case "size":
+        last = array.size(id);
+        break;
+      case "copy_independent_size": {
+        const duplicate = array.copy(id);
+        array.push(id, args[0] as number);
+        last = array.size(duplicate);
+        break;
+      }
+      default:
+        throw new Error(`unknown fixture op ${name}`);
+    }
+  }
+  return { id, last };
+};
+
+const observeOutcome = (outcome: OpOutcome, observe: string): NestedValue => {
+  if (observe === "value") return naOrValue(outcome.last);
+  if (observe === "both") {
+    return [naOrValue(outcome.last), observeElements(outcome.id.toArray())];
+  }
+  return observeElements(outcome.id.toArray());
+};
+
+const checkCases = async (fixture: string, actual: NestedValue[]): Promise<void> => {
+  const { expected } = await loadArrayFixture(fixture);
+  const key = Object.keys(expected)[0] as string;
+  const want = expected[key] as NestedValue[];
+  let ok = true;
+  for (let index = 0; index < want.length; index += 1) {
+    if (!nestedEqual(actual[index], want[index])) {
+      console.error(
+        `MISMATCH array.${fixture}[${index}]: actual=${JSON.stringify(actual[index])} expected=${JSON.stringify(want[index])}`,
+      );
+      ok = false;
+    }
+  }
+  report(`${fixture}.basic.json`, key, ok);
+};
+
+// op-protocol fixtures: element access, mutation, slices, sorting
+for (const fixture of [
+  "get",
+  "push_pop",
+  "shift_unshift",
+  "insert_remove",
+  "fill",
+  "reverse_clear_concat",
+  "slice",
+  "sort",
+  "constructors",
+]) {
+  const { input } = await loadArrayFixture(fixture);
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const outcome = runOps(caseData["start"] as unknown[], caseData["ops"] as unknown[][]);
+    actual.push(observeOutcome(outcome, (caseData["observe"] as string | undefined) ?? "array"));
+  }
+  await checkCases(fixture, actual);
+}
+
+// value fixtures: statistics over a literal element list
+const valueFixture = async (
+  fixture: string,
+  build: (values: Array<number | undefined>) => NestedValue,
+): Promise<void> => {
+  const { input } = await loadArrayFixture(fixture);
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    actual.push(build(toElements(caseData["values"] as unknown[])));
+  }
+  await checkCases(fixture, actual);
+};
+
+await valueFixture("avg", (values) => naOrValue(array.avg(mk(values))));
+await valueFixture("sum", (values) => naOrValue(array.sum(mk(values))));
+await valueFixture("median", (values) => naOrValue(array.median(mk(values))));
+await valueFixture("mode", (values) => naOrValue(array.mode(mk(values))));
+await valueFixture("range", (values) => naOrValue(array.range(mk(values))));
+await valueFixture("standardize", (values) =>
+  observeElements(array.standardize(mk(values)).toArray()),
+);
+
+const nthFixture = async (
+  fixture: string,
+  build: (values: Array<number | undefined>, nth: number) => NestedValue,
+): Promise<void> => {
+  const { input } = await loadArrayFixture(fixture);
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    actual.push(build(toElements(caseData["values"] as unknown[]), caseData["nth"] as number));
+  }
+  await checkCases(fixture, actual);
+};
+
+await nthFixture("max", (values, nth) => naOrValue(array.max(mk(values), nth)));
+await nthFixture("min", (values, nth) => naOrValue(array.min(mk(values), nth)));
+
+// biased-flag fixtures: [variance, stdev] pairs
+{
+  const { input } = await loadArrayFixture("stdev_variance");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const values = mk(toElements(caseData["values"] as unknown[]));
+    const biased = caseData["biased"] as boolean;
+    actual.push([array.variance(values, biased), array.stdev(values, biased)]);
+  }
+  await checkCases("stdev_variance", actual);
+}
+
+// covariance fixtures
+{
+  const { input } = await loadArrayFixture("covariance");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    actual.push(
+      naOrValue(
+        array.covariance(
+          mk(toElements(caseData["left"] as unknown[])),
+          mk(toElements(caseData["right"] as unknown[])),
+          caseData["biased"] as boolean,
+        ),
+      ),
+    );
+  }
+  await checkCases("covariance", actual);
+}
+
+// percentrank fixtures (index-resolved reference element)
+{
+  const { input } = await loadArrayFixture("percentrank");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    actual.push(
+      naOrValue(
+        array.percentrank(
+          mk(toElements(caseData["values"] as unknown[])),
+          caseData["index"] as number,
+        ),
+      ),
+    );
+  }
+  await checkCases("percentrank", actual);
+}
+
+// percentile fixtures: [nearest_rank, linear_interpolation] pairs
+{
+  const { input } = await loadArrayFixture("percentiles");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const values = mk(toElements(caseData["values"] as unknown[]));
+    const percentage = caseData["percentage"] as number;
+    actual.push([
+      array.percentile_nearest_rank(values, percentage),
+      array.percentile_linear_interpolation(values, percentage),
+    ]);
+  }
+  await checkCases("percentiles", actual);
+}
+
+// binary search fixtures: [search, leftmost, rightmost] triples
+{
+  const { input } = await loadArrayFixture("binary_search");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const values = mk(toElements(caseData["values"] as unknown[]));
+    const target = caseData["target"] as number;
+    actual.push([
+      array.binary_search(values, target),
+      array.binary_search_leftmost(values, target),
+      array.binary_search_rightmost(values, target),
+    ]);
+  }
+  await checkCases("binary_search", actual);
+}
+
+// abs fixtures: array result, na (null) for the all-na or empty input
+{
+  const { input } = await loadArrayFixture("abs");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const result = array.abs(mk(toElements(caseData["values"] as unknown[])));
+    actual.push(result === undefined ? null : observeElements(result.toArray()));
+  }
+  await checkCases("abs", actual);
+}
+
+// every/some/join triples
+{
+  const { input } = await loadArrayFixture("every_some_join");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const values = mk(toElements(caseData["values"] as unknown[]));
+    actual.push([array.every(values), array.some(values), array.join(values, ",")]);
+  }
+  await checkCases("every_some_join", actual);
+}
+
+// str.split fixtures
+{
+  const { input } = await loadArrayFixture("str_split");
+  const actual: NestedValue[] = [];
+  for (const caseData of input.cases) {
+    const parts = str.split(caseData["source"] as string, caseData["separator"] as string);
+    actual.push(parts === undefined ? null : (parts.toArray() as NestedValue));
+  }
+  await checkCases("str_split", actual);
+}
+
+// pivot fixtures: per-bar pivot level 0 under a time % 5 anchor
+{
+  const pivotKinds = [
+    ["pivot_traditional", "Traditional", false],
+    ["pivot_classic", "Classic", false],
+    ["pivot_woodie", "Woodie", false],
+    ["pivot_dm", "DM", false],
+    ["pivot_camarilla", "Camarilla", false],
+    ["pivot_camarilla_developing", "Camarilla", true],
+  ] as const;
+  for (const [fixture, kind, developing] of pivotKinds) {
+    const { input } = await loadArrayFixture(fixture);
+    const barsSpec = input.cases[0]!["bars"] as Array<{
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    }>;
+    const bars: Bar[] = barsSpec.map((bar) => ({ ...bar, isClosed: true }));
+    const pivotPerBar: number[] = [];
+    const script: PineScript = (ctx) => {
+      const anchor = ctx.series("anchor", () => (ctx.time.value ?? 0) % 5 === 0);
+      const levels = ta.pivotPointLevels(kind, anchor, developing);
+      pivotPerBar.push(levels.get(0) ?? Number.NaN);
+    };
+    const runtime = new PineRuntime({
+      provider: new Provider(bars),
+      symbol: "TEST",
+      timeframe: "1m",
+    });
+    await runtime.run(script, bars);
+    await checkCases(fixture, [pivotPerBar.map((value) => (Number.isNaN(value) ? null : value))]);
+  }
 }

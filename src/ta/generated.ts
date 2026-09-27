@@ -108,6 +108,7 @@ export type ImplementedTaFunctionName =
   | "percentile_linear_interpolation"
   | "percentile_nearest_rank"
   | "percentrank"
+  | "pivot_point_levels"
   | "pivothigh"
   | "pivotlow"
   | "pvi"

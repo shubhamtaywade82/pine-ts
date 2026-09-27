@@ -1,0 +1,26 @@
+{
+  "name": "array.reverse_clear_concat",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [1, 2, 3],
+        "ops": [["reverse"]],
+        "observe": "array"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["clear"]],
+        "observe": "array"
+      },
+      {
+        "start": [1, 2],
+        "ops": [["concat", [3, 4]]],
+        "observe": "array"
+      }
+    ]
+  },
+  "expected": {
+    "reverse_clear_concat": [[3, 2, 1], [], [1, 2, 3, 4]]
+  }
+}

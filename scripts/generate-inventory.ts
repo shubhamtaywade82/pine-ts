@@ -23,6 +23,7 @@ const MANIFESTS: ReadonlyArray<{
   { file: "ta.yaml", output: "src/ta/generated.ts", prefix: "Ta" },
   { file: "math.yaml", output: "src/math/generated.ts", prefix: "Math" },
   { file: "str.yaml", output: "src/str/generated.ts", prefix: "Str" },
+  { file: "array.yaml", output: "src/array/generated.ts", prefix: "Array" },
 ];
 
 const root = resolve(import.meta.dirname, "..");

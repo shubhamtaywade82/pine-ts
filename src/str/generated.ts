@@ -30,6 +30,7 @@ export type ImplementedStrFunctionName =
   | "repeat"
   | "replace"
   | "replace_all"
+  | "split"
   | "startswith"
   | "substring"
   | "tonumber"

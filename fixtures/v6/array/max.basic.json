@@ -1,0 +1,31 @@
+{
+  "name": "array.max",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [5, 3, 9, 1],
+        "nth": 0
+      },
+      {
+        "values": [5, 3, 9, 1],
+        "nth": 1
+      },
+      {
+        "values": [5, 3, 9, 1],
+        "nth": 3
+      },
+      {
+        "values": [5, 3, 9, 1],
+        "nth": 4
+      },
+      {
+        "values": [null, 2],
+        "nth": 0
+      }
+    ]
+  },
+  "expected": {
+    "max": [9.0, 5.0, 1.0, null, 2.0]
+  }
+}

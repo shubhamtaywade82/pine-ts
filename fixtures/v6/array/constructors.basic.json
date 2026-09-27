@@ -1,0 +1,36 @@
+{
+  "name": "array.constructors",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "start": [1, 2, 3],
+        "ops": [["first"]],
+        "observe": "value"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["last"]],
+        "observe": "value"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["size"]],
+        "observe": "value"
+      },
+      {
+        "start": [],
+        "ops": [["size"]],
+        "observe": "value"
+      },
+      {
+        "start": [1, 2, 3],
+        "ops": [["copy_independent_size", 99]],
+        "observe": "value"
+      }
+    ]
+  },
+  "expected": {
+    "constructors": [1, 3, 3, 0, 3]
+  }
+}

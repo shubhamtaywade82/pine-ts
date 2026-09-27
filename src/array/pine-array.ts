@@ -1,6 +1,16 @@
 import { getCurrentSession } from "../core/execution-context.js";
 import { isNa } from "../core/na.js";
 
+const signedNumeric = (left: number, right: number): number => {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+};
+
+const signedTextual = (left: string, right: string): number => {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+};
+
 /** The maximum number of elements any single Pine array may hold. */
 export const MAX_ARRAY_SIZE = 100_000;
 
@@ -163,7 +173,7 @@ export class PineArray<T> {
   }
 
   /** Writes `value` across `[indexFrom, indexTo)` (defaults: `0` to `size`). */
-  public fill(value: T | undefined, indexFrom: number = 0, indexTo: number = Number.NaN): void {
+  public fill(value: T | undefined, indexFrom = 0, indexTo: number = Number.NaN): void {
     this.touch();
     const size = this.size();
     const end = isNa(indexTo) ? size : indexTo;
@@ -239,11 +249,11 @@ export class PineArray<T> {
       if (leftNa) return 1;
       if (rightNa) return -1;
       if (typeof left === "number" && typeof right === "number") {
-        return (left === right ? 0 : left < right ? -1 : 1) * direction;
+        return signedNumeric(left, right) * direction;
       }
       const leftText = String(left);
       const rightText = String(right);
-      return (leftText === rightText ? 0 : leftText < rightText ? -1 : 1) * direction;
+      return signedTextual(leftText, rightText) * direction;
     };
     const window = this.toArray();
     window.sort(compare);
