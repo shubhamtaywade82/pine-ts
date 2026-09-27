@@ -68,6 +68,15 @@
 
 Do not promote `draft` to `verified` based on mathematical plausibility or agreement with another TA library.
 
+## SuperTrend core
+
+`ta.supertrend` and community SuperTrend variants share one literal
+transcription of the reference `pine_supertrend(factor, atr)`
+(`src/ta/supertrend-core.ts`): `nz(band[1])` carry, comparisons with na are
+false, and `na(atr[1])` resets the direction to 1. `ta.supertrend` returns a na
+line while its ATR is na (warm-up); scripts that define their own
+`pine_supertrend` get the transcription's warm-up values.
+
 ## Length qualifiers and conditional calls
 
 Verified against the v6 Reference Manual (2026-09): `sma`, `wma`, `vwma`,
