@@ -1,0 +1,26 @@
+{
+  "name": "str.trim",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "  abc\t\n"
+      },
+      {
+        "source": "\u0007buzz\u001f"
+      },
+      {
+        "source": "   "
+      },
+      {
+        "source": null
+      },
+      {
+        "source": " pad "
+      }
+    ]
+  },
+  "expected": {
+    "trim": ["abc", "buzz", "", "", "pad"]
+  }
+}

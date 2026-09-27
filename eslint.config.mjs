@@ -13,7 +13,13 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
   {
-    ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/*.generated.ts"],
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      "**/generated.ts",
+      "**/*.generated.ts",
+    ],
   },
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx}"],

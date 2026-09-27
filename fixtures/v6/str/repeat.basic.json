@@ -1,0 +1,31 @@
+{
+  "name": "str.repeat",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "?",
+        "repeat": 3,
+        "separator": ","
+      },
+      {
+        "source": "ab",
+        "repeat": 2,
+        "separator": ""
+      },
+      {
+        "source": "ab",
+        "repeat": 0,
+        "separator": "-"
+      },
+      {
+        "source": null,
+        "repeat": 3,
+        "separator": ""
+      }
+    ]
+  },
+  "expected": {
+    "repeat": ["?,?,?", "abab", "", null]
+  }
+}

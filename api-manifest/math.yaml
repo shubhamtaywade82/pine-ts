@@ -1,0 +1,294 @@
+namespace: math
+pineVersion: 6
+status: complete
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  float: number
+  int: number
+  bool: boolean
+  string: string
+  "series<float>": FloatSeries
+  "series<int>": Series<number>
+  "series<bool>": BooleanSeries
+
+functions:
+  - name: abs
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "int/float or series<int/float>"
+    semantics:
+      na: "na propagates (NaN arithmetic)"
+      overloads: "scalar input returns a scalar; series input returns an elementwise FloatSeries"
+    impl: { module: src/math/pointwise.ts, export: abs }
+    status: draft
+    vectors: [fixtures/v6/math/abs.basic.json]
+
+  - name: acos
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      range: "result in [0, Pi]; na when the argument is outside [-1, 1]"
+    impl: { module: src/math/pointwise.ts, export: acos }
+    status: draft
+    vectors: [fixtures/v6/math/acos.basic.json]
+
+  - name: asin
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      range: "result in [-Pi/2, Pi/2]; na when the argument is outside [-1, 1]"
+    impl: { module: src/math/pointwise.ts, export: asin }
+    status: draft
+    vectors: [fixtures/v6/math/asin.basic.json]
+
+  - name: atan
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      range: "result in [-Pi/2, Pi/2]"
+    impl: { module: src/math/pointwise.ts, export: atan }
+    status: draft
+    vectors: [fixtures/v6/math/atan.basic.json]
+
+  - name: avg
+    signature:
+      params:
+        - { name: number0, type: "int/float or series<int/float>" }
+        - { name: number1, type: "int/float or series<int/float>" }
+        - { name: "...", type: variadic }
+    returns: "float or series<float>"
+    semantics:
+      na: "na propagates; no ignore-na remark exists for the variadic form (that wording belongs to ta.max/ta.min)"
+      arity: "at least two values required, as in Pine"
+    impl: { module: src/math/aggregate.ts, export: avg }
+    status: draft
+    vectors: [fixtures/v6/math/avg.basic.json]
+
+  - name: ceil
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "int or series<int>"
+    semantics:
+      rounding: "smallest whole number greater than or equal to the input"
+    impl: { module: src/math/pointwise.ts, export: ceil }
+    status: draft
+    vectors: [fixtures/v6/math/ceil.basic.json]
+
+  - name: cos
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>, radians" }
+    returns: "float or series<float>"
+    semantics: { na: "na propagates" }
+    impl: { module: src/math/pointwise.ts, export: cos }
+    status: draft
+    vectors: [fixtures/v6/math/cos.basic.json]
+
+  - name: exp
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics: { value: "e raised to the power of number" }
+    impl: { module: src/math/pointwise.ts, export: exp }
+    status: draft
+    vectors: [fixtures/v6/math/exp.basic.json]
+
+  - name: floor
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "int or series<int>"
+    semantics:
+      rounding: "largest whole number less than or equal to the input"
+    impl: { module: src/math/pointwise.ts, export: floor }
+    status: draft
+    vectors: [fixtures/v6/math/floor.basic.json]
+
+  - name: log
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      domain: "numbers > 0; log(-1) is na (NaN) while log(0) is -Infinity, the IEEE-754 double TradingView also renders"
+    impl: { module: src/math/pointwise.ts, export: log }
+    status: draft
+    vectors: [fixtures/v6/math/log.basic.json]
+
+  - name: log10
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      domain: "numbers > 0; same na/infinity model as math.log"
+    impl: { module: src/math/pointwise.ts, export: log10 }
+    status: draft
+    vectors: [fixtures/v6/math/log10.basic.json]
+
+  - name: max
+    signature:
+      params:
+        - { name: number0, type: "int/float or series<int/float>" }
+        - { name: number1, type: "int/float or series<int/float>" }
+        - { name: "...", type: variadic }
+    returns: "int/float or series<int/float>"
+    semantics:
+      na: "v4, v5 and v6 document no ignore-na remark for the variadic math.max, so na propagates like the other scalar built-ins"
+    impl: { module: src/math/aggregate.ts, export: max }
+    status: draft
+    vectors: [fixtures/v6/math/max.basic.json]
+
+  - name: min
+    signature:
+      params:
+        - { name: number0, type: "int/float or series<int/float>" }
+        - { name: number1, type: "int/float or series<int/float>" }
+        - { name: "...", type: variadic }
+    returns: "int/float or series<int/float>"
+    semantics:
+      na: "same propagation model as math.max"
+    impl: { module: src/math/aggregate.ts, export: min }
+    status: draft
+    vectors: [fixtures/v6/math/min.basic.json]
+
+  - name: pow
+    signature:
+      params:
+        - { name: base, type: "int/float or series<int/float>" }
+        - { name: exponent, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      elementwise: "series base or exponent evaluates elementwise"
+    impl: { module: src/math/pointwise.ts, export: pow }
+    status: draft
+    vectors: [fixtures/v6/math/pow.basic.json]
+
+  - name: random
+    signature:
+      params:
+        - { name: min, type: "series<int/float>", default: 0 }
+        - { name: max, type: "series<int/float>", default: 1 }
+        - { name: seed, type: "series<int>", default: null }
+    returns: series<float>
+    semantics:
+      bounds: "open interval — the v6 reference marks both bounds as not included in the range"
+      seed: "same seed produces a repeatable sequence; sequences are call-order dependent and restart per script execution (per-PineSession scoping)"
+      engine: "mulberry32 with a +0.5 nudge into (0,1); crypto entropy when unseeded"
+    impl: { module: src/math/aggregate.ts, export: random }
+    status: draft
+    vectors: [fixtures/v6/math/random.seeded.json]
+
+  - name: round
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+        - { name: precision, type: int, default: 0 }
+    returns: "int or series<int> without precision; float or series<float> with precision"
+    semantics:
+      ties: "ties round up (toward positive infinity), matching Math.round"
+      arithmetic: "round(x * 10^precision) / 10^precision — the same IEEE-754 scaling the Java runtime performs (e.g. round(1.005, 2) = 1)"
+      na: "v6 remark: for 'na' values function returns 'na'"
+    impl: { module: src/math/pointwise.ts, export: round }
+    status: draft
+    vectors: [fixtures/v6/math/round.basic.json]
+
+  - name: round_to_mintick
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      ties: "nearest multiple of syminfo.mintick without remainder, ties rounding up"
+      na: "v6 remark: for 'na' values function returns 'na'"
+      deviation: "pine-ts has no ambient chart, so the scalar overload takes the mintick explicitly; the series overload reads the owning PineSession's SymbolInfo.minTick lazily"
+    impl: { module: src/math/aggregate.ts, export: roundToMintick }
+    status: draft
+    vectors: [fixtures/v6/math/round_to_mintick.basic.json]
+
+  - name: sign
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      values: "0 for zero, 1.0 for positive, -1.0 for negative"
+    impl: { module: src/math/pointwise.ts, export: sign }
+    status: draft
+    vectors: [fixtures/v6/math/sign.basic.json]
+
+  - name: sin
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>, radians" }
+    returns: "float or series<float>"
+    semantics: { na: "na propagates" }
+    impl: { module: src/math/pointwise.ts, export: sin }
+    status: draft
+    vectors: [fixtures/v6/math/sin.basic.json]
+
+  - name: sqrt
+    signature:
+      params:
+        - { name: number, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics:
+      domain: "numbers >= 0; negative inputs are na"
+    impl: { module: src/math/pointwise.ts, export: sqrt }
+    status: draft
+    vectors: [fixtures/v6/math/sqrt.basic.json]
+
+  - name: sum
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      window: "sliding sum of the last length values"
+      na: "v6/v5 remark: na values are ignored; the function calculates on the length quantity of non-na values (skip-na window, shared with the ta statistics family)"
+      warmup: length - 1
+    impl: { module: src/math/aggregate.ts, export: sum }
+    status: draft
+    vectors: [fixtures/v6/math/sum.basic.json, fixtures/v6/math/sum.skipna.json]
+
+  - name: tan
+    signature:
+      params:
+        - { name: angle, type: "int/float or series<int/float>, radians" }
+    returns: "float or series<float>"
+    semantics: { na: "na propagates" }
+    impl: { module: src/math/pointwise.ts, export: tan }
+    status: draft
+    vectors: [fixtures/v6/math/tan.basic.json]
+
+  - name: todegrees
+    signature:
+      params:
+        - { name: radians, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics: { formula: "radians * 180 / Pi" }
+    impl: { module: src/math/pointwise.ts, export: todegrees }
+    status: draft
+    vectors: [fixtures/v6/math/todegrees.basic.json]
+
+  - name: toradians
+    signature:
+      params:
+        - { name: degrees, type: "int/float or series<int/float>" }
+    returns: "float or series<float>"
+    semantics: { formula: "degrees * Pi / 180" }
+    impl: { module: src/math/pointwise.ts, export: toradians }
+    status: draft
+    vectors: [fixtures/v6/math/toradians.basic.json]
+
+variables: {}

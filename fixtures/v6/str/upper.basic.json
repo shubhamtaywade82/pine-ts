@@ -1,0 +1,20 @@
+{
+  "name": "str.upper",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "PiNe-Ts"
+      },
+      {
+        "source": "already"
+      },
+      {
+        "source": null
+      }
+    ]
+  },
+  "expected": {
+    "upper": ["PINE-TS", "ALREADY", null]
+  }
+}

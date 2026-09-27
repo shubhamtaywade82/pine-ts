@@ -1,0 +1,10 @@
+{
+  "name": "math.sqrt",
+  "pineVersion": 6,
+  "input": {
+    "source": [4, 2, 0.25]
+  },
+  "expected": {
+    "sqrt": [2.0, 1.4142135623730951, 0.5]
+  }
+}

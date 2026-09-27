@@ -1,0 +1,11 @@
+{
+  "name": "math.round_to_mintick",
+  "pineVersion": 6,
+  "input": {
+    "source": [1.13, 1.11, -1.13, 2.0],
+    "mintick": 0.25
+  },
+  "expected": {
+    "round_to_mintick": [1.25, 1.0, -1.25, 2.0]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "math.floor",
+  "pineVersion": 6,
+  "input": {
+    "source": [2.9, -2.9, 0.99]
+  },
+  "expected": {
+    "floor": [2.0, -3.0, 0.0]
+  }
+}

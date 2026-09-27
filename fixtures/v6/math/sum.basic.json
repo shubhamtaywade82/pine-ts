@@ -1,0 +1,11 @@
+{
+  "name": "math.sum",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 3
+  },
+  "expected": {
+    "sum": [null, null, 6, 9, 12]
+  }
+}

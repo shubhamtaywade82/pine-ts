@@ -1,0 +1,26 @@
+{
+  "name": "str.replace_all",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "a-b-c-d",
+        "target": "-",
+        "replacement": "+"
+      },
+      {
+        "source": "mississippi",
+        "target": "ss",
+        "replacement": "s"
+      },
+      {
+        "source": null,
+        "target": "a",
+        "replacement": "b"
+      }
+    ]
+  },
+  "expected": {
+    "replace_all": ["a+b+c+d", "misisippi", null]
+  }
+}

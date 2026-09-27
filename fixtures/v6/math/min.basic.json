@@ -1,0 +1,11 @@
+{
+  "name": "math.min",
+  "pineVersion": 6,
+  "input": {
+    "source1": [3, 1, 4],
+    "source2": [2, 5, 0]
+  },
+  "expected": {
+    "min": [2, 1, 0]
+  }
+}

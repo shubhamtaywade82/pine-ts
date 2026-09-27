@@ -1,0 +1,81 @@
+{
+  "name": "str.format_time",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "time": 1705329045123
+      },
+      {
+        "time": 1705329045123,
+        "format": "yyyy-MM-dd HH:mm:ss.SSS"
+      },
+      {
+        "time": 1705329045123,
+        "format": "yy-M-d h:m:s a"
+      },
+      {
+        "time": 1705329045123,
+        "format": "EEE yyyy/MM/dd"
+      },
+      {
+        "time": 1705329045123,
+        "format": "EEEE, MMMM d, yyyy"
+      },
+      {
+        "time": 1705329045123,
+        "format": "S"
+      },
+      {
+        "time": 1705329045123,
+        "format": "yyyy-MM-dd HH:mm:ss Z",
+        "timezone": "America/New_York"
+      },
+      {
+        "time": 1721053845123,
+        "format": "yyyy-MM-dd HH:mm:ss Z",
+        "timezone": "America/New_York"
+      },
+      {
+        "time": 1705329045123,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "timezone": "Asia/Kolkata"
+      },
+      {
+        "time": 1705329045123,
+        "format": "HH:mm Z",
+        "timezone": "UTC-5"
+      },
+      {
+        "time": 1705329045123,
+        "format": "HH:mm Z",
+        "timezone": "GMT+0530"
+      },
+      {
+        "time": 1705329045123,
+        "format": "HH:mm Z",
+        "timezone": "GMT"
+      },
+      {
+        "time": null
+      }
+    ]
+  },
+  "expected": {
+    "format_time": [
+      "2024-01-15T14:30:45+0000",
+      "2024-01-15 14:30:45.123",
+      "24-1-15 2:30:45 PM",
+      "Mon 2024/01/15",
+      "Monday, January 15, 2024",
+      "1",
+      "2024-01-15 09:30:45 -0500",
+      "2024-07-15 10:30:45 -0400",
+      "2024-01-15 20:00:45",
+      "09:30 -0500",
+      "20:00 +0530",
+      "14:30 +0000",
+      null
+    ]
+  }
+}

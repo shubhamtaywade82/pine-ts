@@ -1,0 +1,23 @@
+{
+  "name": "str.endswith",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "FTX:BTCUSD",
+        "str": "USD"
+      },
+      {
+        "source": "FTX:BTCUSD",
+        "str": "BTC"
+      },
+      {
+        "source": null,
+        "str": "x"
+      }
+    ]
+  },
+  "expected": {
+    "endswith": [true, false, null]
+  }
+}

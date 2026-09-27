@@ -1,0 +1,33 @@
+{
+  "name": "str.substring",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "NASDAQ:AAPL",
+        "begin_pos": 7
+      },
+      {
+        "source": "NASDAQ:AAPL",
+        "begin_pos": 0,
+        "end_pos": 6
+      },
+      {
+        "source": "abc",
+        "begin_pos": 1,
+        "end_pos": 1
+      },
+      {
+        "source": "abc",
+        "begin_pos": 3
+      },
+      {
+        "source": null,
+        "begin_pos": 0
+      }
+    ]
+  },
+  "expected": {
+    "substring": ["AAPL", "NASDAQ", "", "", null]
+  }
+}

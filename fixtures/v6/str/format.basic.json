@@ -1,0 +1,68 @@
+{
+  "name": "str.format",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "args": ["Number {0} is not {1} to {2}", 1, "equal", 4]
+      },
+      {
+        "args": ["{0} != {0}", 1.34]
+      },
+      {
+        "args": ["{0,number,#.#}", 1.34]
+      },
+      {
+        "args": ["{0, number, integer}", 1.34]
+      },
+      {
+        "args": ["{0,number,currency}", 1.34]
+      },
+      {
+        "args": ["{0, number, currency}", 1340000]
+      },
+      {
+        "args": ["{0,number,percent}", 0.5]
+      },
+      {
+        "args": ["Return {0, number, percent} - {1, number, percent}", 0.1, 0.2]
+      },
+      {
+        "args": ["{0} and {1}", true, "false"]
+      },
+      {
+        "args": ["value = {0}", null]
+      },
+      {
+        "args": ["'{0}' is literal", 5]
+      },
+      {
+        "args": ["it''s {0}", 1]
+      },
+      {
+        "args": ["ab }}{0} de", 1]
+      },
+      {
+        "args": ["ab }{0} de", 1]
+      }
+    ]
+  },
+  "expected": {
+    "format": [
+      "Number 1 is not equal to 4",
+      "1.34 != 1.34",
+      "1.3",
+      "1",
+      "$1.34",
+      "$1,340,000.00",
+      "50%",
+      "Return 10% - 20%",
+      "true and false",
+      "value = NaN",
+      "{0} is literal",
+      "it's 1",
+      "ab }}1 de",
+      "ab }1 de"
+    ]
+  }
+}

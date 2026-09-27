@@ -1,0 +1,10 @@
+{
+  "name": "math.ceil",
+  "pineVersion": 6,
+  "input": {
+    "source": [2.1, -2.1, 0.01]
+  },
+  "expected": {
+    "ceil": [3.0, -2.0, 1.0]
+  }
+}

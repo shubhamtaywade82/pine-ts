@@ -1,0 +1,27 @@
+{
+  "name": "str.contains",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "NASDAQ:AAPL",
+        "str": ":"
+      },
+      {
+        "source": "NASDAQ:AAPL",
+        "str": "NYSE"
+      },
+      {
+        "source": "abc",
+        "str": ""
+      },
+      {
+        "source": null,
+        "str": "x"
+      }
+    ]
+  },
+  "expected": {
+    "contains": [true, false, true, null]
+  }
+}

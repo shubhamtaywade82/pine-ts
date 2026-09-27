@@ -1,0 +1,27 @@
+{
+  "name": "str.pos",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "NASDAQ:AAPL",
+        "str": ":"
+      },
+      {
+        "source": "aaa",
+        "str": "aa"
+      },
+      {
+        "source": "abc",
+        "str": "z"
+      },
+      {
+        "source": null,
+        "str": "x"
+      }
+    ]
+  },
+  "expected": {
+    "pos": [6, 0, null, null]
+  }
+}

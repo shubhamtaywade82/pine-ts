@@ -1,0 +1,23 @@
+{
+  "name": "str.match",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "It's time to sell some NASDAQ:AAPL!",
+        "regex": "[\\w]+:[\\w]+"
+      },
+      {
+        "source": "hello world",
+        "regex": "\\d+"
+      },
+      {
+        "source": null,
+        "regex": "x"
+      }
+    ]
+  },
+  "expected": {
+    "match": ["NASDAQ:AAPL", "", null]
+  }
+}

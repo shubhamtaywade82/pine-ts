@@ -1,0 +1,10 @@
+{
+  "name": "math.sign",
+  "pineVersion": 6,
+  "input": {
+    "source": [-3, 0, 4.2]
+  },
+  "expected": {
+    "sign": [-1.0, 0.0, 1.0]
+  }
+}

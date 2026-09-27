@@ -1,0 +1,23 @@
+{
+  "name": "str.startswith",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "FTX:BTCUSD",
+        "str": "FTX"
+      },
+      {
+        "source": "FTX:BTCUSD",
+        "str": "BTC"
+      },
+      {
+        "source": null,
+        "str": "x"
+      }
+    ]
+  },
+  "expected": {
+    "startswith": [true, false, null]
+  }
+}

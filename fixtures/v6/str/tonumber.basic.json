@@ -1,0 +1,44 @@
+{
+  "name": "str.tonumber",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "42"
+      },
+      {
+        "source": "-3.5"
+      },
+      {
+        "source": "+.5"
+      },
+      {
+        "source": "1.5e3"
+      },
+      {
+        "source": "-2E-2"
+      },
+      {
+        "source": "abc"
+      },
+      {
+        "source": ""
+      },
+      {
+        "source": "0x10"
+      },
+      {
+        "source": "Infinity"
+      },
+      {
+        "source": " 1.5"
+      },
+      {
+        "source": null
+      }
+    ]
+  },
+  "expected": {
+    "tonumber": [42.0, -3.5, 0.5, 1500.0, -0.02, null, null, null, null, null, null]
+  }
+}

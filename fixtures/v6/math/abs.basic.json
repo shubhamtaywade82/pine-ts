@@ -1,0 +1,10 @@
+{
+  "name": "math.abs",
+  "pineVersion": 6,
+  "input": {
+    "source": [-4, 9, -16.5, 0]
+  },
+  "expected": {
+    "abs": [4, 9, 16.5, 0]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "math.round",
+  "pineVersion": 6,
+  "input": {
+    "source": [1.234, 2.345, 3.456, 0.005],
+    "precision": 2
+  },
+  "expected": {
+    "round": [1.23, 2.35, 3.46, 0.01]
+  }
+}

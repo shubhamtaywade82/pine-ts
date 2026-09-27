@@ -1,0 +1,243 @@
+namespace: str
+pineVersion: 6
+status: partial
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  string: string
+  "na string": undefined
+  bool: boolean
+  int: number
+  float: number
+  "series<string>": Series<string>
+
+functions:
+  - name: contains
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: str, type: string }
+    returns: bool
+    semantics:
+      na: "na source yields na (undefined); booleans encode na the same way"
+    impl: { module: src/str/core.ts, export: contains }
+    status: draft
+    vectors: [fixtures/v6/str/contains.basic.json]
+
+  - name: endswith
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: str, type: string }
+    returns: bool
+    semantics: { na: "na source yields na" }
+    impl: { module: src/str/core.ts, export: endswith }
+    status: draft
+    vectors: [fixtures/v6/str/endswith.basic.json]
+
+  - name: startswith
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: str, type: string }
+    returns: bool
+    semantics: { na: "na source yields na" }
+    impl: { module: src/str/core.ts, export: startswith }
+    status: draft
+    vectors: [fixtures/v6/str/startswith.basic.json]
+
+  - name: length
+    signature:
+      params:
+        - { name: string, type: string }
+    returns: int
+    semantics: { na: "na source yields na" }
+    impl: { module: src/str/core.ts, export: length }
+    status: draft
+    vectors: [fixtures/v6/str/length.basic.json]
+
+  - name: lower
+    signature:
+      params:
+        - { name: source, type: string }
+    returns: string
+    semantics: { na: "na source yields na" }
+    impl: { module: src/str/core.ts, export: lower }
+    status: draft
+    vectors: [fixtures/v6/str/lower.basic.json]
+
+  - name: upper
+    signature:
+      params:
+        - { name: source, type: string }
+    returns: string
+    semantics: { na: "na source yields na" }
+    impl: { module: src/str/core.ts, export: upper }
+    status: draft
+    vectors: [fixtures/v6/str/upper.basic.json]
+
+  - name: trim
+    signature:
+      params:
+        - { name: source, type: string }
+    returns: string
+    semantics:
+      na: "v6 remark: returns the empty string when the source is na or the result trims away entirely"
+      charset: "whitespace plus Unicode control characters (\\p{Cc})"
+    impl: { module: src/str/core.ts, export: trim }
+    status: draft
+    vectors: [fixtures/v6/str/trim.basic.json]
+
+  - name: pos
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: str, type: string }
+    returns: int
+    semantics:
+      indexing: "zero-based; na when the substring is not found"
+    impl: { module: src/str/core.ts, export: pos }
+    status: draft
+    vectors: [fixtures/v6/str/pos.basic.json]
+
+  - name: repeat
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: repeat, type: int, constraints: { min: 0 } }
+        - { name: separator, type: string, default: "" }
+    returns: string
+    semantics:
+      na: "v6 remark: returns na if the source is na"
+    impl: { module: src/str/core.ts, export: repeat }
+    status: draft
+    vectors: [fixtures/v6/str/repeat.basic.json]
+
+  - name: replace
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: target, type: string }
+        - { name: replacement, type: string }
+        - { name: occurrence, type: int, default: 0 }
+    returns: string
+    semantics:
+      occurrence: "N-th occurrence, zero-indexed; non-overlapping scan; fewer occurrences than requested leaves the source unchanged"
+      na: "na source yields na"
+    impl: { module: src/str/core.ts, export: replace }
+    status: draft
+    vectors: [fixtures/v6/str/replace.basic.json]
+
+  - name: replace_all
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: target, type: string }
+        - { name: replacement, type: string }
+    returns: string
+    semantics:
+      na: "na source yields na"
+      emptyTarget: "an empty target is treated as a no-op (pending oracle verification)"
+    impl: { module: src/str/core.ts, export: replaceAll }
+    status: draft
+    vectors: [fixtures/v6/str/replace_all.basic.json]
+
+  - name: substring
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: begin_pos, type: int }
+        - { name: end_pos, type: int, default: length of source }
+    returns: string
+    semantics:
+      bounds: "begin inclusive, end exclusive; begin_pos == end_pos yields the empty string"
+      errors: "out-of-range positions are a runtime error (Java-strict, pending oracle verification)"
+      na: "na source yields na"
+    impl: { module: src/str/core.ts, export: substring }
+    status: draft
+    vectors: [fixtures/v6/str/substring.basic.json]
+
+  - name: match
+    signature:
+      params:
+        - { name: source, type: string }
+        - { name: regex, type: string }
+    returns: string
+    semantics:
+      first: "v6 remark: returns the first occurrence of the regular expression, an empty string otherwise"
+      flavor: "ECMAScript regex grammar; Pine's runtime uses the Java flavor, so exotic constructs may differ until oracle verification lands"
+      na: "na source yields na"
+    impl: { module: src/str/core.ts, export: match }
+    status: draft
+    vectors: [fixtures/v6/str/match.basic.json]
+
+  - name: tonumber
+    signature:
+      params:
+        - { name: string, type: string }
+    returns: float
+    semantics:
+      grammar: "plain decimal and scientific notation with optional sign; whitespace, hex, Infinity and NaN do not parse"
+      na: "malformed values return na (NaN)"
+    impl: { module: src/str/core.ts, export: tonumber }
+    status: draft
+    vectors: [fixtures/v6/str/tonumber.basic.json]
+
+  - name: tostring
+    signature:
+      params:
+        - { name: value, type: "int/float/bool/string" }
+        - { name: format, type: "string or mintick format", default: null }
+    returns: string
+    semantics:
+      na: "v6 remark: when the value is na the function returns the string NaN"
+      passthrough: "string values return as is; bools return true/false"
+      patterns: "Java-DecimalFormat subset: # trims trailing zeros, 0 keeps them, ',' groups thousands (str.tostring(3.99, '#') is '4')"
+      mintick: "str.mintick(t) carries the mintick pine-ts has no ambient chart for; rounds to the nearest multiple and prints trailing zeros"
+      default: "shortest round-trip double representation (Java Double.toString parity, except exponent formatting above 1e21)"
+    impl: { module: src/str/convert.ts, export: tostring }
+    status: draft
+    vectors: [fixtures/v6/str/tostring.basic.json]
+
+  - name: format
+    signature:
+      params:
+        - { name: formatString, type: string }
+        - { name: arg0, type: "int/float/bool/string" }
+        - { name: "...", type: variadic }
+    returns: string
+    semantics:
+      placeholders: "MessageFormat-style {index} with {n, number, style} modifiers; documented styles are integer, currency, percent and #.## patterns"
+      quoting: "apostrophes quote literal spans; '' is a literal apostrophe; imbalanced braces are a runtime error"
+      examples: "str.format('{0,number,#.#}', 1.34) is '1.3'; currency 1340000 is '$1,340,000.00'; percent 0.1 is '10%'"
+      na: "na numeric arguments print NaN"
+    impl: { module: src/str/convert.ts, export: format }
+    status: draft
+    vectors: [fixtures/v6/str/format.basic.json]
+
+  - name: format_time
+    signature:
+      params:
+        - { name: time, type: "series<int>, UNIX milliseconds" }
+        - { name: format, type: "series<string>", default: "yyyy-MM-dd'T'HH:mm:ssZ" }
+        - { name: timezone, type: "series<string>", default: syminfo.timezone }
+    returns: series<string>
+    semantics:
+      tokens: "SimpleDateFormat subset: y/yy/yyyy, M/MM/MMM/MMMM, d/dd, E/EEE/EEEE, H/HH, h/hh, a, m/mm, s/ss, S/SS/SSS, Z"
+      zones: "IANA names (DST-aware via Intl) and UTC/GMT offsets like UTC-5 or GMT+0530"
+      default: "the scalar surface defaults the timezone to UTC — pine-ts has no ambient syminfo.timezone outside a chart session"
+      na: "na time yields na"
+    impl: { module: src/str/time.ts, export: formatTime }
+    status: draft
+    vectors: [fixtures/v6/str/format_time.basic.json]
+
+  - name: split
+    signature:
+      params:
+        - { name: string, type: string }
+        - { name: separator, type: string }
+    returns: array<string>
+    semantics:
+      blocked: "returns array<string>; lands together with the array namespace (Phase 3 continuation)"
+    status: planned
+
+variables: {}

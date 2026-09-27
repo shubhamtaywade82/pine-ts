@@ -1,0 +1,10 @@
+{
+  "name": "math.todegrees",
+  "pineVersion": 6,
+  "input": {
+    "source": [0.5, 1, 1.5]
+  },
+  "expected": {
+    "todegrees": [28.64788975654116, 57.29577951308232, 85.94366926962348]
+  }
+}

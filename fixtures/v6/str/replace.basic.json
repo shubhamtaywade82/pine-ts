@@ -1,0 +1,45 @@
+{
+  "name": "str.replace",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "source": "FTX:BTCUSD / FTX:BTCEUR",
+        "target": "FTX",
+        "replacement": "BINANCE",
+        "occurrence": 0
+      },
+      {
+        "source": "FTX:BTCUSD / FTX:BTCEUR",
+        "target": "FTX",
+        "replacement": "BINANCE",
+        "occurrence": 1
+      },
+      {
+        "source": "one FTX",
+        "target": "FTX",
+        "replacement": "X",
+        "occurrence": 3
+      },
+      {
+        "source": "a-b-c",
+        "target": "-",
+        "replacement": "+"
+      },
+      {
+        "source": null,
+        "target": "a",
+        "replacement": "b"
+      }
+    ]
+  },
+  "expected": {
+    "replace": [
+      "BINANCE:BTCUSD / FTX:BTCEUR",
+      "FTX:BTCUSD / BINANCE:BTCEUR",
+      "one FTX",
+      "a+b-c",
+      null
+    ]
+  }
+}

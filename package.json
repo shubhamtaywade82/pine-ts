@@ -43,9 +43,9 @@
     "knip": "knip",
     "package:lint": "publint",
     "types:check": "attw --pack . --profile esm-only",
-    "manifest:validate": "tsx scripts/validate-manifest.ts",
-    "manifest:generate": "tsx scripts/generate-ta-inventory.ts",
-    "manifest:coverage": "tsx scripts/generate-ta-inventory.ts --coverage",
+    "manifest:validate": "tsx scripts/validate-manifests.ts",
+    "manifest:generate": "tsx scripts/generate-inventory.ts",
+    "manifest:coverage": "tsx scripts/generate-inventory.ts --coverage",
     "fixtures:verify": "tsx scripts/verify-fixtures.ts",
     "ta:inventory": "pnpm manifest:generate",
     "check": "pnpm build && pnpm format:check && pnpm lint && pnpm typecheck && pnpm manifest:validate && pnpm test && pnpm spellcheck && pnpm knip && pnpm package:lint && pnpm types:check"
