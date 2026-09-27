@@ -4,55 +4,60 @@
 
 ## Current implementation
 
-| Symbol           | Implementation | Compatibility status | Notes                                                                                |
-| ---------------- | -------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| `ta.sma`         | yes            | verified             | incremental rolling state                                                            |
-| `ta.ema`         | yes            | verified             | incremental state, first-valid seed                                                  |
-| `ta.highest`     | yes            | verified             | rolling window                                                                       |
-| `ta.lowest`      | yes            | verified             | rolling window                                                                       |
-| `ta.change`      | yes            | verified             | Pine history semantics                                                               |
-| `ta.crossover`   | yes            | verified             | current/previous comparison                                                          |
-| `ta.crossunder`  | yes            | verified             | current/previous comparison                                                          |
-| `ta.rma`         | yes            | draft                | Wilder smoothing node                                                                |
-| `ta.tr`          | yes            | draft                | implicit OHLC source node                                                            |
-| `ta.atr`         | yes            | draft                | composed from `rma(tr(true), length)`                                                |
-| `ta.wma`         | yes            | draft                | composable finite-window weighted average                                            |
-| `ta.vwma`        | yes            | draft                | source/volume weighted window                                                        |
-| `ta.swma`        | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                                        |
-| `ta.hma`         | yes            | draft                | composed from WMA nodes                                                              |
-| `ta.rsi`         | yes            | draft                | Wilder smoothing; first value on the length-th change                                |
-| `ta.roc`         | yes            | draft                | percentage rate of change                                                            |
-| `ta.mom`         | yes            | draft                | `source - source[length]`                                                            |
-| `ta.stoch`       | yes            | draft                | source against peak/valley windows                                                   |
-| `ta.wpr`         | yes            | draft                | William %R over high/low windows                                                     |
-| `ta.cmo`         | yes            | draft                | rolling gain/loss balance over the last length changes                               |
-| `ta.variance`    | yes            | draft                | biased/unbiased rolling variance                                                     |
-| `ta.stdev`       | yes            | draft                | square root of rolling variance                                                      |
-| `ta.dev`         | yes            | draft                | mean absolute deviation                                                              |
-| `ta.macd`        | yes            | draft                | `MacdResult` from EMA nodes                                                          |
-| `ta.bb`          | yes            | draft                | `BollingerBandsResult` from SMA/stdev nodes                                          |
-| `ta.dmi`         | yes            | draft                | `DmiResult` with Wilder-smoothed +DI/-DI/ADX                                         |
-| `ta.supertrend`  | yes            | draft                | `SupertrendResult` with carry-forward ATR bands                                      |
-| `ta.sar`         | yes            | draft                | literal `pine_sar` algorithm from the v6 reference                                   |
-| `ta.linreg`      | yes            | draft                | least-squares fit; `intercept + slope * (length - 1 - offset)`                       |
-| `ta.bbw`         | yes            | draft                | `(((basis + dev) - (basis - dev)) / basis) * 100` per the official re-implementation |
-| `ta.kc`          | yes            | draft                | EMA basis, `ta.ema`-smoothed true-range (or `high - low`) bands                      |
-| `ta.kcw`         | yes            | draft                | `(upper - lower) / basis` from `ta.kc`; no `* 100`                                   |
-| `ta.obv`         | yes            | draft                | `cum(sign(change(close)) * volume)`; na terms skipped                                |
-| `ta.pvt`         | yes            | draft                | `cum((change(close) / close[1]) * volume)`                                           |
-| `ta.pvi`         | yes            | draft                | seed 1.0; updates only when volume rises                                             |
-| `ta.nvi`         | yes            | draft                | seed 1.0; updates only when volume falls                                             |
-| `ta.mfi`         | yes            | draft                | `math.sum` windows, not Wilder smoothing; na change seeds both flows                 |
-| `ta.vwap`        | yes            | draft                | anchored cumulative; default daily anchor in the symbol timezone                     |
-| `ta.accdist`     | yes            | draft                | standard Chaikin A/D line (reference ships no re-implementation)                     |
-| `ta.barssince`   | yes            | draft                | 0 on the condition bar; na when never true                                           |
-| `ta.rising`      | yes            | draft                | strict chain over the last `length` non-na prior values                              |
-| `ta.falling`     | yes            | draft                | strict decreasing chain; mirror of `rising`                                          |
-| `ta.valuewhen`   | yes            | draft                | nth most recent condition bar; 0 includes the current bar                            |
-| `ta.highestbars` | yes            | draft                | negative offset; ties resolve to the most recent bar                                 |
-| `ta.lowestbars`  | yes            | draft                | negative offset; ties resolve to the most recent bar                                 |
-| `ta.pivothigh`   | yes            | draft                | strict dominance; equal neighbors block the pivot                                    |
-| `ta.pivotlow`    | yes            | draft                | mirror of `pivothigh` over the low series                                            |
+| Symbol                               | Implementation | Compatibility status | Notes                                                                                |
+| ------------------------------------ | -------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| `ta.sma`                             | yes            | verified             | incremental rolling state                                                            |
+| `ta.ema`                             | yes            | verified             | incremental state, first-valid seed                                                  |
+| `ta.highest`                         | yes            | verified             | rolling window                                                                       |
+| `ta.lowest`                          | yes            | verified             | rolling window                                                                       |
+| `ta.change`                          | yes            | verified             | Pine history semantics                                                               |
+| `ta.crossover`                       | yes            | verified             | current/previous comparison                                                          |
+| `ta.crossunder`                      | yes            | verified             | current/previous comparison                                                          |
+| `ta.rma`                             | yes            | draft                | Wilder smoothing node                                                                |
+| `ta.tr`                              | yes            | draft                | implicit OHLC source node                                                            |
+| `ta.atr`                             | yes            | draft                | composed from `rma(tr(true), length)`                                                |
+| `ta.wma`                             | yes            | draft                | composable finite-window weighted average                                            |
+| `ta.vwma`                            | yes            | draft                | source/volume weighted window                                                        |
+| `ta.swma`                            | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                                        |
+| `ta.hma`                             | yes            | draft                | composed from WMA nodes                                                              |
+| `ta.rsi`                             | yes            | draft                | Wilder smoothing; first value on the length-th change                                |
+| `ta.roc`                             | yes            | draft                | percentage rate of change                                                            |
+| `ta.mom`                             | yes            | draft                | `source - source[length]`                                                            |
+| `ta.stoch`                           | yes            | draft                | source against peak/valley windows                                                   |
+| `ta.wpr`                             | yes            | draft                | William %R over high/low windows                                                     |
+| `ta.cmo`                             | yes            | draft                | rolling gain/loss balance over the last length changes                               |
+| `ta.variance`                        | yes            | draft                | biased/unbiased rolling variance                                                     |
+| `ta.stdev`                           | yes            | draft                | square root of rolling variance                                                      |
+| `ta.dev`                             | yes            | draft                | mean absolute deviation                                                              |
+| `ta.macd`                            | yes            | draft                | `MacdResult` from EMA nodes                                                          |
+| `ta.bb`                              | yes            | draft                | `BollingerBandsResult` from SMA/stdev nodes                                          |
+| `ta.dmi`                             | yes            | draft                | `DmiResult` with Wilder-smoothed +DI/-DI/ADX                                         |
+| `ta.supertrend`                      | yes            | draft                | `SupertrendResult` with carry-forward ATR bands                                      |
+| `ta.sar`                             | yes            | draft                | literal `pine_sar` algorithm from the v6 reference                                   |
+| `ta.linreg`                          | yes            | draft                | least-squares fit; `intercept + slope * (length - 1 - offset)`                       |
+| `ta.bbw`                             | yes            | draft                | `(((basis + dev) - (basis - dev)) / basis) * 100` per the official re-implementation |
+| `ta.kc`                              | yes            | draft                | EMA basis, `ta.ema`-smoothed true-range (or `high - low`) bands                      |
+| `ta.kcw`                             | yes            | draft                | `(upper - lower) / basis` from `ta.kc`; no `* 100`                                   |
+| `ta.obv`                             | yes            | draft                | `cum(sign(change(close)) * volume)`; na terms skipped                                |
+| `ta.pvt`                             | yes            | draft                | `cum((change(close) / close[1]) * volume)`                                           |
+| `ta.pvi`                             | yes            | draft                | seed 1.0; updates only when volume rises                                             |
+| `ta.nvi`                             | yes            | draft                | seed 1.0; updates only when volume falls                                             |
+| `ta.mfi`                             | yes            | draft                | `math.sum` windows, not Wilder smoothing; na change seeds both flows                 |
+| `ta.vwap`                            | yes            | draft                | anchored cumulative; default daily anchor in the symbol timezone                     |
+| `ta.accdist`                         | yes            | draft                | standard Chaikin A/D line (reference ships no re-implementation)                     |
+| `ta.barssince`                       | yes            | draft                | 0 on the condition bar; na when never true                                           |
+| `ta.rising`                          | yes            | draft                | strict chain over the last `length` non-na prior values                              |
+| `ta.falling`                         | yes            | draft                | strict decreasing chain; mirror of `rising`                                          |
+| `ta.valuewhen`                       | yes            | draft                | nth most recent condition bar; 0 includes the current bar                            |
+| `ta.highestbars`                     | yes            | draft                | negative offset; ties resolve to the most recent bar                                 |
+| `ta.lowestbars`                      | yes            | draft                | negative offset; ties resolve to the most recent bar                                 |
+| `ta.pivothigh`                       | yes            | draft                | strict dominance; equal neighbors block the pivot                                    |
+| `ta.pivotlow`                        | yes            | draft                | mirror of `pivothigh` over the low series                                            |
+| `ta.cum`                             | yes            | draft                | running cumulative sum; na terms skipped; output is na on na bars                    |
+| `ta.cross`                           | yes            | draft                | crossover or crossunder in either direction                                          |
+| `ta.percentrank`                     | yes            | draft                | % of window values strictly < current; 0–100; na during warmup                       |
+| `ta.percentile_nearest_rank`         | yes            | draft                | nearest-rank percentile: ceil(p/100\*n)-th sorted value                              |
+| `ta.percentile_linear_interpolation` | yes            | draft                | linear-interpolation percentile via fractional 0-based sorted index                  |
 
 ## Compatibility states
 

@@ -664,6 +664,67 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/pivotlow.basic.json]
 
+  - name: cum
+    signature:
+      params:
+        - { name: source, type: series<float> }
+    returns: series<float>
+    semantics:
+      core: "cumulative sum from bar 0; na source values contribute 0 to the running total but the output is na on the na bar"
+    impl: { module: src/ta/extra.ts, export: cum }
+    status: draft
+    vectors: [fixtures/v6/ta/cum.basic.json]
+
+  - name: cross
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: other, type: series<float> }
+    returns: series<bool>
+    semantics:
+      core: "true when source and other cross in either direction; equivalent to crossover or crossunder"
+    impl: { module: src/ta/extra.ts, export: cross }
+    status: draft
+    vectors: [fixtures/v6/ta/cross.basic.json]
+
+  - name: percentrank
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "percentage (0-100) of values in the length window strictly less than the current value; na during warmup"
+    impl: { module: src/ta/extra.ts, export: percentrank }
+    status: draft
+    vectors: [fixtures/v6/ta/percentrank.basic.json]
+
+  - name: percentile_nearest_rank
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: percentage, type: float }
+    returns: series<float>
+    semantics:
+      core: "value at the Nth percentile using nearest-rank method: ceil(p/100*n)-th element in the ascending-sorted window"
+    impl: { module: src/ta/extra.ts, export: percentile_nearest_rank }
+    status: draft
+    vectors: [fixtures/v6/ta/percentile_nearest_rank.basic.json]
+
+  - name: percentile_linear_interpolation
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: percentage, type: float }
+    returns: series<float>
+    semantics:
+      core: "value at the Nth percentile using linear interpolation: h = (p/100)*(n-1) fractional 0-based index into sorted window"
+    impl: { module: src/ta/extra.ts, export: percentile_linear_interpolation }
+    status: draft
+    vectors: [fixtures/v6/ta/percentile_linear_interpolation.basic.json]
+
 variables:
   barstate:
     type: namespace

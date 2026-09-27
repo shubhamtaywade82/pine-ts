@@ -1,0 +1,9 @@
+{
+  "name": "ta.cum",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5]
+  },
+  "expected": [1, 3, 6, 10, 15],
+  "notes": "Running cumulative sum from bar 0; na source values are skipped (contribute 0) but the output on an na bar is na."
+}

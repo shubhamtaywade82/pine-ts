@@ -1,0 +1,11 @@
+{
+  "name": "ta.percentile_linear_interpolation",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 5,
+    "percentage": 50
+  },
+  "expected": [null, null, null, null, 3],
+  "notes": "Linear interpolation: h=(50/100)*(5-1)=2.0, sorted=[1,2,3,4,5], result=sorted[2]=3 (exact midpoint)."
+}

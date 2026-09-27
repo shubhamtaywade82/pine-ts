@@ -1,0 +1,10 @@
+{
+  "name": "ta.percentrank",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 5
+  },
+  "expected": [null, null, null, null, 80],
+  "notes": "Percentage of values in length window strictly less than current; na during warmup (fewer than length non-na bars). Bar 4 value=5: 4 values below → 4/5*100=80."
+}

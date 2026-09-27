@@ -1,0 +1,10 @@
+{
+  "name": "ta.cross",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 3, 1.5],
+    "other": [2, 2, 2]
+  },
+  "expected": [false, true, false],
+  "notes": "true when either a crossover or crossunder occurs; na history yields false on bar 0."
+}
