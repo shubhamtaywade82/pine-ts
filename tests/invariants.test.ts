@@ -16,10 +16,10 @@
  *                          commit
  */
 import { describe, expect, it } from "vitest";
-import { PineRuntime, ta } from "../src/index.js";
+import { PineRuntime, math, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
-const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
+const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto", minTick: 0.25 };
 
 class Provider implements MarketDataProvider {
   public constructor(
@@ -424,6 +424,26 @@ const scenarios: readonly Scenario[] = [
       capture["iii"] = ta.iii();
       capture["wad"] = ta.wad();
       capture["wvad"] = ta.wvad();
+    },
+  },
+  {
+    name: "math-pointwise",
+    build: (ctx, capture) => {
+      const delta = ctx.series("delta", () => ctx.close.value - ctx.open.value);
+      capture["abs"] = math.abs(ctx.close);
+      capture["round"] = math.round(ctx.close, 2);
+      capture["sign"] = math.sign(delta);
+      capture["pow"] = math.pow(ctx.close, 2);
+      capture["sin"] = math.sin(ctx.close);
+    },
+  },
+  {
+    name: "math-aggregates",
+    build: (ctx, capture) => {
+      capture["max"] = math.max(ctx.close, ctx.volume);
+      capture["avg"] = math.avg(ctx.close, ctx.open, ctx.high, ctx.low);
+      capture["sum"] = math.sum(ctx.close, 7);
+      capture["mintick"] = math.roundToMintick(ctx.close);
     },
   },
 ];

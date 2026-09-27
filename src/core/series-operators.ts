@@ -27,6 +27,33 @@ export const zipSeries = <A, B, U>(
   });
 };
 
+/**
+ * Memoized pointwise derivation: `transform` reads the source's current value
+ * (missing history arrives as `undefined`) and the result is cached per bar
+ * revision through the standard node registry, so Pine's elementwise built-ins
+ * (`math.*` on a series) evaluate once per revision and participate in the
+ * rollback/commit lifecycle like every other derived series.
+ */
+export const mapSeries = <A, U>(
+  source: Series<A>,
+  name: string,
+  transform: (value: A | undefined) => U,
+): Series<U> => {
+  if (source.runtime === undefined) {
+    throw new Error("Derived series require PineSession-owned sources");
+  }
+
+  const runtime = source.runtime;
+  return runtime.nodes.getOrCreate(nodeKey(name, source), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): U => transform(source.at(0)),
+      commit: (): void => undefined,
+    };
+    return new Series<U>(runtime, new IndicatorNode(definition));
+  });
+};
+
 export const createUserSeries = <T>(
   session: PineSession,
   key: string,

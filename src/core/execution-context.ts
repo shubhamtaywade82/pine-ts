@@ -14,3 +14,11 @@ export const requireCurrentSession = (): PineSession => {
   }
   return currentSession;
 };
+
+/**
+ * The ambient session while a script executes, or undefined outside script
+ * execution. Built-ins with per-execution state (e.g. `math.random` seeded
+ * sequences) scope that state to the current session so separate runs replay
+ * identically.
+ */
+export const getCurrentSession = (): PineSession | undefined => currentSession;
