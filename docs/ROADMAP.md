@@ -30,7 +30,7 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 
 ## Phase 3 — Core namespaces
 
-- `math.*`
+- [x] `math.*`
 - `array.*`
 - `matrix.*`
 - `map.*`

@@ -8,6 +8,8 @@ export const setCurrentSession = (session: PineSession | undefined): PineSession
   return previous;
 };
 
+export const getCurrentSession = (): PineSession | undefined => currentSession;
+
 export const requireCurrentSession = (): PineSession => {
   if (currentSession === undefined) {
     throw new Error("Pine execution context is not active; run the script through PineRuntime");

@@ -25,3 +25,4 @@ export type {
 export { BinanceProvider, type BinanceMarketClient } from "./data/binance.js";
 
 export * as ta from "./ta/index.js";
+export * as math from "./math/index.js";
