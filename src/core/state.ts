@@ -1,3 +1,5 @@
+import { ScopeStack } from "./scope.js";
+
 /**
  * Persistent script variable cell.
  *
@@ -58,30 +60,36 @@ class Cell<T> implements PersistentCell<T> {
 const isStateful = (val: unknown): val is { _commit(): void; _rollback(): void } =>
   typeof val === "object" && val !== null && "_commit" in val && "_rollback" in val;
 
+const resolveCell = <T>(
+  cells: Map<string, Cell<unknown>>,
+  name: string,
+  initializer: () => T,
+): PersistentCell<T> => {
+  const existing = cells.get(name);
+  if (existing !== undefined) return existing as PersistentCell<T>;
+
+  const value = initializer();
+  const cell = new Cell<T>(name, value, value);
+  cells.set(name, cell);
+  return cell;
+};
+
 export type PineStateSnapshot = ReadonlyMap<string, unknown>;
 
 export class PineState {
   private readonly vars = new Map<string, Cell<unknown>>();
   private readonly varips = new Map<string, Cell<unknown>>();
 
-  public var<T>(name: string, initializer: () => T): PersistentCell<T> {
-    const existing = this.vars.get(name);
-    if (existing !== undefined) return existing as PersistentCell<T>;
+  public constructor(private readonly scopes: ScopeStack = new ScopeStack()) {}
 
-    const value = initializer();
-    const cell = new Cell<T>(name, value, value);
-    this.vars.set(name, cell);
-    return cell;
+  /** `var` cell named `name` in the active call-site scope (see `ctx.scope`). */
+  public var<T>(name: string, initializer: () => T): PersistentCell<T> {
+    return resolveCell(this.vars, this.scopes.qualify(name), initializer);
   }
 
+  /** `varip` cell named `name` in the active call-site scope (see `ctx.scope`). */
   public varip<T>(name: string, initializer: () => T): PersistentCell<T> {
-    const existing = this.varips.get(name);
-    if (existing !== undefined) return existing as PersistentCell<T>;
-
-    const value = initializer();
-    const cell = new Cell<T>(name, value, value);
-    this.varips.set(name, cell);
-    return cell;
+    return resolveCell(this.varips, this.scopes.qualify(name), initializer);
   }
 
   /** Restores `var` cells to their committed values. `varip` cells are intentionally untouched. */

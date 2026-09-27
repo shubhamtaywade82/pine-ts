@@ -89,7 +89,6 @@ const runRealtime = async <T>(
     provider: new Provider([], ticks),
     symbol: "TEST",
     timeframe: "1m",
-    executionMode: "realtime",
   });
   await runtime.runRealtime((context) => {
     values.push(read(context));

@@ -42,3 +42,22 @@ export const collectNonNaWindow = (
   }
   return window;
 };
+
+/**
+ * Reads up to `count` non-na committed values of `source` before the current
+ * bar (offset 1 onward), oldest first. Incremental `series int`-length
+ * built-ins use it to seed state when a new length creates a fresh node
+ * mid-run, so the node matches one that had been running all along — Pine
+ * recomputes such windows over the argument's history.
+ */
+export const collectCommittedNonNa = (source: Series<number>, count: number): number[] => {
+  const values: number[] = [];
+  let offset = 0;
+  while (values.length < count) {
+    offset += 1;
+    const value = source.at(offset);
+    if (value === undefined) break;
+    if (!isNa(value)) values.push(value);
+  }
+  return values.toReversed();
+};

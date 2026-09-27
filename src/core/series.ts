@@ -17,25 +17,40 @@ import type { SeriesNode } from "./series-node.js";
  *   distinguishes "current bar still open" from "bar confirmed" when
  *   resolving history offsets.
  *
- * On every confirmed bar a session-owned series commits exactly one value:
- * the working value if the script read it during the bar, otherwise the
- * node's evaluation at commit time. History offsets therefore mean "n bars
- * ago" unconditionally, the same way Pine series indexing does.
+ * On every confirmed bar a session-owned series commits exactly one value, so
+ * history offsets mean "n bars ago" unconditionally, the same way Pine series
+ * indexing does:
+ *
+ * - source series commit the pushed bar value;
+ * - node-backed series whose call executed on the bar (resolved through the
+ *   node registry or evaluated) commit the node's value and advance the
+ *   node's state;
+ * - node-backed series whose call did NOT execute on the bar carry their last
+ *   committed value forward without advancing node state. This is Pine's
+ *   local-scope rule: a call inside a branch that did not run commits no new
+ *   state, and `x[n]` returns "the last committed value as of the bar at the
+ *   specified offset".
+ *
+ * Committed history is bounded by the session's `maxBarsBack` (Pine's
+ * `max_bars_back`, at most 5000): offsets beyond it raise a RangeError, the
+ * equivalent of Pine runtime error RE10143.
  */
 export class Series<T> {
-  private static nextId = 1;
-
-  public readonly id: number = Series.nextId++;
-  private readonly committedValues: T[] = [];
+  public readonly id: number;
+  private committedValues: T[] = [];
   private workingValue: T | undefined;
   private hasWorkingValue = false;
   private workingRevision = -1;
   private committedRevision = -1;
+  private executedRevision = -1;
 
   public constructor(
     private readonly session: PineSession | undefined = undefined,
     private readonly node: SeriesNode<T> | undefined = undefined,
   ) {
+    // Ids are only meaningful inside one session's node keys; session-less
+    // series never participate in node keys.
+    this.id = session?.allocateSeriesId() ?? 0;
     this.session?.registerSeries(this);
   }
 
@@ -54,6 +69,12 @@ export class Series<T> {
   public at(offset: number): T | undefined {
     if (!Number.isInteger(offset) || offset < 0) {
       throw new RangeError("Series history offset must be a non-negative integer");
+    }
+    const limit = this.session?.maxBarsBack;
+    if (limit !== undefined && offset > limit) {
+      throw new RangeError(
+        `Series history offset ${offset} exceeds max_bars_back (${limit}); raise RuntimeOptions.maxBarsBack`,
+      );
     }
 
     if (offset === 0) return this.currentValue();
@@ -77,6 +98,7 @@ export class Series<T> {
     // after a working-value reset, so historical bars never observe the stale
     // committed value from the previous bar.
     if (this.node !== undefined && this.workingRevision !== revision) {
+      this.executedRevision = revision;
       this.workingValue = this.node.evaluate();
       this.hasWorkingValue = true;
       this.workingRevision = revision;
@@ -85,8 +107,12 @@ export class Series<T> {
     return this.committedValues[this.committedValues.length - 1];
   }
 
+  /** Retained committed history, oldest first (bounded by `maxBarsBack + 1`). */
   public history(): readonly T[] {
-    return this.committedValues;
+    const limit = this.session?.maxBarsBack;
+    if (limit === undefined || this.committedValues.length <= limit + 1)
+      return this.committedValues;
+    return this.committedValues.slice(-(limit + 1));
   }
 
   public push(value: T): void {
@@ -112,22 +138,25 @@ export class Series<T> {
     this.workingRevision = this.session.revision;
   }
 
+  /** Truncates the retained committed history to `length` values. */
   public truncate(length: number): void {
-    if (!Number.isInteger(length) || length < 0 || length > this.committedValues.length) {
+    const retained = this.history();
+    if (!Number.isInteger(length) || length < 0 || length > retained.length) {
       throw new RangeError("Invalid series truncate length");
     }
-    this.committedValues.length = length;
+    this.committedValues = retained.slice(0, length);
   }
 
+  /** Reads the retained committed history by position, oldest first. */
   public get(index: number): T | undefined {
     if (!Number.isInteger(index) || index < 0) {
       throw new RangeError("Series index must be a non-negative integer");
     }
-    return this.committedValues[index];
+    return this.history()[index];
   }
 
   public toArray(): readonly T[] {
-    return this.committedValues;
+    return this.history();
   }
 
   public _push(value: T): void {
@@ -137,21 +166,42 @@ export class Series<T> {
     this.workingRevision = this.session.revision;
   }
 
+  /** Records that the call backing this series executed on the current revision. */
+  public _markExecuted(): void {
+    if (this.session !== undefined) this.executedRevision = this.session.revision;
+  }
+
   public _commit(): void {
-    // Pine semantics: every session-owned series produces one committed
-    // value per confirmed bar, even when the script did not read it during
-    // the bar. Evaluating a node-backed series here keeps history offsets
-    // aligned across all series in the graph. Dependencies still hold their
-    // working values at this point because the session commits in reverse
-    // registration order, so the evaluation observes the same dependency
-    // state as during script execution.
     if (this.session !== undefined && this.node !== undefined && !this.hasWorkingValue) {
+      if (this.executedRevision !== this.session.revision) {
+        this.carryForward();
+        return;
+      }
+      // Executed but never read: evaluate now. Dependencies still hold their
+      // working values because the session commits in reverse registration
+      // order, so this observes the same state as during script execution.
       this.currentValue();
     }
     if (!this.hasWorkingValue) return;
-    this.committedValues.push(this.workingValue as T);
+    this.appendCommitted(this.workingValue as T);
     if (this.session !== undefined) this.committedRevision = this.session.revision;
     this.node?.commit();
+  }
+
+  private carryForward(): void {
+    if (this.session === undefined) return;
+    this.appendCommitted(this.committedValues.at(-1) as T);
+    this.committedRevision = this.session.revision;
+  }
+
+  private appendCommitted(value: T): void {
+    this.committedValues.push(value);
+    const limit = this.session?.maxBarsBack;
+    // Amortized trim: keep the newest `limit + 1` values (current committed
+    // bar plus `limit` bars of history) once the buffer doubles.
+    if (limit !== undefined && this.committedValues.length > 2 * (limit + 1)) {
+      this.committedValues = this.committedValues.slice(-(limit + 1));
+    }
   }
 
   public _resetWorking(): void {

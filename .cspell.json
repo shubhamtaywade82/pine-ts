@@ -132,6 +132,9 @@
     "VWAP",
     "VWMA",
     "weekofyear",
-    "wma"
+    "wma",
+    "ETHUSDT",
+    "fixnan",
+    "wvad"
   ]
 }

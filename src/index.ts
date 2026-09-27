@@ -1,5 +1,19 @@
-export { PineRuntime, type PineScript, type RuntimeOptions } from "./core/runtime.js";
-export { PineSession, type SourceBundle } from "./core/session.js";
+export {
+  PineRuntime,
+  type DiscardedTick,
+  type DiscardedTickReason,
+  type PineScript,
+  type RuntimeOptions,
+} from "./core/runtime.js";
+export {
+  PineSession,
+  type HistoricalBarFlags,
+  type PineSessionOptions,
+  type RealtimeTickOutcome,
+  type SourceBundle,
+} from "./core/session.js";
+export { ScopeStack } from "./core/scope.js";
+export { fixnan } from "./core/series-operators.js";
 export {
   BooleanSeries,
   FloatSeries,

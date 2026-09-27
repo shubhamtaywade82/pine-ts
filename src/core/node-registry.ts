@@ -1,3 +1,4 @@
+import { ScopeStack } from "./scope.js";
 import type { Series } from "./series.js";
 
 const stableArgument = (arg: unknown): string => (isSeries(arg) ? `#${arg.id}` : stableValue(arg));
@@ -8,15 +9,20 @@ export const nodeKey = (name: string, ...args: readonly unknown[]): string =>
 export class NodeRegistry {
   private readonly series = new Map<string, Series<unknown>>();
 
-  public getOrCreate<T>(key: string, create: () => Series<T>): Series<T> {
-    const existing = this.series.get(key);
-    if (existing !== undefined) {
-      return existing as Series<T>;
-    }
+  public constructor(private readonly scopes: ScopeStack = new ScopeStack()) {}
 
-    const created = create();
-    this.series.set(key, created);
-    return created;
+  /**
+   * Resolves the node for `key` in the active call-site scope, creating it on
+   * first use. Every resolution counts as the call executing on the current
+   * bar: Pine commits a call's state only on bars where the call runs.
+   */
+  public getOrCreate<T>(key: string, create: () => Series<T>): Series<T> {
+    const scopedKey = this.scopes.qualify(key);
+    const existing = this.series.get(scopedKey) as Series<T> | undefined;
+    const node = existing ?? create();
+    if (existing === undefined) this.series.set(scopedKey, node);
+    node._markExecuted();
+    return node;
   }
 
   public get size(): number {

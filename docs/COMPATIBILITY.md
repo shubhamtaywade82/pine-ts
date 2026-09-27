@@ -20,6 +20,21 @@ TradingView's Pine Script v6 Reference Manual is the authoritative API specifica
 - strategy broker-emulator semantics
 - plot/drawing object lifecycle
 
+## Known divergences
+
+- **Call-site identity is explicit.** Identical calls share one node unless
+  wrapped in distinct `ctx.scope(id, fn)` scopes (see `docs/SEMANTICS.md`,
+  "Local scopes and call-site identity").
+- **Windowed built-ins in conditional scopes.** Built-ins read the argument
+  series' bar history. Pine uses the call's own parameter buffer, which only
+  holds values from bars where the call ran. Results match whenever the call
+  executes on every bar, which is what Pine's compiler warning asks for.
+- **`simple int` violations are not detected.** Passing a changing length to
+  a `simple int` parameter (`ta.ema`, `ta.rsi`, ...) is a Pine compile error;
+  pine-ts starts a fresh node instead.
+- **`weekofyear`** uses ISO-8601 week numbering; the Reference Manual does not
+  state its convention.
+
 ## Binance limitation
 
 Binance is a crypto market-data/execution provider. TradingView requests for fundamentals, corporate actions, or other datasets not exposed by Binance are provider-limited.
