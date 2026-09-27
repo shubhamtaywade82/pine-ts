@@ -39,13 +39,24 @@ class Cell<T> implements PersistentCell<T> {
   }
 
   public _rollback(): void {
-    this.current = this.committed;
+    if (isStateful(this.current)) {
+      this.current._rollback();
+    } else {
+      this.current = this.committed;
+    }
   }
 
   public _commit(): void {
-    this.committed = this.current;
+    if (isStateful(this.current)) {
+      this.current._commit();
+    } else {
+      this.committed = this.current;
+    }
   }
 }
+
+const isStateful = (val: unknown): val is { _commit(): void; _rollback(): void } =>
+  typeof val === "object" && val !== null && "_commit" in val && "_rollback" in val;
 
 export type PineStateSnapshot = ReadonlyMap<string, unknown>;
 
