@@ -1,38 +1,11 @@
 import { requireCurrentSession } from "../core/execution-context.js";
 import { isNa } from "../core/na.js";
-import { nodeKey } from "../core/node-registry.js";
-import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
 import { atr, change, ema, rma, sma } from "./core.js";
 import { stdev } from "./statistics.js";
+import { deriveFloatSeries } from "./derive.js";
+import { supertrendOver, type SupertrendResult } from "./supertrend-core.js";
 import { requirePositiveLength } from "./validation.js";
-
-/**
- * Creates (or reuses) a cached float-valued derived series. Operand series and
- * `name` form the cache key, so any numeric parameter captured by `evaluate`
- * must be embedded in `name` to keep distinct parameters from colliding.
- */
-const deriveFloatSeries = (
-  operands: readonly Series<number>[],
-  name: string,
-  evaluate: () => number,
-): FloatSeries => {
-  const runtime = operands[0]?.runtime;
-  if (runtime === undefined) {
-    throw new Error("Derived series require PineSession-owned sources");
-  }
-  if (operands.some((series) => series.runtime !== runtime)) {
-    throw new Error("Derived series operands must belong to the same PineSession");
-  }
-  return runtime.nodes.getOrCreate(nodeKey(name, ...operands), () => {
-    const definition = {
-      init: (): null => null,
-      evaluate,
-      commit: (): void => undefined,
-    };
-    return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
-};
 
 export interface MacdResult {
   readonly macdLine: FloatSeries;
@@ -167,76 +140,7 @@ export const dmi = (diLength: number, adxSmoothing: number): DmiResult => {
   return { plusDI, minusDI, adx };
 };
 
-export interface SupertrendResult {
-  readonly supertrend: FloatSeries;
-  readonly direction: Series<number>;
-}
-
-interface BandState {
-  previousFinal: number;
-}
-
-/** Upper band resets when it tightens or the previous close broke above it. */
-const upperBandResets = (raw: number, previous: number, previousClose: number): boolean =>
-  raw < previous || previousClose > previous;
-
-/** Lower band resets when it rises or the previous close broke below it. */
-const lowerBandResets = (raw: number, previous: number, previousClose: number): boolean =>
-  raw > previous || previousClose < previous;
-
-const resolveFinalBand = (
-  raw: number,
-  previousFinal: number,
-  previousClose: number,
-  resets: (raw: number, previous: number, previousClose: number) => boolean,
-): number => {
-  if (isNa(previousFinal)) return raw;
-  return resets(raw, previousFinal, previousClose) ? raw : previousFinal;
-};
-
-/**
- * Trailing band with Pine's carry-forward semantics: the band only moves when
- * the raw band pushes it or the previous close crossed it, otherwise the
- * committed value carries. State advances exclusively in `commit`, so realtime
- * ticks re-evaluate against the last committed band and roll back naturally.
- */
-const createFinalBand = (
-  rawBand: FloatSeries,
-  close: FloatSeries,
-  name: string,
-  resets: (raw: number, previous: number, previousClose: number) => boolean,
-): FloatSeries => {
-  const runtime = rawBand.runtime;
-  if (runtime === undefined) {
-    throw new Error("Derived series require PineSession-owned sources");
-  }
-  const readPreviousClose = (): number => close.at(1) ?? Number.NaN;
-  return runtime.nodes.getOrCreate(nodeKey(name, rawBand, close), () => {
-    const definition = {
-      init: (): BandState => ({ previousFinal: Number.NaN }),
-      evaluate: (state: Readonly<BandState>): number => {
-        const raw = rawBand.at(0);
-        // A na raw band (ATR warm-up) produces a na final band; TradingView
-        // plots nothing during warm-up. The first valid raw band is adopted
-        // as-is, which matches nz(band[1]) behavior whenever the band is
-        // above zero.
-        if (isNa(raw)) return Number.NaN;
-        return resolveFinalBand(raw, state.previousFinal, readPreviousClose(), resets);
-      },
-      commit: (state: BandState): void => {
-        const raw = rawBand.at(0);
-        if (isNa(raw)) return;
-        state.previousFinal = resolveFinalBand(
-          raw,
-          state.previousFinal,
-          readPreviousClose(),
-          resets,
-        );
-      },
-    };
-    return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
-};
+export type { SupertrendResult } from "./supertrend-core.js";
 
 /**
  * ta.supertrend — trailing stop from ATR bands around hl2.
@@ -248,75 +152,6 @@ const createFinalBand = (
  */
 export const supertrend = (factor: number, atrPeriod: number): SupertrendResult => {
   requirePositiveLength(atrPeriod);
-  if (!Number.isFinite(factor)) {
-    throw new RangeError("factor must be a finite number");
-  }
   const runtime = requireCurrentSession();
-  const { close, hl2 } = runtime.sources;
-  const atrSeries = atr(atrPeriod);
-
-  const rawUpper = deriveFloatSeries(
-    [hl2, atrSeries],
-    `ta.supertrend.rawUpper:factor=${factor}`,
-    () => {
-      const src = hl2.at(0);
-      const atrValue = atrSeries.at(0);
-      return src === undefined || atrValue === undefined ? Number.NaN : src + factor * atrValue;
-    },
-  );
-  const rawLower = deriveFloatSeries(
-    [hl2, atrSeries],
-    `ta.supertrend.rawLower:factor=${factor}`,
-    () => {
-      const src = hl2.at(0);
-      const atrValue = atrSeries.at(0);
-      return src === undefined || atrValue === undefined ? Number.NaN : src - factor * atrValue;
-    },
-  );
-
-  const finalUpper = createFinalBand(rawUpper, close, "ta.supertrend.finalUpper", upperBandResets);
-  const finalLower = createFinalBand(rawLower, close, "ta.supertrend.finalLower", lowerBandResets);
-
-  // supertrend[1] === finalUpperBand[1] holds exactly when the previous
-  // direction tracked the upper band, or when both previous bands coincided,
-  // so direction can decide from its own history and band histories without a
-  // forward reference to the supertrend line.
-  const direction = runtime.nodes.getOrCreate(
-    nodeKey("ta.supertrend.direction", finalUpper, finalLower, atrSeries, close),
-    () => {
-      const definition = {
-        init: (): null => null,
-        evaluate: (): number => {
-          if (isNa(atrSeries.at(1))) return 1;
-          const upperNow = finalUpper.at(0);
-          const lowerNow = finalLower.at(0);
-          const closeNow = close.at(0);
-          if (isNa(upperNow) || isNa(lowerNow) || isNa(closeNow)) return 1;
-          const previousDirection = direction.at(1) ?? 1;
-          const previousUpper = finalUpper.at(1);
-          const previousLower = finalLower.at(1);
-          const wasUpperBand =
-            previousDirection === 1 ||
-            (previousUpper !== undefined && previousUpper === previousLower);
-          if (wasUpperBand) return closeNow > upperNow ? -1 : 1;
-          return closeNow < lowerNow ? 1 : -1;
-        },
-        commit: (): void => undefined,
-      };
-      return new Series<number>(runtime, new IndicatorNode(definition));
-    },
-  );
-
-  const supertrendLine = deriveFloatSeries(
-    [direction, finalLower, finalUpper],
-    "ta.supertrend.line",
-    () => {
-      const upper = finalUpper.at(0);
-      const lower = finalLower.at(0);
-      if (isNa(upper) || isNa(lower)) return Number.NaN;
-      return direction.at(0) === -1 ? lower : upper;
-    },
-  );
-
-  return { supertrend: supertrendLine, direction };
+  return supertrendOver(runtime, factor, atr(atrPeriod), "ta.supertrend", "na");
 };

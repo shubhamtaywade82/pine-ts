@@ -6,6 +6,7 @@ import type {
   SymbolInfo,
 } from "../core/types.js";
 import { parse } from "../time/timeframe.js";
+import { ProviderCapabilityError } from "./errors.js";
 
 /**
  * Binance market-data adapter for `@nemesis-oss/binance-sdk` (v3).
@@ -99,11 +100,6 @@ export interface BinanceProviderOptions {
    * transport error terminates the bar stream by rejecting the iterator.
    */
   readonly onTransportError?: (error: unknown) => void;
-}
-
-/** A timeframe or dataset Binance cannot provide. */
-export class ProviderCapabilityError extends Error {
-  public override readonly name = "ProviderCapabilityError";
 }
 
 const MINUTE_INTERVALS: Readonly<Record<number, BinanceKlineInterval>> = {

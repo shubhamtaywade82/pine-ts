@@ -10,6 +10,7 @@
 - [x] first `ta.*` numerical primitives
 - [x] market-data provider boundary
 - [x] Binance adapter using `@nemesis-oss/binance-sdk` (REST paging, kline stream, exchangeInfo symbol metadata)
+- [x] DhanHQ adapter using `@nemesis-oss/dhanhq-sdk` (session-anchored bars from 1-minute history and feed ticks, scrip-master symbol metadata)
 - [ ] CI and compatibility fixtures
 
 ## Phase 1 — Pine execution semantics

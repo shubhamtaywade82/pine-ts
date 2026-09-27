@@ -135,6 +135,23 @@
     "wma",
     "ETHUSDT",
     "fixnan",
-    "wvad"
+    "wvad",
+    "chartless",
+    "Dhan",
+    "dhanhq",
+    "FUTCOM",
+    "FUTIDX",
+    "FUTSTK",
+    "OPTFUT",
+    "OPTIDX",
+    "OPTSTK",
+    "unconfigured",
+    "amean",
+    "bmean",
+    "cmean",
+    "highvol",
+    "KMEANS",
+    "lowvol",
+    "midvol"
   ]
 }

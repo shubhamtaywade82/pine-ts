@@ -19,6 +19,7 @@ Early foundation. The repository is intentionally starting with the runtime cont
 - Strategy/backtest/paper/live broker separation.
 - Chart/rendering adapters independent of the runtime core.
 - Binance REST/WebSocket integration through `@nemesis-oss/binance-sdk`.
+- DhanHQ (NSE/BSE) integration through `@nemesis-oss/dhanhq-sdk`.
 - Machine-readable API manifest to track Pine reference coverage.
 
 ## Non-goals
@@ -68,8 +69,55 @@ await runtime.run(script); // historical bars; a still-forming last kline runs a
 await runtime.runRealtime(script); // continues on the kline stream
 ```
 
-`@nemesis-oss/binance-sdk` is not a runtime dependency: `BinanceProvider`
-consumes its market surfaces structurally.
+### DhanHQ (NSE/BSE)
+
+```ts
+import { DhanClient } from "@nemesis-oss/dhanhq-sdk";
+import { DhanHQProvider, PineRuntime } from "@nemesis-oss/pine-ts";
+
+const client = DhanClient.fromEnv();
+const provider = new DhanHQProvider({
+  charts: client.charts,
+  instruments: client.instruments,
+  feed: client.ws.market,
+});
+await client.ws.connect(); // the caller owns the socket
+
+// Symbols are "<exchangeSegment>:<securityId>" composite keys.
+const runtime = new PineRuntime({ provider, symbol: "IDX_I:13", timeframe: "15" });
+await runtime.run(script);
+await runtime.runRealtime(script);
+```
+
+Bars are anchored to the session open (NSE 09:15 IST), matching TradingView.
+Historical minute bars are built from 1-minute candles and realtime bars from
+trade ticks with the same bucketing, so both agree on bar boundaries. A bar
+closes on the first tick of the next bucket or `closeGraceMs` after its bucket
+ends.
+
+Neither SDK is a runtime dependency: the providers consume their surfaces
+structurally, and the tests type-check the real SDK classes against them.
+
+### Community scripts
+
+`community.*` holds faithful ports of open-source TradingView scripts, checked
+bar for bar against a literal transcription of the published Pine source.
+
+```ts
+import { community, ta } from "@nemesis-oss/pine-ts";
+
+const script: PineScript = (ctx) => {
+  // Machine Learning Adaptive SuperTrend [AlgoAlpha]
+  const st = community.mlAdaptiveSupertrend({ atrLength: 10, factor: 3, trainingPeriod: 100 });
+  const bullish = ta.crossunder(
+    st.direction,
+    ctx.series("zero", () => 0),
+  ).value;
+};
+```
+
+`direction` follows Pine's SuperTrend convention: -1 is an uptrend, 1 a
+downtrend.
 
 ## Development
 
@@ -105,4 +153,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 
 ## License
 
-MIT
+MIT, except `src/community/ml-adaptive-supertrend.ts`, a port of AlgoAlpha's
+"Machine Learning Adaptive SuperTrend", which stays under the Mozilla Public
+License 2.0 of the original script (see the file header). The package license
+is therefore `MIT AND MPL-2.0`.
