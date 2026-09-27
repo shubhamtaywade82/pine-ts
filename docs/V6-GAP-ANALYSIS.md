@@ -42,7 +42,7 @@ Section 4 (missing namespaces) and roadmap steps 3–11 are unchanged: they are 
 
 | Category (reference manual) | Total | Present | Notes                                                                                                                                   |
 | --------------------------- | ----: | ------: | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Functions                   |   475 |    ~188 | `ta` 47/59, `math` 24/24, `array` 55/55, `matrix` 49/49, `map` 11/11, `timeframe` 2/3, global 2/41                                      |
+| Functions                   |   475 |    ~190 | `ta` 47/59, `math` 24/24, `array` 55/55, `matrix` 49/49, `map` 11/11, `timeframe` 2/3, global 2/41                                      |
 | Variables                   |   161 |     ~30 | OHLCV/`hl2`/`hlc3`/`ohlc4`, `bar_index`, `barstate.*` (7/7), 7/10 `ta.*` vars as functions, partial `syminfo`                           |
 | Constants                   |   239 |       4 | only `math.e/pi/phi/rphi`                                                                                                               |
 | Types                       |    20 |       6 | `int/float/bool` (as `number`/`boolean`), `array`, `map`, `matrix`; no `color`, drawing types, `chart.point`, `footprint`, `volume_row` |
@@ -78,7 +78,7 @@ Section 4 (missing namespaces) and roadmap steps 3–11 are unchanged: they are 
 - Runtime-scoped `NodeRegistry` (no module-level indicator caches).
 - `ta.*`: 47 functions with golden fixtures. Only `sma`, `ema`, `highest`, `lowest`, `change`, `crossover` and `crossunder` are `verified` against TradingView output. The other 40 are `draft`.
 - Full `math`, `array`, `matrix` and `map` namespaces.
-- 305 passing tests. `typecheck` and `manifest:validate` are clean.
+- Vitest reported 305 passing tests at `549e595` (the suite generates cases in loops, so this exceeds the count of `it(` declarations). `typecheck` and `manifest:validate` are clean.
 
 ## 3. Execution-model gaps (blockers for "TypeScript instead of Pine")
 
