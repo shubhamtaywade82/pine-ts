@@ -29,4 +29,5 @@ export * as math from "./math/index.js";
 export * as str from "./str/index.js";
 export * as array from "./array/index.js";
 export * as map from "./map/index.js";
+export * as matrix from "./matrix/index.js";
 export { order, type SortOrder } from "./order/index.js";
