@@ -5,7 +5,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { array, PineRuntime, math, str, ta } from "../src/index.js";
+import { array, map, matrix, PineRuntime, math, str, ta } from "../src/index.js";
 import type { Bar, MarketDataProvider, PineScript, SymbolInfo } from "../src/index.js";
 
 const info: SymbolInfo = { ticker: "TEST", timezone: "UTC", type: "crypto" };
@@ -849,4 +849,378 @@ await nthFixture("min", (values, nth) => naOrValue(array.min(mk(values), nth)));
     await runtime.run(script, bars);
     await checkCases(fixture, [pivotPerBar.map((value) => (Number.isNaN(value) ? null : value))]);
   }
+}
+
+// ---------------------------------------------------------------------------
+// map fixtures
+// ---------------------------------------------------------------------------
+
+const mapFixturesDir = resolve(import.meta.dirname, "../fixtures/v6/map");
+
+const loadFixtureJson = async (dir: string, name: string) =>
+  JSON.parse(await readFile(resolve(dir, `${name}.basic.json`), "utf8")) as Record<string, unknown>;
+
+const mapDump = (id: map.PineMap<string, number>): NestedValue =>
+  id.entries().map(([key, value]) => [key, value === undefined ? null : value]);
+
+const normValue = (value: unknown): NestedValue => {
+  if (value === undefined) return null;
+  if (typeof value === "number" && Number.isNaN(value)) return null;
+  if (Array.isArray(value)) return value.map(normValue);
+  return value as NestedValue;
+};
+
+{
+  const fixture = await loadFixtureJson(mapFixturesDir, "ops");
+  const cases = (fixture["input"] as { cases: unknown[][] }).cases;
+  const expected = (fixture["expected"] as { ops: NestedValue[][] }).ops;
+  let ok = true;
+  for (const [index, caseData] of cases.entries()) {
+    const ops = (caseData as unknown as { ops: unknown[][] }).ops;
+    const target = map.newMap<string, number>();
+    const actual: NestedValue[] = [];
+    for (const op of ops) {
+      const [kind, ...args] = op as [string, ...unknown[]];
+      let result: unknown;
+      switch (kind) {
+        case "put":
+          result = map.put(target, args[0] as string, args[1] as number);
+          break;
+        case "remove":
+          result = map.remove(target, args[0] as string);
+          break;
+        case "get":
+          result = map.get(target, args[0] as string);
+          break;
+        case "contains":
+          result = map.contains(target, args[0] as string);
+          break;
+        case "size":
+          result = map.size(target);
+          break;
+        case "clear":
+          map.clear(target);
+          break;
+        case "keys":
+          result = map.keys(target).toArray();
+          break;
+        case "values":
+          result = map.values(target).toArray();
+          break;
+        case "put_all": {
+          const other = map.newMap<string, number>();
+          for (const pair of args[0] as Array<[string, number]>) map.put(other, pair[0], pair[1]);
+          map.put_all(target, other);
+          break;
+        }
+        case "copy_put": {
+          const duplicate = map.copy(target);
+          map.put(duplicate, args[0] as string, args[1] as number);
+          result = map.size(duplicate);
+          break;
+        }
+      }
+      actual.push([normValue(result), mapDump(target)]);
+    }
+    if (!nestedEqual(actual, expected[index]!)) {
+      console.log(
+        `MISMATCH map.ops[${index}]: actual=${JSON.stringify(actual)} expected=${JSON.stringify(expected[index])}`,
+      );
+      ok = false;
+    }
+  }
+  report("ops.basic.json", "map.ops", ok);
+}
+
+{
+  const fixture = await loadFixtureJson(mapFixturesDir, "limits");
+  const pairs = (fixture["input"] as { cases: [{ pairs: number }] }).cases[0]!.pairs;
+  const expected = (fixture["expected"] as { limits: Array<[NestedValue, string]> }).limits[0]!;
+  const target = map.newMap<number, number>();
+  for (let index = 0; index < pairs; index += 1) map.put(target, index, index);
+  const size = map.size(target);
+  let error: string | null = null;
+  try {
+    map.put(target, pairs, 1);
+  } catch {
+    error = "error";
+  }
+  const ok = size === expected[0] && error === expected[1];
+  report("limits.basic.json", "map.limits", ok);
+}
+
+// ---------------------------------------------------------------------------
+// matrix fixtures
+// ---------------------------------------------------------------------------
+
+const matrixFixturesDir = resolve(import.meta.dirname, "../fixtures/v6/matrix");
+
+const toNumber = (value: unknown): number => (value === null ? Number.NaN : (value as number));
+
+const numbersToPineArray = (values: readonly number[]): array.FloatArray => {
+  const result = array.newFloat(0);
+  for (const value of values) result.push(value);
+  return result;
+};
+
+const fromFixtureRows = (rows: readonly unknown[]): matrix.PineMatrix<number> => {
+  const id = matrix.newFloat(rows.length, (rows[0] as unknown[] | undefined)?.length ?? 0);
+  rows.forEach((row, r) =>
+    (row as unknown[]).forEach((value, c) => matrix.set(id, r, c, toNumber(value))),
+  );
+  return id;
+};
+
+const dumpMatrix = (id: matrix.PineMatrix<number>): NestedValue =>
+  id.toArray2D().map((row) => row.map((value) => normValue(value)));
+
+{
+  const fixture = await loadFixtureJson(matrixFixturesDir, "structural");
+  const cases = (fixture["input"] as { cases: unknown[][] }).cases;
+  const expected = (fixture["expected"] as { ops: NestedValue[][] }).ops;
+  let ok = true;
+  for (const [index, caseData] of cases.entries()) {
+    const ops = (caseData as unknown as { ops: unknown[][] }).ops;
+    let target: matrix.PineMatrix<number> = matrix.newFloat(0, 0);
+    const actual: NestedValue[] = [];
+    for (const op of ops) {
+      const [kind, ...args] = op as [string, ...unknown[]];
+      let result: unknown;
+      switch (kind) {
+        case "new":
+          target = matrix.newFloat(args[0] as number, args[1] as number, toNumber(args[2]));
+          break;
+        case "set":
+          matrix.set(target, args[0] as number, args[1] as number, toNumber(args[2]));
+          break;
+        case "add_row":
+          matrix.add_row(
+            target,
+            args[0] === null ? undefined : (args[0] as number),
+            args[1] === null ? undefined : numbersToPineArray((args[1] as number[]).map(toNumber)),
+          );
+          break;
+        case "add_col":
+          matrix.add_col(
+            target,
+            args[0] === null ? undefined : (args[0] as number),
+            args[1] === null ? undefined : numbersToPineArray((args[1] as number[]).map(toNumber)),
+          );
+          break;
+        case "remove_row":
+          result = matrix
+            .remove_row(target, args[0] === null ? undefined : (args[0] as number))
+            .toArray();
+          break;
+        case "remove_col":
+          result = matrix
+            .remove_col(target, args[0] === null ? undefined : (args[0] as number))
+            .toArray();
+          break;
+        case "swap_rows":
+          matrix.swap_rows(target, args[0] as number, args[1] as number);
+          break;
+        case "swap_columns":
+          matrix.swap_columns(target, args[0] as number, args[1] as number);
+          break;
+        case "fill":
+          matrix.fill(
+            target,
+            toNumber(args[0]),
+            args[1] === null ? 0 : (args[1] as number),
+            args[2] === null ? Number.NaN : (args[2] as number),
+            args[3] === null ? 0 : (args[3] as number),
+            args[4] === null ? Number.NaN : (args[4] as number),
+          );
+          break;
+        case "reverse":
+          matrix.reverse(target);
+          break;
+        case "reshape":
+          matrix.reshape(target, args[0] as number, args[1] as number);
+          break;
+        case "sort":
+          matrix.sort(target, args[0] as number, args[1] as "ascending" | "descending");
+          break;
+        case "concat": {
+          const other = fromFixtureRows(args[0] as unknown[]);
+          matrix.concat(target, other);
+          break;
+        }
+        case "row":
+          result = matrix.row(target, args[0] as number).toArray();
+          break;
+        case "col":
+          result = matrix.col(target, args[0] as number).toArray();
+          break;
+        case "copy_set": {
+          const duplicate = matrix.copy(target);
+          matrix.set(duplicate, args[0] as number, args[1] as number, toNumber(args[2]));
+          result = matrix.get(target, args[3] as number, args[4] as number);
+          break;
+        }
+        case "submatrix":
+          result = dumpMatrix(
+            matrix.submatrix(
+              target,
+              args[0] === null ? 0 : (args[0] as number),
+              args[1] === null ? Number.NaN : (args[1] as number),
+              args[2] === null ? 0 : (args[2] as number),
+              args[3] === null ? Number.NaN : (args[3] as number),
+            ),
+          );
+          break;
+      }
+      actual.push([normValue(result), dumpMatrix(target)]);
+    }
+    if (!nestedEqual(actual, expected[index]!)) {
+      console.log(
+        `MISMATCH matrix.structural[${index}]: actual=${JSON.stringify(actual)} expected=${JSON.stringify(expected[index])}`,
+      );
+      ok = false;
+    }
+  }
+  report("structural.basic.json", "matrix.structural", ok);
+}
+
+{
+  const fixture = await loadFixtureJson(matrixFixturesDir, "stats");
+  const cases = (fixture["input"] as { cases: [{ values: unknown[][] }] }).cases;
+  const expected = (fixture["expected"] as { stats: Array<Record<string, NestedValue>> }).stats;
+  let ok = true;
+  for (const [index, caseData] of cases.entries()) {
+    const id = fromFixtureRows(caseData.values);
+    const actual = {
+      avg: normValue(matrix.avg(id)),
+      min: normValue(matrix.min(id)),
+      max: normValue(matrix.max(id)),
+      median: normValue(matrix.median(id)),
+      mode: normValue(matrix.mode(id)),
+      trace: normValue(matrix.trace(id)),
+      sum_scalar: dumpMatrix(matrix.sum(id, 2)),
+      diff_scalar: dumpMatrix(matrix.diff(id, 1)),
+    };
+    for (const key of Object.keys(actual)) {
+      if (!nestedEqual(actual[key as keyof typeof actual], expected[index]![key])) {
+        console.log(
+          `MISMATCH matrix.stats[${index}].${key}: actual=${JSON.stringify(actual[key as keyof typeof actual])} expected=${JSON.stringify(expected[index]![key])}`,
+        );
+        ok = false;
+      }
+    }
+  }
+  report("stats.basic.json", "matrix.stats", ok);
+}
+
+{
+  const fixture = await loadFixtureJson(matrixFixturesDir, "linalg");
+  const input = fixture["input"] as Record<string, unknown>;
+  const expected = fixture["expected"] as Record<string, NestedValue>;
+  const a = fromFixtureRows(input["a"] as unknown[]);
+  const b = fromFixtureRows(input["b"] as unknown[]);
+  const wide = fromFixtureRows(input["wide"] as unknown[]);
+  const tall = fromFixtureRows(input["tall"] as unknown[]);
+  const singular = fromFixtureRows(input["singular"] as unknown[]);
+  const diagonal = fromFixtureRows(input["diagonal"] as unknown[]);
+  const scalar = input["scalar"] as number;
+  const vector = numbersToPineArray(input["vector"] as number[]);
+  const actual: Record<string, NestedValue> = {
+    det: [matrix.det(a), matrix.det(singular), matrix.det(diagonal)],
+    inv: dumpMatrix(matrix.inv(a)),
+    inv_b: dumpMatrix(matrix.inv(b)),
+    pinv: dumpMatrix(matrix.pinv(a)),
+    pinv_wide: dumpMatrix(matrix.pinv(wide)),
+    pinv_tall: dumpMatrix(matrix.pinv(tall)),
+    pinv_singular: dumpMatrix(matrix.pinv(singular)),
+    rank: [matrix.rank(a), matrix.rank(singular), matrix.rank(wide)],
+    mult_mm: dumpMatrix(matrix.mult(a, b) as matrix.PineMatrix<number>),
+    mult_ba: dumpMatrix(matrix.mult(b, a) as matrix.PineMatrix<number>),
+    mult_scalar: dumpMatrix(matrix.mult(a, scalar) as matrix.PineMatrix<number>),
+    mult_vector: normValue((matrix.mult(a, vector) as array.FloatArray).toArray()),
+    kron: dumpMatrix(matrix.kron(a, b)),
+    pow: dumpMatrix(matrix.pow(a, 3)),
+    pow_zero: dumpMatrix(matrix.pow(a, 0)),
+    transpose: dumpMatrix(matrix.transpose(wide)),
+    sum_mm: dumpMatrix(matrix.sum(a, b)),
+    diff_mm: dumpMatrix(matrix.diff(a, b)),
+    mult_wide_tall: dumpMatrix(matrix.mult(wide, tall) as matrix.PineMatrix<number>),
+  };
+  let ok = true;
+  for (const key of Object.keys(actual)) {
+    if (!nestedEqual(actual[key], expected[key])) {
+      console.log(
+        `MISMATCH matrix.linalg.${key}: actual=${JSON.stringify(actual[key])} expected=${JSON.stringify(expected[key])}`,
+      );
+      ok = false;
+    }
+  }
+  report("linalg.basic.json", "matrix.linalg", ok);
+}
+
+{
+  const fixture = await loadFixtureJson(matrixFixturesDir, "eigen");
+  const cases = (fixture["input"] as { cases: [{ values: number[][] }] }).cases;
+  const expected = (fixture["expected"] as { eigenvalues: number[][] }).eigenvalues;
+  let ok = true;
+  for (const [index, caseData] of cases.entries()) {
+    const id = fromFixtureRows(caseData.values);
+    const values = matrix.eigenvalues(id).toArray();
+    if (!nestedEqual(normValue(values), expected[index]!)) {
+      console.log(
+        `MISMATCH matrix.eigen[${index}] eigenvalues: actual=${JSON.stringify(values)} expected=${JSON.stringify(expected[index])}`,
+      );
+      ok = false;
+    }
+    // Eigenvector columns satisfy A v = lambda v (signs are implementation-defined).
+    const vectors = matrix.eigenvectors(id);
+    const rows = caseData.values;
+    for (let c = 0; c < values.length; c += 1) {
+      for (let r = 0; r < rows.length; r += 1) {
+        const av = rows[r]!.reduce(
+          (total, value, k) => total + value * (matrix.get(vectors, k, c) ?? Number.NaN),
+          0,
+        );
+        const lambdaV = (values[c] ?? Number.NaN) * (matrix.get(vectors, r, c) ?? Number.NaN);
+        if (Math.abs(av - lambdaV) > 1e-9) {
+          console.log(
+            `MISMATCH matrix.eigen[${index}] Av-lambda v at [${r},${c}]: ${av - lambdaV}`,
+          );
+          ok = false;
+        }
+      }
+    }
+  }
+  report("eigen.basic.json", "matrix.eigen", ok);
+}
+
+{
+  const fixture = await loadFixtureJson(matrixFixturesDir, "predicates");
+  const cases = (fixture["input"] as { cases: [{ values: number[][] }] }).cases;
+  const expected = (fixture["expected"] as { predicates: Array<Record<string, boolean>> })
+    .predicates;
+  let ok = true;
+  for (const [index, caseData] of cases.entries()) {
+    const id = fromFixtureRows(caseData.values);
+    const actual = {
+      is_square: matrix.is_square(id),
+      is_zero: matrix.is_zero(id),
+      is_binary: matrix.is_binary(id),
+      is_identity: matrix.is_identity(id),
+      is_diagonal: matrix.is_diagonal(id),
+      is_antidiagonal: matrix.is_antidiagonal(id),
+      is_symmetric: matrix.is_symmetric(id),
+      is_antisymmetric: matrix.is_antisymmetric(id),
+      is_triangular: matrix.is_triangular(id),
+      is_stochastic: matrix.is_stochastic(id),
+    };
+    for (const key of Object.keys(actual)) {
+      if (actual[key as keyof typeof actual] !== expected[index]![key]) {
+        console.log(
+          `MISMATCH matrix.predicates[${index}].${key}: actual=${String(actual[key as keyof typeof actual])} expected=${String(expected[index]![key])}`,
+        );
+        ok = false;
+      }
+    }
+  }
+  report("predicates.basic.json", "matrix.predicates", ok);
 }

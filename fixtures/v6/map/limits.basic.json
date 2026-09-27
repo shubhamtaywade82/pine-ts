@@ -1,0 +1,14 @@
+{
+  "name": "map.limits",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "pairs": 50000
+      }
+    ]
+  },
+  "expected": {
+    "limits": [[50000, "error"]]
+  }
+}

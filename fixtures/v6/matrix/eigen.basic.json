@@ -1,0 +1,43 @@
+{
+  "name": "matrix.eigen",
+  "pineVersion": 6,
+  "meta": {
+    "note": "eigenvalues from numpy.linalg.eigvalsh (ascending); eigenvectors are verified through the A v = lambda v identity in verify-fixtures.ts because column signs are implementation-defined"
+  },
+  "input": {
+    "cases": [
+      {
+        "values": [
+          [2.0, 1.0],
+          [1.0, 3.0]
+        ]
+      },
+      {
+        "values": [
+          [4.0, 1.0, 0.0],
+          [1.0, 5.0, 2.0],
+          [0.0, 2.0, 6.0]
+        ]
+      },
+      {
+        "values": [
+          [10.0, -3.0, 1.0, 7.0],
+          [-3.0, 12.0, 5.0, 0.0],
+          [1.0, 5.0, 9.0, 2.0],
+          [7.0, 0.0, 2.0, 11.0]
+        ]
+      },
+      {
+        "values": [[5.0]]
+      }
+    ]
+  },
+  "expected": {
+    "eigenvalues": [
+      [1.381966011250105, 3.618033988749895],
+      [2.8548973087995773, 4.476023602918135, 7.669079088282288],
+      [2.7802175182469675, 4.947557914308567, 16.01821854209841, 18.254006025346047],
+      [5.0]
+    ]
+  }
+}

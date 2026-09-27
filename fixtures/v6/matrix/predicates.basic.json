@@ -1,0 +1,229 @@
+{
+  "name": "matrix.predicates",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [
+          [1, 2],
+          [3, 4]
+        ]
+      },
+      {
+        "values": [
+          [1, 0],
+          [0, 1]
+        ]
+      },
+      {
+        "values": [
+          [1, 0, 0],
+          [0, 2, 0],
+          [0, 0, 3]
+        ]
+      },
+      {
+        "values": [
+          [0, 1],
+          [2, 0]
+        ]
+      },
+      {
+        "values": [
+          [1, 2],
+          [2, 1]
+        ]
+      },
+      {
+        "values": [
+          [0, 1],
+          [-1, 0]
+        ]
+      },
+      {
+        "values": [
+          [1, 2, 0],
+          [0, 3, 4]
+        ]
+      },
+      {
+        "values": [
+          [0, 0],
+          [0, 0]
+        ]
+      },
+      {
+        "values": [
+          [0, 1],
+          [1, 0]
+        ]
+      },
+      {
+        "values": [
+          [0.25, 0.75],
+          [0.5, 0.5]
+        ]
+      },
+      {
+        "values": [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]
+      },
+      {
+        "values": [
+          [1, 0],
+          [0, 2]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "predicates": [
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": false,
+        "is_symmetric": false,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": true,
+        "is_identity": true,
+        "is_diagonal": true,
+        "is_antidiagonal": false,
+        "is_symmetric": true,
+        "is_antisymmetric": false,
+        "is_triangular": true,
+        "is_stochastic": true
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": true,
+        "is_antidiagonal": false,
+        "is_symmetric": true,
+        "is_antisymmetric": false,
+        "is_triangular": true,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": true,
+        "is_symmetric": false,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": false,
+        "is_symmetric": true,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": true,
+        "is_symmetric": false,
+        "is_antisymmetric": true,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": false,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": false,
+        "is_symmetric": false,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": true,
+        "is_binary": true,
+        "is_identity": false,
+        "is_diagonal": true,
+        "is_antidiagonal": true,
+        "is_symmetric": true,
+        "is_antisymmetric": true,
+        "is_triangular": true,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": true,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": true,
+        "is_symmetric": true,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": true
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": false,
+        "is_symmetric": false,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": true
+      },
+      {
+        "is_square": false,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": false,
+        "is_antidiagonal": false,
+        "is_symmetric": false,
+        "is_antisymmetric": false,
+        "is_triangular": false,
+        "is_stochastic": false
+      },
+      {
+        "is_square": true,
+        "is_zero": false,
+        "is_binary": false,
+        "is_identity": false,
+        "is_diagonal": true,
+        "is_antidiagonal": false,
+        "is_symmetric": true,
+        "is_antisymmetric": false,
+        "is_triangular": true,
+        "is_stochastic": false
+      }
+    ]
+  }
+}

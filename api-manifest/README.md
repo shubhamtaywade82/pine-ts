@@ -2,7 +2,7 @@
 
 This directory is the machine-readable catalog of the public Pine v6 surface implemented by `pine-ts`.
 
-Current manifests: `ta.yaml` (67 symbols), `math.yaml` (24), `str.yaml` (18). The manifest will become the single source for:
+Current manifests: `ta.yaml` (67 symbols), `math.yaml` (24), `str.yaml` (18), `array.yaml` (55), `map.yaml` (11), `matrix.yaml` (49). The manifest will become the single source for:
 
 1. namespace/function coverage;
 2. TypeScript signature generation;

@@ -24,6 +24,8 @@ const MANIFESTS: ReadonlyArray<{
   { file: "math.yaml", output: "src/math/generated.ts", prefix: "Math" },
   { file: "str.yaml", output: "src/str/generated.ts", prefix: "Str" },
   { file: "array.yaml", output: "src/array/generated.ts", prefix: "Array" },
+  { file: "map.yaml", output: "src/map/generated.ts", prefix: "Map" },
+  { file: "matrix.yaml", output: "src/matrix/generated.ts", prefix: "Matrix" },
 ];
 
 const root = resolve(import.meta.dirname, "..");

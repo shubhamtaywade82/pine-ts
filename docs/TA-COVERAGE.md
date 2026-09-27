@@ -95,6 +95,16 @@ Woodie+developing runtime error. The five `array.new_*` drawing constructors
 (`box`/`label`/`line`/`linefill`/`table`) remain planned with the drawing
 namespaces.
 
+The collection namespaces beyond `array` are cataloged and implemented:
+`map.*` (11/11) and `matrix.*` (49/49) ship with the shared mutation
+journal, double-entry fixtures (an independent Python mirror for the
+structural and statistics behavior, numpy/LAPACK as the oracle for the
+linear algebra, and the `A v = lambda v` identity for eigenvectors), and
+manifest entries documenting every inferred decision — error texts (the
+reference publishes none for matrix), the `remove_row`/`remove_col`
+default index, non-square `trace`, and the EISPACK lower-triangle
+convention for non-symmetric eigen input.
+
 The catalog-completion group is done: every `ta` symbol in the v6 Reference
 Manual now has a manifest entry — running aggregates (`cum`/`max`/`min`),
 `cross`, the moving average `alma`, the statistics family (`median`/`mode`/

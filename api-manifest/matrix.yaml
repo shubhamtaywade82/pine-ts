@@ -1,0 +1,656 @@
+namespace: matrix
+pineVersion: 6
+status: partial
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  "matrix<T>": PineMatrix<T>
+  "matrix<int/float>": PineMatrix<number>
+  "matrix<bool>": PineMatrix<boolean>
+  "matrix<string>": PineMatrix<string>
+  "matrix<color>": PineMatrix<string>
+  "na element (numeric)": "NaN"
+  "na element (bool/string/color)": undefined
+  "na matrix id": undefined
+  "representation": "row-major arrays; a zero-row matrix reports zero columns, so matrix.new(0, c) collapses to 0x0 while matrix.new(r, 0) keeps its r empty rows"
+  "element cap": "100,000 elements (Matrices concept page), enforced on construction and growth"
+functions:
+  - name: add_col
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: column, type: int, default: "matrix.columns(id)" }
+        - { name: array_id, type: "array<T>", default: na }
+    returns: void
+    semantics:
+      default: "without array_id a column of na values is inserted"
+      bootstrap: "on a matrix with no rows the array can be any size and defines the row count (reference)"
+      mismatch: "otherwise the array size must equal matrix.rows(id)"
+      rollback: "journaled; realtime revisions remove the inserted column"
+    impl: { module: src/matrix/core.ts, export: add_col }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: add_row
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row, type: int, default: "matrix.rows(id)" }
+        - { name: array_id, type: "array<T>", default: na }
+    returns: void
+    semantics:
+      default: "without array_id a row of na values is inserted"
+      bootstrap: "on an empty matrix the array can be any size and defines the column count (reference)"
+      mismatch: "otherwise the array size must equal matrix.columns(id)"
+      rollback: "journaled; realtime revisions remove the inserted row"
+    impl: { module: src/matrix/core.ts, export: add_row }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: avg
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na mean; na when empty or all elements na (the collection statistics rule shared with arrays)"
+    impl: { module: src/matrix/stats.ts, export: avg }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: col
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: column, type: int }
+    returns: "array<T>"
+    semantics:
+      copy: "the returned array is a copy sized matrix.rows(id); modifications never touch the matrix (concept page)"
+    impl: { module: src/matrix/core.ts, export: col }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: columns
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "series int"
+    semantics:
+      na: "0 for a matrix with no rows"
+    impl: { module: src/matrix/core.ts, export: columns }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: concat
+    signature:
+      params:
+        - { name: id1, type: "matrix<T>" }
+        - { name: id2, type: "matrix<T>" }
+    returns: "matrix<T>"
+    semantics:
+      mutates: "appends id2's rows onto id1 and returns id1"
+      precondition: "identical column counts (reference remark); mismatch raises"
+      rollback: "journaled; realtime revisions truncate back to id1's rows"
+    impl: { module: src/matrix/core.ts, export: concat }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: copy
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "matrix<T>"
+    semantics:
+      shallow: "new matrix with fresh row storage; elements hold the same values or references (concept page)"
+    impl: { module: src/matrix/core.ts, export: copy }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: det
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      algorithm: "LU decomposition with partial pivoting (the algorithm the reference names)"
+      singular: "returns 0"
+      na: "na elements propagate to an na determinant"
+      precondition: "square; otherwise a runtime error"
+    impl: { module: src/matrix/linalg.ts, export: det }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: diff
+    signature:
+      params:
+        - { name: id1, type: "matrix<int/float>" }
+        - { name: id2, type: "matrix<int/float> | int/float" }
+    returns: "matrix<int/float>"
+    semantics:
+      elementwise: "new matrix of id1 - id2 (matrix or scalar)"
+      na: "arithmetic na propagation (na - x = na)"
+      precondition: "same dimensions for the matrix overload"
+    impl: { module: src/matrix/stats.ts, export: diff }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: eigenvalues
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "array<float>"
+    semantics:
+      algorithm: "Householder tridiagonalization + implicit QL shifts (EISPACK tred2 + tql2), the 'Implicit QL Algorithm' the reference names"
+      order: "ascending (tql2 orders eigenvalues and vectors together)"
+      nonsymmetric: "tred2 reads the lower triangle, so non-symmetric input follows that convention; the reference does not document non-symmetric behavior"
+      precondition: "square; otherwise a runtime error"
+    impl: { module: src/matrix/linalg.ts, export: eigenvalues }
+    status: draft
+    vectors: [fixtures/v6/matrix/eigen.basic.json]
+
+  - name: eigenvectors
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "matrix<float>"
+    semantics:
+      columns: "each column is an eigenvector, ordered to match matrix.eigenvalues (ascending)"
+      algorithm: "the same tred2 + tql2 pipeline with the accumulated transform"
+      precondition: "square; otherwise a runtime error"
+    impl: { module: src/matrix/linalg.ts, export: eigenvectors }
+    status: draft
+    vectors: [fixtures/v6/matrix/eigen.basic.json]
+
+  - name: elements_count
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "series int"
+    semantics:
+      formula: "rows * columns"
+    impl: { module: src/matrix/core.ts, export: elements_count }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: fill
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: value, type: T }
+        - { name: from_row, type: int, default: 0 }
+        - { name: to_row, type: int, default: "matrix.rows(id)" }
+        - { name: from_column, type: int, default: 0 }
+        - { name: to_column, type: int, default: "matrix.columns(id)" }
+    returns: void
+    semantics:
+      ranges: "[inclusive, exclusive) rectangle; defaults cover the whole matrix"
+      rollback: "journaled; realtime revisions restore the previous rectangle"
+    impl: { module: src/matrix/core.ts, export: fill }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: get
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row, type: int }
+        - { name: column, type: int }
+    returns: T
+    semantics:
+      indexing: "zero-based; no negative indices (unlike arrays, the reference documents none for matrices)"
+      bounds: "out-of-range raises 'Index [row, column] is out of bounds. Matrix size is RxC' (text inferred; the reference publishes no matrix error strings)"
+    impl: { module: src/matrix/core.ts, export: get }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: inv
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "matrix<float>"
+    semantics:
+      algorithm: "LU decomposition with partial pivoting (the algorithm the reference names)"
+      singular: "raises a runtime error (text inferred: 'Matrix is singular')"
+      precondition: "square; otherwise a runtime error"
+    impl: { module: src/matrix/linalg.ts, export: inv }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: is_antidiagonal
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "all elements outside the secondary diagonal are zero"
+      nonsquare: "false (reference remark)"
+      na: "na elements are neither zero nor antidiagonal, so they disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_antidiagonal }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_antisymmetric
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "the transpose equals the negative (a == -a forces a zero or na diagonal)"
+      nonsquare: "false (reference remark)"
+      na: "mirrored na pairs compare equal; a single na disqualifies"
+    impl: { module: src/matrix/predicates.ts, export: is_antisymmetric }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_binary
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "every element is 0 or 1"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_binary }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_diagonal
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "all elements outside the main diagonal are zero"
+      nonsquare: "false (reference remark)"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_diagonal }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_identity
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "ones on the main diagonal, zeros elsewhere"
+      nonsquare: "false (reference remark)"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_identity }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_square
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "series bool"
+    semantics:
+      rule: "equal row and column counts (true for the 0x0 matrix)"
+    impl: { module: src/matrix/predicates.ts, export: is_square }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_stochastic
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "row-stochastic: every element non-negative and every row summing to 1"
+      tolerance: "row sums compared within 1e-9 to absorb floating-point accumulation (decision: the reference publishes no tolerance)"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_stochastic }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_symmetric
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "the matrix equals its transpose"
+      nonsquare: "false (reference remark)"
+      na: "mirrored na pairs compare equal; a single na disqualifies"
+    impl: { module: src/matrix/predicates.ts, export: is_symmetric }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_triangular
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "all elements above or below the main diagonal are zero"
+      nonsquare: "false (reference remark)"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_triangular }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: is_zero
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series bool"
+    semantics:
+      rule: "every element is exactly zero (vacuously true for the empty matrix)"
+      na: "na elements disqualify"
+    impl: { module: src/matrix/predicates.ts, export: is_zero }
+    status: draft
+    vectors: [fixtures/v6/matrix/predicates.basic.json]
+
+  - name: kron
+    signature:
+      params:
+        - { name: id1, type: "matrix<int/float>" }
+        - { name: id2, type: "matrix<int/float>" }
+    returns: "matrix<int/float>"
+    semantics:
+      shape: "(r1*r2) x (c1*c2) Kronecker product of every id1[i][j] * id2 block"
+      na: "arithmetic na propagation"
+    impl: { module: src/matrix/linalg.ts, export: kron }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: max
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all elements na"
+    impl: { module: src/matrix/stats.ts, export: max }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: median
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "na elements are not considered (reference remark); na when empty or all-na"
+      even: "the mean of the two middle values"
+    impl: { module: src/matrix/stats.ts, export: median }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: min
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      na: "skip-na; na when empty or all elements na"
+    impl: { module: src/matrix/stats.ts, export: min }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: mode
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      ties: "the smallest of the equally frequent values; when every value occurs equally often that rule yields the smallest element (reference wording)"
+      na: "na elements are not considered (reference remark)"
+    impl: { module: src/matrix/stats.ts, export: mode }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: mult
+    signature:
+      params:
+        - { name: id1, type: "matrix<int/float>" }
+        - { name: id2, type: "matrix<int/float> | array<int/float> | int/float" }
+    returns: "matrix<int/float> | array<int/float>"
+    semantics:
+      overloads: "matrix x matrix (inner dimensions must match), matrix x scalar, matrix x vector (array length = columns, result length = rows)"
+      na: "arithmetic na propagation"
+    impl: { module: src/matrix/linalg.ts, export: mult }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: new
+    signature:
+      params:
+        - { name: rows, type: int, default: 0 }
+        - { name: columns, type: int, default: 0 }
+        - { name: initial_value, type: T, default: na }
+    returns: "matrix<T>"
+    semantics:
+      template: "v6 matrix.new<type>(); the TS generic newMatrix<T>() plus newInt/newFloat/newBool/newString/newColor pin the per-type na element (numbers use NaN)"
+      negative: "negative dimensions raise (text inferred)"
+    impl: { module: src/matrix/core.ts, export: newMatrix }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: pinv
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "matrix<float>"
+    semantics:
+      algorithm: "Moore-Penrose inverse from a one-sided Jacobi SVD (Hestenes); matches matrix.inv for non-singular square input, as the reference documents"
+      shape: "any m x n; the result is n x m"
+    impl: { module: src/matrix/linalg.ts, export: pinv }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: pow
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+        - { name: power, type: int }
+    returns: "matrix<int/float>"
+    semantics:
+      zero: "power 0 yields the identity"
+      negative: "negative powers raise (they would require the inverse; text inferred)"
+      algorithm: "binary exponentiation"
+      precondition: "square; otherwise a runtime error"
+    impl: { module: src/matrix/linalg.ts, export: pow }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: rank
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series int"
+    semantics:
+      algorithm: "Gaussian elimination with partial pivoting"
+      tolerance: "max dimension * eps * max |a| (relative; decision — the reference publishes no tolerance)"
+    impl: { module: src/matrix/linalg.ts, export: rank }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+  - name: remove_col
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: column, type: int, default: "matrix.columns(id) - 1" }
+    returns: "array<T>"
+    semantics:
+      returns: "the removed column's elements as a new array"
+      default: "the reference lists the default as matrix.columns(id); implemented as the last column index (columns() - 1) since indices are zero-based, which removes the last column"
+      rollback: "journaled; realtime revisions re-insert the column"
+    impl: { module: src/matrix/core.ts, export: remove_col }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: remove_row
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row, type: int, default: "matrix.rows(id) - 1" }
+    returns: "array<T>"
+    semantics:
+      returns: "the removed row's elements as a new array"
+      default: "the reference lists the default as matrix.rows(id); implemented as the last row index (rows() - 1) since indices are zero-based, which removes the last row"
+      rollback: "journaled; realtime revisions re-insert the row"
+    impl: { module: src/matrix/core.ts, export: remove_row }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: reshape
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: rows, type: int }
+        - { name: columns, type: int }
+    returns: void
+    semantics:
+      rule: "row-major element order is preserved; the total element count must be unchanged (text inferred)"
+      rollback: "journaled; realtime revisions restore the previous shape"
+    impl: { module: src/matrix/core.ts, export: reshape }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: reverse
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: void
+    semantics:
+      rule: "the first row and column become the last and vice versa (a 180-degree rotation)"
+      rollback: "journaled; the rotation is its own inverse"
+    impl: { module: src/matrix/core.ts, export: reverse }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: row
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row, type: int }
+    returns: "array<T>"
+    semantics:
+      copy: "the returned array is a copy sized matrix.columns(id); modifications never touch the matrix (concept page)"
+    impl: { module: src/matrix/core.ts, export: row }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: rows
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "series int"
+    semantics:
+      na: "0 for an empty matrix"
+    impl: { module: src/matrix/core.ts, export: rows }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: set
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row, type: int }
+        - { name: column, type: int }
+        - { name: value, type: T }
+    returns: void
+    semantics:
+      rollback: "journaled; realtime revisions restore the previous element"
+    impl: { module: src/matrix/core.ts, export: set }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: sort
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: column, type: int, default: 0 }
+        - { name: order, type: sort_order, default: order.ascending }
+    returns: void
+    semantics:
+      rule: "rows are rearranged following the sorted order of column's values"
+      na: "rows whose key is na sink to the end in either direction (the array.sort convention)"
+      rollback: "journaled; realtime revisions restore the previous row order"
+      overload: "the v6 sort_field overload (sorting UDT element fields) is deferred until user-defined types land"
+    impl: { module: src/matrix/core.ts, export: sort }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: submatrix
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: from_row, type: int, default: 0 }
+        - { name: to_row, type: int, default: "matrix.rows(id)" }
+        - { name: from_column, type: int, default: 0 }
+        - { name: to_column, type: int, default: "matrix.columns(id)" }
+    returns: "matrix<T>"
+    semantics:
+      copy: "a sliced copy, not a view (the concept page documents submatrices as shallow copies)"
+      ranges: "[inclusive, exclusive) rectangle; defaults cover the whole matrix"
+    impl: { module: src/matrix/core.ts, export: submatrix }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: sum
+    signature:
+      params:
+        - { name: id1, type: "matrix<int/float>" }
+        - { name: id2, type: "matrix<int/float> | int/float" }
+    returns: "matrix<int/float>"
+    semantics:
+      elementwise: "new matrix of id1 + id2 (matrix or scalar); NOT a scalar total"
+      na: "arithmetic na propagation (na + x = na)"
+      precondition: "same dimensions for the matrix overload"
+    impl: { module: src/matrix/stats.ts, export: sum }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: swap_columns
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: column1, type: int }
+        - { name: column2, type: int }
+    returns: void
+    semantics:
+      rollback: "journaled; the swap is its own inverse"
+    impl: { module: src/matrix/core.ts, export: swap_columns }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: swap_rows
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+        - { name: row1, type: int }
+        - { name: row2, type: int }
+    returns: void
+    semantics:
+      rollback: "journaled; the swap is its own inverse"
+    impl: { module: src/matrix/core.ts, export: swap_rows }
+    status: draft
+    vectors: [fixtures/v6/matrix/structural.basic.json]
+
+  - name: trace
+    signature:
+      params:
+        - { name: id, type: "matrix<int/float>" }
+    returns: "series float"
+    semantics:
+      rule: "the sum of the main diagonal's elements"
+      nonsquare: "the diagonal runs over min(rows, columns) (decision: the reference does not restrict shape)"
+      na: "skip-na over the diagonal entries; na when every entry is na"
+    impl: { module: src/matrix/stats.ts, export: trace }
+    status: draft
+    vectors: [fixtures/v6/matrix/stats.basic.json]
+
+  - name: transpose
+    signature:
+      params:
+        - { name: id, type: "matrix<T>" }
+    returns: "matrix<T>"
+    semantics:
+      rule: "a new matrix with each element's row and column interchanged"
+    impl: { module: src/matrix/linalg.ts, export: transpose }
+    status: draft
+    vectors: [fixtures/v6/matrix/linalg.basic.json]
+
+variables: {}

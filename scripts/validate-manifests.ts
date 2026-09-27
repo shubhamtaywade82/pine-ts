@@ -17,7 +17,14 @@ interface Manifest {
 }
 
 /** Every manifest that must validate before the catalog ships. */
-const MANIFESTS = ["ta.yaml", "math.yaml", "str.yaml", "array.yaml"] as const;
+const MANIFESTS = [
+  "ta.yaml",
+  "math.yaml",
+  "str.yaml",
+  "array.yaml",
+  "map.yaml",
+  "matrix.yaml",
+] as const;
 
 const root = resolve(import.meta.dirname, "..");
 const schemaPath = resolve(root, "api-manifest/schema.json");

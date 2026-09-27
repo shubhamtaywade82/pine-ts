@@ -1,0 +1,138 @@
+{
+  "name": "matrix.stats",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "values": [
+          [1, null],
+          [3, 1]
+        ]
+      },
+      {
+        "values": [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]
+      },
+      {
+        "values": [
+          [null, null],
+          [null, null]
+        ]
+      },
+      {
+        "values": [[7]]
+      },
+      {
+        "values": [
+          [0, 0],
+          [1, 1],
+          [2, 2]
+        ]
+      },
+      {
+        "values": [
+          [-5, 5],
+          [null, 10]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "stats": [
+      {
+        "avg": 1.6666666666666667,
+        "min": 1,
+        "max": 3,
+        "median": 1,
+        "mode": 1,
+        "trace": 2,
+        "sum_scalar": [
+          [3, null],
+          [5, 3]
+        ],
+        "diff_scalar": [
+          [0, null],
+          [2, 0]
+        ]
+      },
+      {
+        "avg": 3.5,
+        "min": 1,
+        "max": 6,
+        "median": 3.5,
+        "mode": 1,
+        "trace": 6,
+        "sum_scalar": [
+          [3, 4, 5],
+          [6, 7, 8]
+        ],
+        "diff_scalar": [
+          [0, 1, 2],
+          [3, 4, 5]
+        ]
+      },
+      {
+        "avg": null,
+        "min": null,
+        "max": null,
+        "median": null,
+        "mode": null,
+        "trace": null,
+        "sum_scalar": [
+          [null, null],
+          [null, null]
+        ],
+        "diff_scalar": [
+          [null, null],
+          [null, null]
+        ]
+      },
+      {
+        "avg": 7.0,
+        "min": 7,
+        "max": 7,
+        "median": 7,
+        "mode": 7,
+        "trace": 7,
+        "sum_scalar": [[9]],
+        "diff_scalar": [[6]]
+      },
+      {
+        "avg": 1.0,
+        "min": 0,
+        "max": 2,
+        "median": 1.0,
+        "mode": 0,
+        "trace": 1,
+        "sum_scalar": [
+          [2, 2],
+          [3, 3],
+          [4, 4]
+        ],
+        "diff_scalar": [
+          [-1, -1],
+          [0, 0],
+          [1, 1]
+        ]
+      },
+      {
+        "avg": 3.3333333333333335,
+        "min": -5,
+        "max": 10,
+        "median": 5,
+        "mode": -5,
+        "trace": 5,
+        "sum_scalar": [
+          [-3, 7],
+          [null, 12]
+        ],
+        "diff_scalar": [
+          [-6, 4],
+          [null, 9]
+        ]
+      }
+    ]
+  }
+}

@@ -164,6 +164,26 @@ remapped when the parent mutates. A parent that shrinks past a window leaves
 that slice raising `Slice is out of bounds of the parent array` on its next
 use, the documented Pine behavior.
 
+## Maps and matrices (the shared journal)
+
+`map.*` and `matrix.*` reuse the array journal unchanged: every in-place
+mutation records a precise inverse on the owning session, realtime
+revisions replay the inverses in reverse, and confirmation discards them.
+The matrix inverses are structural rather than snapshot-based — `add_row`
+journals a splice-out, `remove_col` journals a re-insert, `sort` journals
+the previous row order, `reshape` journals a reshape back — so undoing a bar
+stays replay-equivalent without copying whole matrices. Map operations
+journal the exact prior pair state (`put` distinguishes a replaced value
+from an inserted key; `clear` re-inserts every pair in order).
+
+Unlike arrays, maps and matrices are root-only: `map.copy`,
+`map.keys`/`map.values`, `matrix.copy`, `matrix.submatrix`, `matrix.row`
+and `matrix.col` return **copies** (the v6 reference documents submatrices
+as sliced copies, not write-through views). Pine also forbids collections
+as direct map values and restricts `varip` matrix elements to fundamental
+types, so map/matrix `_setVarip` promotion does not recurse into elements
+the way arrays do.
+
 ## na model
 
 - `na` for floats is `Number.NaN`. `isNa` treats both `undefined` and `NaN`

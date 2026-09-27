@@ -1,0 +1,195 @@
+{
+  "name": "map.ops",
+  "pineVersion": 6,
+  "input": {
+    "cases": [
+      {
+        "ops": [
+          ["put", "a", 1],
+          ["put", "b", 2],
+          ["put", "a", 10],
+          ["get", "a"],
+          ["get", "zz"],
+          ["contains", "b"],
+          ["contains", "zz"],
+          ["size"],
+          ["keys"],
+          ["values"],
+          ["remove", "b"],
+          ["remove", "zz"],
+          ["size"]
+        ]
+      },
+      {
+        "ops": [
+          ["put", "first", 10],
+          ["put", "second", 15],
+          [
+            "put_all",
+            [
+              ["second", 99],
+              ["third", 20]
+            ]
+          ],
+          ["keys"],
+          ["values"],
+          ["clear"],
+          ["size"],
+          ["contains", "first"]
+        ]
+      },
+      {
+        "ops": [
+          ["put", "example", 1],
+          ["copy_put", "extra", 3],
+          ["size"],
+          ["put", "example", 2],
+          ["get", "example"]
+        ]
+      },
+      {
+        "ops": [
+          ["put", "x", 1],
+          ["remove", "x"],
+          ["put", "x", 5],
+          ["keys"],
+          ["put", "y", 6],
+          ["remove", "x"],
+          ["keys"]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "ops": [
+      [
+        [null, [["a", 1]]],
+        [
+          null,
+          [
+            ["a", 1],
+            ["b", 2]
+          ]
+        ],
+        [
+          1,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          10,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          null,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          true,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          false,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          2,
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          ["a", "b"],
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [
+          [10, 2],
+          [
+            ["a", 10],
+            ["b", 2]
+          ]
+        ],
+        [2, [["a", 10]]],
+        [null, [["a", 10]]],
+        [1, [["a", 10]]]
+      ],
+      [
+        [null, [["first", 10]]],
+        [
+          null,
+          [
+            ["first", 10],
+            ["second", 15]
+          ]
+        ],
+        [
+          null,
+          [
+            ["first", 10],
+            ["second", 99],
+            ["third", 20]
+          ]
+        ],
+        [
+          ["first", "second", "third"],
+          [
+            ["first", 10],
+            ["second", 99],
+            ["third", 20]
+          ]
+        ],
+        [
+          [10, 99, 20],
+          [
+            ["first", 10],
+            ["second", 99],
+            ["third", 20]
+          ]
+        ],
+        [null, []],
+        [0, []],
+        [false, []]
+      ],
+      [
+        [null, [["example", 1]]],
+        [2, [["example", 1]]],
+        [1, [["example", 1]]],
+        [1, [["example", 2]]],
+        [2, [["example", 2]]]
+      ],
+      [
+        [null, [["x", 1]]],
+        [1, []],
+        [null, [["x", 5]]],
+        [["x"], [["x", 5]]],
+        [
+          null,
+          [
+            ["x", 5],
+            ["y", 6]
+          ]
+        ],
+        [5, [["y", 6]]],
+        [["y"], [["y", 6]]]
+      ]
+    ]
+  }
+}

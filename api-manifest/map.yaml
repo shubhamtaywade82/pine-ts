@@ -1,0 +1,148 @@
+namespace: map
+pineVersion: 6
+status: partial
+source: https://www.tradingview.com/pine-script-reference/v6/
+types:
+  "map<K, V>": PineMap<K, V>
+  "map<keyType, valueType>": PineMap<K, V>
+  "keys": "value types only (int/float/bool/string/color/enum); the JS Map SameValueZero keying matches Pine (0 === -0, NaN keys retrievable)"
+  "values": "any non-collection type until UDTs land (array/matrix/map ids are rejected by Pine; UDT wrappers arrive with objects)"
+  "na value (numeric)": "NaN"
+  "na value (bool/string/color)": undefined
+  "na map id": undefined
+functions:
+  - name: clear
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+    returns: void
+    semantics:
+      na: "no-op on an empty map"
+      rollback: "journaled; realtime revisions restore every pair in insertion order"
+    impl: { module: src/map/core.ts, export: clear }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: contains
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+        - { name: key, type: K }
+    returns: "series bool"
+    semantics:
+      na: "false when the key is absent"
+    impl: { module: src/map/core.ts, export: contains }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: copy
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+    returns: "map<K, V>"
+    semantics:
+      shallow: "fresh backing with the same pairs; later mutations of either map never affect the other (reference example)"
+    impl: { module: src/map/core.ts, export: copy }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: get
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+        - { name: key, type: K }
+    returns: V
+    semantics:
+      na: "undefined (na) when the key is absent; a stored numeric na reads back as NaN, indistinguishable from na exactly as on TradingView"
+    impl: { module: src/map/core.ts, export: get }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: keys
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+    returns: "array<K>"
+    semantics:
+      copy: "the returned array is a copy; changes to it are not reflected in the map (reference)"
+      order: "insertion order (reference remark)"
+    impl: { module: src/map/core.ts, export: keys }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: new
+    signature:
+      params: []
+    returns: "map<K, V>"
+    semantics:
+      template: "v6 map.new<keyType, valueType>(); the TS generic newMap<K, V>() carries the types"
+      ordering: "insertion order; re-putting an existing key replaces the value in place, keeping the pair's slot (reference remark)"
+      limits: "100,000 total elements counting both halves of every pair, so at most 50,000 pairs (Maps concept page)"
+    impl: { module: src/map/core.ts, export: newMap }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: put
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+        - { name: key, type: K }
+        - { name: value, type: V }
+    returns: V
+    semantics:
+      returns: "the previous value for key, or na when the key is new (reference)"
+      rollback: "journaled; realtime revisions undo the insert or the value replacement"
+      limits: "inserting a new key at the 50,000-pair cap raises 'Map is too large. Maximum size is 50000' (text inferred from the array convention; the reference publishes no map error strings)"
+    impl: { module: src/map/core.ts, export: put }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json, fixtures/v6/map/limits.basic.json]
+
+  - name: put_all
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+        - { name: id2, type: "map<K, V>" }
+    returns: void
+    semantics:
+      merge: "id2's pairs are put into id; new keys append in id2's insertion order while existing keys keep id's slot and take id2's value"
+    impl: { module: src/map/core.ts, export: put_all }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: remove
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+        - { name: key, type: K }
+    returns: V
+    semantics:
+      returns: "the previous value for key, or na when the key was not found (reference)"
+      rollback: "journaled; realtime revisions restore the removed pair at its original position"
+    impl: { module: src/map/core.ts, export: remove }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: size
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+    returns: "series int"
+    semantics:
+      na: "0 for an empty map"
+    impl: { module: src/map/core.ts, export: size }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+  - name: values
+    signature:
+      params:
+        - { name: id, type: "map<K, V>" }
+    returns: "array<V>"
+    semantics:
+      copy: "the returned array is a copy; changes to it are not reflected in the map (reference)"
+      order: "insertion order (reference remark)"
+    impl: { module: src/map/core.ts, export: values }
+    status: draft
+    vectors: [fixtures/v6/map/ops.basic.json]
+
+variables: {}
