@@ -123,6 +123,49 @@ functions:
     status: verified
     vectors: [fixtures/v6/ta/crossunder.basic.json]
 
+  - name: cross
+    signature:
+      params:
+        - { name: source1, type: series<float> }
+        - { name: source2, type: series<float> }
+    returns: series<bool>
+    semantics:
+      core: "true when the series crossed each other on the current bar, i.e. a crossover or a crossunder"
+      na: "any na operand yields false, matching the verified crossover/crossunder model"
+    impl: { module: src/ta/core.ts, export: cross }
+    status: draft
+    vectors: [fixtures/v6/ta/cross.basic.json]
+
+  - name: cum
+    signature: { params: [{ name: source, type: series<float> }] }
+    returns: series<float>
+    semantics:
+      core: "cumulative (total) sum of source from the first bar"
+      na: "the v6 reference documents no na remark; pine-ts follows the established cumulative convention (ta.obv, ta.accdist): na terms are skipped and the empty sum is 0"
+    impl: { module: src/ta/core.ts, export: cum }
+    status: draft
+    vectors: [fixtures/v6/ta/cum.basic.json]
+
+  - name: max
+    signature: { params: [{ name: source, type: series<float> }] }
+    returns: series<float>
+    semantics:
+      core: "all-time high of source from the beginning of the chart up to the current bar"
+      na: "v5/v6 remark: na occurrences of source are ignored, so na bars carry the previous extreme forward; na until the first non-na value"
+    impl: { module: src/ta/core.ts, export: max }
+    status: draft
+    vectors: [fixtures/v6/ta/max.basic.json]
+
+  - name: min
+    signature: { params: [{ name: source, type: series<float> }] }
+    returns: series<float>
+    semantics:
+      core: "all-time low of source from the beginning of the chart up to the current bar"
+      na: "same model as ta.max"
+    impl: { module: src/ta/core.ts, export: min }
+    status: draft
+    vectors: [fixtures/v6/ta/min.basic.json]
+
   - name: wma
     signature:
       {
@@ -171,6 +214,25 @@ functions:
     impl: { module: src/ta/core.ts, export: hma }
     status: draft
     vectors: [fixtures/v6/ta/hma.basic.json]
+
+  - name: alma
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: offset, type: float }
+        - { name: sigma, type: float }
+        - { name: floor, type: bool, default: false }
+    returns: series<float>
+    semantics:
+      core: "literal transcription of the v6 reference re-implementation: Gaussian weights exp(-((i - m)^2) / (2 s^2)) with m = offset * (length - 1) (floored when floor is true) and s = length / sigma; weight i pairs with source[length - i - 1]"
+      floor: "the reference documents floor as 'An optional parameter. Specifies whether the offset calculation is floored before ALMA is calculated. Default value is false.'"
+      na: "v6 remark: na values in the source series are included in calculations and will produce an na result, so the window is strict"
+      zero: "a zero sigma divides to na"
+      warmup: "length - 1"
+    impl: { module: src/ta/core.ts, export: alma }
+    status: draft
+    vectors: [fixtures/v6/ta/alma.basic.json]
 
   - name: rsi
     signature:
@@ -252,6 +314,50 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/cmo.basic.json]
 
+  - name: cci
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "(source - SMA(source, length)) / (0.015 * mean absolute deviation), the Lambert scaling the v6 reference describes"
+      na: "v6 remark: na values in the source series are ignored; a zero mean deviation divides to na"
+      warmup: "length - 1"
+    impl: { module: src/ta/momentum.ts, export: cci }
+    status: draft
+    vectors: [fixtures/v6/ta/cci.basic.json]
+
+  - name: cog
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "literal transcription of the v6 reference re-implementation: -sum(price * (i + 1)) / sum(price) over bar offsets i = 0 to length - 1"
+      na: "v6 remark: na values are ignored; weights apply positionally to the collected non-na values (1 for the most recent, length for the oldest); a zero sum divides to na"
+      warmup: "length - 1"
+    impl: { module: src/ta/momentum.ts, export: cog }
+    status: draft
+    vectors: [fixtures/v6/ta/cog.basic.json]
+
+  - name: tsi
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: short_length, type: int, constraints: { min: 1 } }
+        - { name: long_length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "ema(ema(change(source), long_length), short_length) / ema(ema(abs(change(source)), long_length), short_length)"
+      range: "the v6 reference pins the return range as [-1, 1], so pine-ts applies no 100 scale factor"
+      na: "v6 remark: na values are ignored; carried by the EMA seeding, so the first bar's na momentum yields na; a zero double-smoothed absolute momentum divides to na"
+      provenance: "the v6 reference ships no re-implementation; the nested-EMA structure follows the double-smoothing in TradingView's built-in True Strength Index indicator"
+    impl: { module: src/ta/momentum.ts, export: tsi }
+    status: draft
+    vectors: [fixtures/v6/ta/tsi.basic.json]
+
   - name: variance
     signature:
       params:
@@ -292,6 +398,120 @@ functions:
     impl: { module: src/ta/statistics.ts, export: dev }
     status: draft
     vectors: [fixtures/v6/ta/dev.basic.json]
+
+  - name: median
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "median of the window; an even-sized window averages its two middle values"
+      overloads: "the v6 reference lists series<int> and series<float> overloads; the TypeScript number type covers both"
+      na: "v6 remark: na values in the source series are ignored; the function calculates on the length quantity of non-na values"
+    impl: { module: src/ta/statistics.ts, export: median }
+    status: draft
+    vectors: [fixtures/v6/ta/median.basic.json]
+
+  - name: mode
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "most frequently occurring value in the window"
+      ties: "v6 reference: several values with the same frequency return the smallest; with every value occurring once the smallest already wins the tie"
+      na: "v6 remark: na values are ignored; the function calculates on the length quantity of non-na values"
+    impl: { module: src/ta/statistics.ts, export: mode }
+    status: draft
+    vectors: [fixtures/v6/ta/mode.basic.json]
+
+  - name: range
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "difference between the max and min values in the window"
+      na: "v6 remark: na values are ignored; the function calculates on the length quantity of non-na values"
+    impl: { module: src/ta/statistics.ts, export: range }
+    status: draft
+    vectors: [fixtures/v6/ta/range.basic.json]
+
+  - name: percentile_nearest_rank
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: percentage, type: float, constraints: { min: 0, max: 100 } }
+    returns: series<float>
+    semantics:
+      core: "nearest-rank percentile: rank = ceil(percentage / 100 * length), clamped into the window"
+      properties: "v6 remarks: the result is always a member of the input data set and the 100th percentile is the largest value"
+      na: "v6 remark: na values in the source series are ignored"
+    impl: { module: src/ta/statistics.ts, export: percentileNearestRank }
+    status: draft
+    vectors: [fixtures/v6/ta/percentile_nearest_rank.basic.json]
+
+  - name: percentile_linear_interpolation
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: percentage, type: float, constraints: { min: 0, max: 100 } }
+    returns: series<float>
+    semantics:
+      core: "linear interpolation between the two nearest ranks at position (percentage / 100) * (length - 1) on the sorted window"
+      properties: "v6 remark: a percentile calculated using this method will NOT always be a member of the input data set"
+      na: "v6 remark: na values in the source series are included in calculations and will produce an na result, so the window is strict"
+    impl: { module: src/ta/statistics.ts, export: percentileLinearInterpolation }
+    status: draft
+    vectors: [fixtures/v6/ta/percentile_linear_interpolation.basic.json]
+
+  - name: percentrank
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "percent of window values less than or equal to the current value"
+      window: "the count includes the current bar (the standard weak percent-rank convention, where a new window extreme reads 100); the v6 reference ships no re-implementation, so this choice is pinned here until oracle vectors land"
+      na: "v6 remark: na values in the source series are included in calculations and will produce an na result, so the window is strict"
+    impl: { module: src/ta/statistics.ts, export: percentrank }
+    status: draft
+    vectors: [fixtures/v6/ta/percentrank.basic.json]
+
+  - name: correlation
+    signature:
+      params:
+        - { name: source1, type: series<float> }
+        - { name: source2, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "Pearson correlation coefficient over the last length bars where both sources are non-na (pairs stay bar-aligned)"
+      na: "v6 remark: na values in the source series are ignored; the function calculates on the length quantity of non-na values; a na current value on either side yields na"
+      zero: "a zero variance on either side divides to na"
+    impl: { module: src/ta/statistics.ts, export: correlation }
+    status: draft
+    vectors: [fixtures/v6/ta/correlation.basic.json]
+
+  - name: rci
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      core: "Spearman rank correlation between the source and the bar index over the window, scaled to [-100, 100]; ranks use the pairwise comparison convention with 0.5 tie contributions, and the time rank orders the most recent bar highest"
+      range: "v6 reference: 100 indicates the source consistently increased, -100 consistently decreased"
+      na: "the v6 reference documents no na remark for ta.rci; pine-ts uses a strict window (any na in the last length bars yields na) because pairing source ranks with bar-index ranks is only meaningful on contiguous bars"
+    impl: { module: src/ta/statistics.ts, export: rci }
+    status: draft
+    vectors: [fixtures/v6/ta/rci.basic.json]
 
   - name: macd
     signature:
@@ -548,6 +768,54 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/accdist.basic.json]
 
+  - name: iii
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [high, low, close, volume]
+    semantics:
+      core: "literal transcription of the v6 reference re-implementation: ((2 * close - high - low) / (high - low)) * volume"
+      perBar: "the value is the per-bar intensity, not a cumulative total"
+      na: "a zero bar range divides to na; na inputs propagate na"
+    impl: { module: src/ta/volume.ts, export: iii }
+    status: draft
+    vectors: [fixtures/v6/ta/iii.basic.json]
+
+  - name: wad
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [high, low, close]
+    semantics:
+      core: "literal transcription of the v6 reference re-implementation: ta.cum(gain) with trueHigh = max(high, close[1]), trueLow = min(low, close[1]), gain = mom > 0 ? close - trueLow : mom < 0 ? close - trueHigh : 0"
+      na: "Pine v6 comparisons against na are false, so the first bar's na change contributes nothing; na true-high/true-low components make the gain na, which cum() skips"
+    impl: { module: src/ta/volume.ts, export: wad }
+    status: draft
+    vectors: [fixtures/v6/ta/wad.basic.json]
+
+  - name: wvad
+    signature: { params: [] }
+    returns: series<float>
+    implicitSources: [open, high, low, close, volume]
+    semantics:
+      core: "literal transcription of the v6 reference re-implementation: (close - open) / (high - low) * volume"
+      perBar: "the value is the per-bar intensity, not a cumulative total"
+      na: "a zero bar range divides to na; na inputs propagate na"
+    impl: { module: src/ta/volume.ts, export: wvad }
+    status: draft
+    vectors: [fixtures/v6/ta/wvad.basic.json]
+
+  - name: pivot_point_levels
+    signature:
+      params:
+        - { name: type, type: series<string> }
+        - { name: anchor, type: series<bool> }
+        - { name: developing, type: bool, default: false }
+    returns: array<float>
+    semantics:
+      core: "pivot point levels for Traditional, Fibonacci, Woodie, Classic, DM, and Camarilla types, reset by the anchor condition"
+      levels: "an array of 11 levels [P, R1, S1, R2, S2, R3, S3, R4, S4, R5, S5] per the v6 reference"
+      blocked: "planned; blocked on the array namespace and timeframe anchoring"
+    status: planned
+
   - name: barssince
     signature:
       params:
@@ -673,7 +941,7 @@ variables:
     members: [ticker, tickerid, basecurrency, currency, mintick, timezone, type]
   ohlcv:
     type: source-bundle
-    members: [open, high, low, close, volume, time, hl2, hlc3, ohlc4]
+    members: [open, high, low, close, volume, time, hl2, hlc3, hlcc4, ohlc4]
 
 providerCapabilities:
   ohlcv:
@@ -692,6 +960,9 @@ providerCapabilities:
         ta.mfi,
         ta.vwap,
         ta.accdist,
+        ta.iii,
+        ta.wad,
+        ta.wvad,
         request.security,
       ]
   fundamentals:
