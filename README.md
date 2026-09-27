@@ -83,6 +83,18 @@ pnpm test
 pnpm typecheck
 ```
 
+## Examples
+
+Runnable examples use local sample data and do not require exchange credentials:
+
+```bash
+pnpm exec tsx examples/historical-sma-crossover.ts
+pnpm exec tsx examples/realtime-bar-updates.ts
+```
+
+The first example detects SMA crossover signals from historical bars. The second
+shows how repeated updates to a realtime bar are evaluated before confirmation.
+
 ## Roadmap
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/SEMANTICS.md`](docs/SEMANTICS.md), and [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md). The runtime's execution semantics — series state machine, node rollback/commit contract, `var`/`varip` lifecycle, `na` model, and the four executable invariants (determinism, replay equivalence, truncation equivalence, chunk invariance) — are specified in [`docs/SEMANTICS.md`](docs/SEMANTICS.md).

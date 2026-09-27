@@ -3,8 +3,12 @@
     "target": "ES2024",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2024"],
-    "types": ["node"],
+    "lib": [
+      "ES2024"
+    ],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -32,10 +36,14 @@
   "include": [
     "src/**/*.ts",
     "tests/**/*.ts",
+    "examples/**/*.ts",
     "scripts/**/*.ts",
     "*.config.ts",
     "*.config.mts",
     "*.config.cts"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }
