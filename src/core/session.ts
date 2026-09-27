@@ -19,11 +19,11 @@ export interface SourceBundle {
 export type BarExecutor = () => void;
 
 /**
- * One undoable array mutation. `owner` is the backing store the mutation
- * touched (an opaque token from the array namespace), so a backing can purge
- * its entries when it is promoted to `varip` semantics.
+ * One undoable collection mutation. `owner` is the backing store the mutation
+ * touched (an opaque token from the array, map, and matrix namespaces), so a
+ * backing can purge its entries when it is promoted to `varip` semantics.
  */
-export interface ArrayMutationEntry {
+export interface CollectionMutationEntry {
   readonly owner: object;
   readonly undo: () => void;
 }
@@ -51,7 +51,7 @@ export class PineSession {
     _resetWorking(): void;
     _rollback(): void;
   }[] = [];
-  private readonly arrayMutations: ArrayMutationEntry[] = [];
+  private readonly arrayMutations: CollectionMutationEntry[] = [];
   private currentTime?: number;
   private symbolInfo?: SymbolInfo;
 
@@ -79,10 +79,12 @@ export class PineSession {
   }
 
   /**
-   * Records one undoable mutation of a mutable collection (Pine arrays).
-   * Entries replay in reverse on realtime rollback — the array counterpart
-   * of a `var` cell rolling back to its committed value — and are discarded
-   * on bar confirmation, when mutations become permanent.
+   * Records one undoable mutation of a mutable collection (Pine arrays,
+   * maps, and matrices — every reference type whose in-place mutations a
+   * realtime revision must roll back). Entries replay in reverse on realtime
+   * rollback — the collection counterpart of a `var` cell rolling back to its
+   * committed value — and are discarded on bar confirmation, when mutations
+   * become permanent.
    */
   public journalArrayMutation(owner: object, undo: () => void): void {
     this.arrayMutations.push({ owner, undo });
