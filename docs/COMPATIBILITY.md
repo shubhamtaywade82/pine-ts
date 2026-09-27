@@ -35,6 +35,28 @@ TradingView's Pine Script v6 Reference Manual is the authoritative API specifica
 - **`weekofyear`** uses ISO-8601 week numbering; the Reference Manual does not
   state its convention.
 
+## DhanHQ provider limitations
+
+- **Timeframes:** minute timeframes up to one session and `1D`. Seconds,
+  ticks, weekly, and monthly timeframes raise `ProviderCapabilityError`.
+- **Sessions:** NSE/BSE cash, F&O, and indices default to 09:15-15:30 IST.
+  MCX has no default session and must be configured. Holidays need no
+  calendar: days without data produce no bars.
+- **Ticks outside the session** (pre-open auction, post-close) are discarded
+  and reported through `onDiscardedTick`, like TradingView's regular-session
+  bars. A bucket without trades produces no bar.
+- **Volume** is the difference of the feed's cumulative day volume (`quote`
+  and `full` modes). `ticker` packets and indices carry no volume. A stream
+  that joins mid-bar without a seeding historical request cannot see volume
+  traded before its first tick.
+- **Unverified against a live account:**
+  - the epoch base of the feed's `ltt` field (UNIX vs IST wall-clock);
+    `tradeTimeBase: "auto"` calibrates against the clock and fails loudly;
+  - whether the charts API's `toDate` is inclusive (requests cover the end
+    date and filter locally);
+  - the time of day Dhan uses for daily candles (bars are re-stamped with the
+    session open of their IST date either way).
+
 ## Binance limitation
 
 Binance is a crypto market-data/execution provider. TradingView requests for fundamentals, corporate actions, or other datasets not exposed by Binance are provider-limited.

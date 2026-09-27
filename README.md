@@ -19,6 +19,7 @@ Early foundation. The repository is intentionally starting with the runtime cont
 - Strategy/backtest/paper/live broker separation.
 - Chart/rendering adapters independent of the runtime core.
 - Binance REST/WebSocket integration through `@nemesis-oss/binance-sdk`.
+- DhanHQ (NSE/BSE) integration through `@nemesis-oss/dhanhq-sdk`.
 - Machine-readable API manifest to track Pine reference coverage.
 
 ## Non-goals
@@ -68,8 +69,34 @@ await runtime.run(script); // historical bars; a still-forming last kline runs a
 await runtime.runRealtime(script); // continues on the kline stream
 ```
 
-`@nemesis-oss/binance-sdk` is not a runtime dependency: `BinanceProvider`
-consumes its market surfaces structurally.
+### DhanHQ (NSE/BSE)
+
+```ts
+import { DhanClient } from "@nemesis-oss/dhanhq-sdk";
+import { DhanHQProvider, PineRuntime } from "@nemesis-oss/pine-ts";
+
+const client = DhanClient.fromEnv();
+const provider = new DhanHQProvider({
+  charts: client.charts,
+  instruments: client.instruments,
+  feed: client.ws.market,
+});
+await client.ws.connect(); // the caller owns the socket
+
+// Symbols are "<exchangeSegment>:<securityId>" composite keys.
+const runtime = new PineRuntime({ provider, symbol: "IDX_I:13", timeframe: "15" });
+await runtime.run(script);
+await runtime.runRealtime(script);
+```
+
+Bars are anchored to the session open (NSE 09:15 IST), matching TradingView.
+Historical minute bars are built from 1-minute candles and realtime bars from
+trade ticks with the same bucketing, so both agree on bar boundaries. A bar
+closes on the first tick of the next bucket or `closeGraceMs` after its bucket
+ends.
+
+Neither SDK is a runtime dependency: the providers consume their surfaces
+structurally, and the tests type-check the real SDK classes against them.
 
 ## Development
 

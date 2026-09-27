@@ -38,7 +38,6 @@ export type {
 } from "./core/types.js";
 export {
   BinanceProvider,
-  ProviderCapabilityError,
   toBinanceInterval,
   type BinanceExchangeInfo,
   type BinanceExchangeSymbol,
@@ -48,6 +47,23 @@ export {
   type BinanceMarketRest,
   type BinanceProviderOptions,
 } from "./data/binance.js";
+export { ProviderCapabilityError } from "./data/errors.js";
+export {
+  DhanHQProvider,
+  parseDhanSymbol,
+  type DhanChartInstrument,
+  type DhanChartsApi,
+  type DhanChartsResponse,
+  type DhanDiscardedTick,
+  type DhanExchangeSegment,
+  type DhanFeedSubscription,
+  type DhanHQProviderOptions,
+  type DhanInstrumentRecord,
+  type DhanInstrumentsApi,
+  type DhanMarketFeed,
+  type DhanTradeTimeBase,
+} from "./data/dhanhq.js";
+export { NSE_SESSION, type ExchangeSession } from "./data/exchange-session.js";
 
 export * as ta from "./ta/index.js";
 export * as math from "./math/index.js";

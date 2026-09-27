@@ -135,6 +135,16 @@
     "wma",
     "ETHUSDT",
     "fixnan",
-    "wvad"
+    "wvad",
+    "chartless",
+    "Dhan",
+    "dhanhq",
+    "FUTCOM",
+    "FUTIDX",
+    "FUTSTK",
+    "OPTFUT",
+    "OPTIDX",
+    "OPTSTK",
+    "unconfigured"
   ]
 }
