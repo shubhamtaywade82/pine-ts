@@ -14,6 +14,30 @@ Measured against the manual, roughly **40% of built-in functions** exist (mostly
 
 The bigger blocker for writing Pine-equivalent logic in TypeScript is not the missing functions but **six execution-model gaps** (section 3). The main one is that state identity is keyed by argument values or user-supplied strings rather than Pine call sites. That gap sets the TypeScript authoring model, so decide it before building the strategy or visual engines on top.
 
+## Resolution status
+
+Sections 3 and 5 below record the audit as found. Their status after the kernel-fix pass:
+
+| Item                                  | Status   | Resolution                                                                                                                                                                                       |
+| ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3.1 Call-site identity                | resolved | `ctx.scope(id, fn)` qualifies `ta.*` nodes, `ctx.series` keys and `var`/`varip` cells. An automatic call-site transformer is not built.                                                          |
+| 3.2 Conditional execution             | resolved | A call that does not run on a bar keeps its state and carries its last value forward (User Manual, "Time series in scopes").                                                                     |
+| 3.3 `series int` lengths              | resolved | History-reading built-ins recompute directly; incremental `sma`/`cmo`/`mfi` seed new nodes from committed history. `simple int` violations are not detected.                                     |
+| 3.4 `na` representation               | resolved | `NaN` is the canonical na value and `undefined` means "no history"; documented in SEMANTICS.md. `fixnan` added.                                                                                  |
+| 3.5 Bounded history                   | resolved | `RuntimeOptions.maxBarsBack` (default and maximum 5000). Deeper offsets throw `RangeError`.                                                                                                      |
+| 3.6 Declaration / authoring surface   | partial  | `executionMode` removed; `timeframe` and bar-time calendar fields added to the context. Still open: `indicator()`/`strategy()` declaration object, series arithmetic helpers, qualifier types.   |
+| 5 `last_bar_index`                    | fixed    | Known on every historical bar; follows the realtime bar index afterwards.                                                                                                                        |
+| 5 Realtime hand-off                   | fixed    | A final `isClosed: false` historical bar runs as the open realtime bar. Stale or post-confirmation updates are rejected and reported via `onDiscardedTick`.                                      |
+| 5 Unconfirmed realtime bar (new find) | fixed    | The old rule discarded a bar that never received an explicit close, leaving `bar_index` ahead of history. Pine always executes and commits a bar on its closing tick; pine-ts now does the same. |
+| 5 Calendar                            | fixed    | Timezone parameter (IANA or `UTC±h[:mm]`), defaulting to `syminfo.timezone`. `time` is required, so there is no `Date.now()` default.                                                            |
+| 5 Runtime `executionMode`, `!`        | fixed    | Option removed; bar passed explicitly.                                                                                                                                                           |
+| 5 `Series.nextId`                     | fixed    | Ids are allocated per session.                                                                                                                                                                   |
+| 5 Binance adapter                     | fixed    | `BinanceProvider` maps SDK REST klines (paged), kline streams and `exchangeInfo`. It is type-checked against the real SDK classes.                                                               |
+| 5 `ta.v6.json`                        | fixed    | Lists exactly the reference `ta` symbols; `implemented` and `src/ta/generated.ts` regenerated.                                                                                                   |
+| 5 ROADMAP                             | fixed    | Phase 1/3 ticks updated.                                                                                                                                                                         |
+
+Section 4 (missing namespaces) and roadmap steps 3–11 are unchanged: they are feature work, not defects.
+
 ## 1. Coverage by reference category
 
 | Category (reference manual) | Total | Present | Notes                                                                                                                                   |

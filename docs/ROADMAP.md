@@ -9,18 +9,20 @@
 - [x] deterministic historical runtime loop
 - [x] first `ta.*` numerical primitives
 - [x] market-data provider boundary
-- [ ] Binance adapter using `@nemesis-oss/binance-sdk`
+- [x] Binance adapter using `@nemesis-oss/binance-sdk` (REST paging, kline stream, exchangeInfo symbol metadata)
 - [ ] CI and compatibility fixtures
 
 ## Phase 1 — Pine execution semantics
 
-- `na` semantics
+- [x] `na` semantics (`NaN` canonical value, `undefined` = no history, `fixnan`)
 - scalar/series typing rules
-- `var` and `varip`
-- realtime tick execution
-- rollback/commit
-- barstate
-- timeframe canonicalization
+- [x] `var` and `varip`
+- [x] realtime tick execution (closing-tick confirmation, stale-update rejection)
+- [x] rollback/commit
+- [x] barstate (including the historical-to-realtime hand-off)
+- [x] local-scope execution semantics and `ctx.scope` call-site identity
+- [x] bounded history (`maxBarsBack`)
+- [x] timeframe canonicalization
 - symbol metadata
 - sessions
 
@@ -31,9 +33,9 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 ## Phase 3 — Core namespaces
 
 - [x] `math.*`
-- `array.*`
-- `matrix.*`
-- `map.*`
+- [x] `array.*`
+- [x] `matrix.*`
+- [x] `map.*`
 - `str.*`
 - `color.*`
 - `input.*`
