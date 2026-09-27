@@ -27,3 +27,5 @@ export { BinanceProvider, type BinanceMarketClient } from "./data/binance.js";
 export * as ta from "./ta/index.js";
 export * as math from "./math/index.js";
 export * as array from "./array/index.js";
+export * as map from "./map/index.js";
+export * as matrix from "./matrix/index.js";
