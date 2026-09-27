@@ -35,6 +35,28 @@ TradingView's Pine Script v6 Reference Manual is the authoritative API specifica
 - **`weekofyear`** uses ISO-8601 week numbering; the Reference Manual does not
   state its convention.
 
+## Community script ports
+
+`community.mlAdaptiveSupertrend` ports "Machine Learning Adaptive SuperTrend
+[AlgoAlpha]" (Pine v5, MPL-2.0). It is checked bar for bar, including realtime
+replay, against a literal array transcription of the published source; it is
+not yet pinned against exported TradingView values. The port keeps the script's
+own behavior even where it looks accidental:
+
+- K-Means assigns a value only when it is strictly closer to one centroid, so
+  ties join no cluster.
+- An empty cluster's mean is `na`; every later comparison with it is false, so
+  that K-Means pass ends with all three centroids `na`, the bar's
+  `assigned_centroid` is `na`, and the next bar's direction resets to 1
+  (bearish) through `na(atr[1])`.
+- With ATR exactly 0, K-Means is skipped and the initial percentile guesses
+  assign the cluster.
+- The script's own `pine_supertrend` runs as written during warm-up, so its
+  line is 0 on the first bar, where the built-in `ta.supertrend` returns `na`.
+
+Ports that "fix" these behaviors (for example keeping the previous centroid of
+an empty cluster) disagree with the TradingView chart around those bars.
+
 ## DhanHQ provider limitations
 
 - **Timeframes:** minute timeframes up to one session and `1D`. Seconds,

@@ -145,6 +145,13 @@
     "OPTFUT",
     "OPTIDX",
     "OPTSTK",
-    "unconfigured"
+    "unconfigured",
+    "amean",
+    "bmean",
+    "cmean",
+    "highvol",
+    "KMEANS",
+    "lowvol",
+    "midvol"
   ]
 }

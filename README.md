@@ -98,6 +98,27 @@ ends.
 Neither SDK is a runtime dependency: the providers consume their surfaces
 structurally, and the tests type-check the real SDK classes against them.
 
+### Community scripts
+
+`community.*` holds faithful ports of open-source TradingView scripts, checked
+bar for bar against a literal transcription of the published Pine source.
+
+```ts
+import { community, ta } from "@nemesis-oss/pine-ts";
+
+const script: PineScript = (ctx) => {
+  // Machine Learning Adaptive SuperTrend [AlgoAlpha]
+  const st = community.mlAdaptiveSupertrend({ atrLength: 10, factor: 3, trainingPeriod: 100 });
+  const bullish = ta.crossunder(
+    st.direction,
+    ctx.series("zero", () => 0),
+  ).value;
+};
+```
+
+`direction` follows Pine's SuperTrend convention: -1 is an uptrend, 1 a
+downtrend.
+
 ## Development
 
 Requires Node.js 22+.
@@ -132,4 +153,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 
 ## License
 
-MIT
+MIT, except `src/community/ml-adaptive-supertrend.ts`, a port of AlgoAlpha's
+"Machine Learning Adaptive SuperTrend", which stays under the Mozilla Public
+License 2.0 of the original script (see the file header). The package license
+is therefore `MIT AND MPL-2.0`.
