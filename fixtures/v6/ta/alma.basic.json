@@ -1,0 +1,15 @@
+{
+  "name": "ta.alma",
+  "pineVersion": 6,
+  "input": {
+    "source": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+    "length": 9,
+    "offset": 0.85,
+    "sigma": 6,
+    "floor": false
+  },
+  "expected": {
+    "alma": [null, null, null, null, null, null, null, null, 7.44276478225583]
+  },
+  "notes": "Gaussian-weighted window per the v6 reference re-implementation; strict window (na included -> na)."
+}

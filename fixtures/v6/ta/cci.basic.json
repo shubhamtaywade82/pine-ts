@@ -1,0 +1,19 @@
+{
+  "name": "ta.cci",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 12, 14, 16, 18, 14],
+    "length": 3
+  },
+  "expected": {
+    "cci": [
+      null,
+      null,
+      100.00000000000001,
+      100.00000000000001,
+      100.00000000000001,
+      -100.00000000000001
+    ]
+  },
+  "notes": "(source - SMA) / (0.015 * mean absolute deviation); linear ramps read 100 and -100."
+}

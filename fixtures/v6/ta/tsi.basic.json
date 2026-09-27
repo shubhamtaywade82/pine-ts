@@ -1,0 +1,24 @@
+{
+  "name": "ta.tsi",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 2, 4, 5, 3, 2, 4, 6],
+    "short_length": 3,
+    "long_length": 5
+  },
+  "expected": {
+    "tsi": [
+      null,
+      1.0,
+      1.0,
+      0.6666666666666667,
+      0.6666666666666667,
+      0.7131782945736433,
+      0.2998846597462515,
+      0.013155349197136902,
+      0.1529429295187007,
+      0.37247907868782254
+    ]
+  },
+  "notes": "ema(ema(change, long), short) / ema(ema(|change|, long), short); the v6 reference pins the range as [-1, 1], so no 100 scale factor."
+}

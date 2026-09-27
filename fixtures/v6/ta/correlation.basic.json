@@ -1,0 +1,13 @@
+{
+  "name": "ta.correlation",
+  "pineVersion": 6,
+  "input": {
+    "source1": [1, 2, 3, 4, 5, 4, 3],
+    "source2": [2, 4, 6, 8, 10, 8, 6],
+    "length": 4
+  },
+  "expected": {
+    "correlation": [null, null, null, 1.0, 1.0, 1.0, 1.0]
+  },
+  "notes": "Pearson coefficient over the last length bars where both sources are non-na; the middle bars are perfectly correlated within the window."
+}

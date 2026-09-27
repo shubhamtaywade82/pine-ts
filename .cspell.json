@@ -30,6 +30,7 @@
     "esbuild",
     "ESM",
     "highestbars",
+    "hlcc4",
     "hlc3",
     "hline",
     "hlines",
@@ -37,6 +38,8 @@
     "ichimoku",
     "intrabar",
     "intrabars",
+    "intraday",
+    "Intraday",
     "isconfirmed",
     "isfirst",
     "ishistory",
@@ -48,6 +51,7 @@
     "Keltner",
     "klines",
     "leftbars",
+    "Legoux",
     "linefill",
     "linefills",
     "linreg",
@@ -106,6 +110,9 @@
     "vitest",
     "VWAP",
     "VWMA",
+    "Woodie",
+    "wvad",
+    "WVAD",
     "wma"
   ]
 }

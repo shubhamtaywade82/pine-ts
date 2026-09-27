@@ -1,0 +1,13 @@
+{
+  "name": "ta.percentile_nearest_rank",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 20, 30, 40, 50],
+    "length": 5,
+    "percentage": 50
+  },
+  "expected": {
+    "percentile_nearest_rank": [null, null, null, null, 30]
+  },
+  "notes": "Nearest Rank: rank = ceil(percentage / 100 * length), clamped; always a member of the data set; 100th percentile is the largest value."
+}

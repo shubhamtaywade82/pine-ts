@@ -1,0 +1,40 @@
+{
+  "name": "ta.wad",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      {
+        "high": 12,
+        "low": 8,
+        "close": 11,
+        "open": 9,
+        "volume": 100
+      },
+      {
+        "high": 13,
+        "low": 9,
+        "close": 9,
+        "open": 11,
+        "volume": 200
+      },
+      {
+        "high": 10,
+        "low": 10,
+        "close": 10,
+        "open": 10,
+        "volume": 50
+      },
+      {
+        "high": 14,
+        "low": 10,
+        "close": 13,
+        "open": 11,
+        "volume": 150
+      }
+    ]
+  },
+  "expected": {
+    "wad": [0.0, -4.0, -3.0, 0.0]
+  },
+  "notes": "ta.cum(gain) with gain per the v6 re-implementation; the first bar's na change contributes nothing."
+}

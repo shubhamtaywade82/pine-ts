@@ -1,0 +1,12 @@
+{
+  "name": "ta.cog",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 3
+  },
+  "expected": {
+    "cog": [null, null, -1.6666666666666667, -1.7777777777777777, -1.8333333333333333]
+  },
+  "notes": "Literal v6 re-implementation: -sum(price * (i + 1)) / sum(price) with i the bar offset; skip-na window."
+}

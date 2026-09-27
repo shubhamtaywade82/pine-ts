@@ -337,3 +337,169 @@ export const crossunder = (source: Series<number>, other: Series<number>): Boole
     return new BooleanSeries(runtime, new IndicatorNode(definition));
   }) as BooleanSeries;
 };
+
+/**
+ * ta.cross — true when the two series have crossed each other on the current
+ * bar, i.e. a crossover or a crossunder. Per the v6 reference: "true if two
+ * series have crossed each other, otherwise false". na operands yield false,
+ * matching the verified `ta.crossover`/`ta.crossunder` model.
+ */
+export const cross = (source: Series<number>, other: Series<number>): BooleanSeries => {
+  const runtime = requireCompatibleRuntime(source, other);
+  return runtime.nodes.getOrCreate(nodeKey("ta.cross", source, other), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): boolean => {
+        const source0 = source.at(0);
+        const source1 = source.at(1);
+        const other0 = other.at(0);
+        const other1 = other.at(1);
+        if (isNa(source0) || isNa(source1) || isNa(other0) || isNa(other1)) return false;
+        const over = source0 > other0 && source1 <= other1;
+        const under = source0 < other0 && source1 >= other1;
+        return over || under;
+      },
+      commit: (): void => undefined,
+    };
+    return new BooleanSeries(runtime, new IndicatorNode(definition));
+  }) as BooleanSeries;
+};
+
+/**
+ * ta.cum — cumulative (total) sum of source.
+ *
+ * Per the v6 reference: "Cumulative (total) sum of source. In other words it's
+ * a sum of all elements of source." The reference documents no na remark, so
+ * pine-ts follows the established cumulative convention (`ta.obv`,
+ * `ta.accdist`): na terms are skipped rather than poisoning the sum, and the
+ * empty sum is 0.
+ */
+export const cum = (source: Series<number>): FloatSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.cum", source), () => {
+    interface State {
+      sum: number;
+    }
+    const definition = {
+      init: (): State => ({ sum: 0 }),
+      evaluate: (state: Readonly<State>): number => {
+        const value = source.at(0);
+        return state.sum + (isNa(value) ? 0 : value);
+      },
+      commit: (state: State): void => {
+        const value = source.at(0);
+        if (!isNa(value)) state.sum += value;
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * ta.max — all-time high value of source from the beginning of the chart up
+ * to the current bar.
+ *
+ * Reference remark (v5/v6): "na occurrences of source are ignored", so na
+ * bars carry the previous extreme forward. The result is na until the first
+ * non-na value exists — an all-time extreme of nothing is na, not 0.
+ */
+export const max = (source: Series<number>): FloatSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.max", source), () => {
+    interface State {
+      value: number;
+    }
+    const resolve = (state: Readonly<State>): number => {
+      const value = source.at(0);
+      if (isNa(value)) return state.value;
+      return Number.isNaN(state.value) ? value : Math.max(state.value, value);
+    };
+    const definition = {
+      init: (): State => ({ value: Number.NaN }),
+      evaluate: (state: Readonly<State>): number => resolve(state),
+      commit: (state: State): void => {
+        state.value = resolve(state);
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * ta.min — all-time low value of source from the beginning of the chart up
+ * to the current bar.
+ *
+ * Same na model as {@link max}: "na occurrences of source are ignored", and
+ * the result is na until the first non-na value exists.
+ */
+export const min = (source: Series<number>): FloatSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.min", source), () => {
+    interface State {
+      value: number;
+    }
+    const resolve = (state: Readonly<State>): number => {
+      const value = source.at(0);
+      if (isNa(value)) return state.value;
+      return Number.isNaN(state.value) ? value : Math.min(state.value, value);
+    };
+    const definition = {
+      init: (): State => ({ value: Number.NaN }),
+      evaluate: (state: Readonly<State>): number => resolve(state),
+      commit: (state: State): void => {
+        state.value = resolve(state);
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * ta.alma — Arnaud Legoux Moving Average.
+ *
+ * Literal transcription of the v6 Reference Manual re-implementation:
+ * Gaussian weights `exp(-((i - m)^2) / (2 * s^2))` applied over the window,
+ * with `m = offset * (length - 1)` (floored when `floor` is true, per the
+ * reference comment "Used as m when math.floor=true") and `s = length /
+ * sigma`. The loop pairs weight `i` with `source[length - i - 1]`, so the
+ * weight peak sits near the most recent bars when `offset` approaches 1.
+ *
+ * The reference remarks that "na values in the source series are included in
+ * calculations and will produce an na result", so the window is strict,
+ * unlike the skip-na statistics family. A zero sigma divides to na in Pine.
+ */
+export const alma = (
+  source: Series<number>,
+  length: number,
+  offset: number,
+  sigma: number,
+  floor = false,
+): FloatSeries => {
+  requirePositiveLength(length);
+  if (!Number.isFinite(offset)) throw new RangeError("offset must be a finite number");
+  if (!Number.isFinite(sigma)) throw new RangeError("sigma must be a finite number");
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.alma", source, length, offset, sigma, floor), () => {
+    const definition = {
+      warmupBars: length - 1,
+      init: (): null => null,
+      evaluate: (): number => {
+        if (sigma === 0) return Number.NaN;
+        const m = floor ? Math.floor(offset * (length - 1)) : offset * (length - 1);
+        const s = length / sigma;
+        let norm = 0;
+        let weightedSum = 0;
+        for (let i = 0; i < length; i += 1) {
+          const value = source.at(length - i - 1);
+          if (isNa(value)) return Number.NaN;
+          const weight = Math.exp((-1 * (i - m) ** 2) / (2 * s ** 2));
+          norm += weight;
+          weightedSum += value * weight;
+        }
+        return weightedSum / norm;
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};

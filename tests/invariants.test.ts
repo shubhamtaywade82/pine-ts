@@ -369,6 +369,63 @@ const scenarios: readonly Scenario[] = [
       capture["kcw"] = ta.kcw(ctx.close, 9, 2, false);
     },
   },
+  {
+    name: "running-aggregates",
+    build: (ctx, capture) => {
+      capture["cum"] = ta.cum(ctx.close);
+      capture["max"] = ta.max(ctx.close);
+      capture["min"] = ta.min(ctx.close);
+    },
+  },
+  {
+    name: "cross-events",
+    build: (ctx, capture) => {
+      const fast = ta.ema(ctx.close, 3);
+      const slow = ta.ema(ctx.close, 9);
+      capture["cross"] = ta.cross(fast, slow);
+    },
+  },
+  {
+    name: "alma-window",
+    build: (ctx, capture) => {
+      capture["alma"] = ta.alma(ctx.close, 9, 0.85, 6);
+      capture["almaFloored"] = ta.alma(ctx.close, 9, 0.85, 6, true);
+    },
+  },
+  {
+    name: "statistics-windows",
+    build: (ctx, capture) => {
+      capture["median"] = ta.median(ctx.close, 5);
+      capture["mode"] = ta.mode(ctx.close, 5);
+      capture["range"] = ta.range(ctx.close, 5);
+      capture["percentileNr"] = ta.percentileNearestRank(ctx.close, 5, 50);
+      capture["percentileLi"] = ta.percentileLinearInterpolation(ctx.close, 5, 30);
+      capture["percentrank"] = ta.percentrank(ctx.close, 5);
+    },
+  },
+  {
+    name: "correlation-rci",
+    build: (ctx, capture) => {
+      capture["correlation"] = ta.correlation(ctx.close, ctx.volume, 10);
+      capture["rci"] = ta.rci(ctx.close, 9);
+    },
+  },
+  {
+    name: "momentum-cci-cog-tsi",
+    build: (ctx, capture) => {
+      capture["cci"] = ta.cci(ctx.close, 14);
+      capture["cog"] = ta.cog(ctx.close, 10);
+      capture["tsi"] = ta.tsi(ctx.close, 13, 25);
+    },
+  },
+  {
+    name: "volume-intensity",
+    build: (_ctx, capture) => {
+      capture["iii"] = ta.iii();
+      capture["wad"] = ta.wad();
+      capture["wvad"] = ta.wvad();
+    },
+  },
 ];
 
 describe("Phase 0 invariants", () => {

@@ -1,0 +1,13 @@
+{
+  "name": "ta.percentile_linear_interpolation",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 20, 30, 40, 50],
+    "length": 5,
+    "percentage": 30
+  },
+  "expected": {
+    "percentile_linear_interpolation": [null, null, null, null, 22.0]
+  },
+  "notes": "Linear interpolation between the two nearest ranks; strict window (na included -> na)."
+}

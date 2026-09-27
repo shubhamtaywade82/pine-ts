@@ -1,0 +1,40 @@
+{
+  "name": "ta.iii",
+  "pineVersion": 6,
+  "input": {
+    "bars": [
+      {
+        "high": 12,
+        "low": 8,
+        "close": 11,
+        "open": 9,
+        "volume": 100
+      },
+      {
+        "high": 13,
+        "low": 9,
+        "close": 9,
+        "open": 11,
+        "volume": 200
+      },
+      {
+        "high": 10,
+        "low": 10,
+        "close": 10,
+        "open": 10,
+        "volume": 50
+      },
+      {
+        "high": 14,
+        "low": 10,
+        "close": 13,
+        "open": 11,
+        "volume": 150
+      }
+    ]
+  },
+  "expected": {
+    "iii": [50.0, -200.0, null, 75.0]
+  },
+  "notes": "Per-bar intraday intensity ((2*close - high - low) / (high - low)) * volume; a zero-range bar divides to na."
+}

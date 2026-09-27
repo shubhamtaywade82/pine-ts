@@ -1,0 +1,12 @@
+{
+  "name": "ta.median",
+  "pineVersion": 6,
+  "input": {
+    "source": [5, 2, 8, 4, 7],
+    "length": 4
+  },
+  "expected": {
+    "median": [null, null, null, 4.5, 5.5]
+  },
+  "notes": "Skip-na window; an even-sized window averages its two middle values."
+}

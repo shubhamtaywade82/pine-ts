@@ -1,0 +1,12 @@
+{
+  "name": "ta.percentrank",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 20, 30, 25],
+    "length": 3
+  },
+  "expected": {
+    "percentrank": [null, null, 100.0, 66.66666666666666]
+  },
+  "notes": "Percent of window values less than or equal to the current value (current included); strict window per the v6 na remark."
+}

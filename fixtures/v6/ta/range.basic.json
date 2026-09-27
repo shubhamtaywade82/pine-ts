@@ -1,0 +1,12 @@
+{
+  "name": "ta.range",
+  "pineVersion": 6,
+  "input": {
+    "source": [5, 2, 8, 4, 7],
+    "length": 4
+  },
+  "expected": {
+    "range": [null, null, null, 6, 6]
+  },
+  "notes": "max - min over the skip-na window."
+}

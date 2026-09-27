@@ -345,3 +345,119 @@ export const accdist = (): FloatSeries => {
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
 };
+
+/**
+ * ta.iii — Intraday Intensity Index.
+ *
+ * Literal transcription of the v6 Reference Manual re-implementation:
+ * `((2 * close - high - low) / (high - low)) * volume`. The value is the
+ * per-bar intensity, not a cumulative total. A zero bar range divides to na
+ * in Pine, and na inputs propagate na.
+ */
+export const iii = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, low, high, volume } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.iii", close, low, high, volume), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const closeValue = close.at(0);
+        const lowValue = low.at(0);
+        const highValue = high.at(0);
+        const volumeValue = volume.at(0);
+        if (isNa(closeValue) || isNa(lowValue) || isNa(highValue) || isNa(volumeValue)) {
+          return Number.NaN;
+        }
+        if (highValue === lowValue) return Number.NaN;
+        return ((2 * closeValue - highValue - lowValue) / (highValue - lowValue)) * volumeValue;
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * ta.wad — Williams Accumulation/Distribution.
+ *
+ * Literal transcription of the v6 Reference Manual re-implementation:
+ * `trueHigh = math.max(high, close[1])`, `trueLow = math.min(low, close[1])`,
+ * `mom = ta.change(close)`,
+ * `gain = mom > 0 ? close - trueLow : mom < 0 ? close - trueHigh : 0`,
+ * `ta.wad = ta.cum(gain)`. Pine v6 comparisons against na are false, so the
+ * first bar's na change selects the 0 branch; na true-high/true-low
+ * components make the gain na, which cum() skips.
+ */
+export const wad = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, low, high } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.wad", close, low, high), () => {
+    interface State {
+      sum: number;
+    }
+    const contribution = (): number | undefined => {
+      const closeValue = close.at(0);
+      const previousClose = close.at(1);
+      const highValue = high.at(0);
+      const lowValue = low.at(0);
+      if (isNa(closeValue) || isNa(previousClose)) return undefined;
+      const momentum = closeValue - previousClose;
+      if (momentum > 0) {
+        if (isNa(lowValue)) return undefined;
+        return closeValue - Math.min(lowValue, previousClose);
+      }
+      if (momentum < 0) {
+        if (isNa(highValue)) return undefined;
+        return closeValue - Math.max(highValue, previousClose);
+      }
+      return 0;
+    };
+    const definition = {
+      init: (): State => ({ sum: 0 }),
+      evaluate: (state: Readonly<State>): number =>
+        state.sum + cumulativeContribution(contribution()),
+      commit: (state: State): void => {
+        state.sum += cumulativeContribution(contribution());
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * ta.wvad — Williams Variable Accumulation/Distribution.
+ *
+ * Literal transcription of the v6 Reference Manual re-implementation:
+ * `(close - open) / (high - low) * volume`. Like `ta.iii` this is the per-bar
+ * value, not a cumulative total. A zero bar range divides to na in Pine, and
+ * na inputs propagate na.
+ */
+export const wvad = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, open, low, high, volume } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.wvad", close, open, low, high, volume), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const closeValue = close.at(0);
+        const openValue = open.at(0);
+        const lowValue = low.at(0);
+        const highValue = high.at(0);
+        const volumeValue = volume.at(0);
+        if (
+          isNa(closeValue) ||
+          isNa(openValue) ||
+          isNa(lowValue) ||
+          isNa(highValue) ||
+          isNa(volumeValue)
+        ) {
+          return Number.NaN;
+        }
+        if (highValue === lowValue) return Number.NaN;
+        return ((closeValue - openValue) / (highValue - lowValue)) * volumeValue;
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};

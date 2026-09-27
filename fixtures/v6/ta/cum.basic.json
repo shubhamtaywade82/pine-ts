@@ -1,0 +1,11 @@
+{
+  "name": "ta.cum",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 2, 5]
+  },
+  "expected": {
+    "cum": [1, 3, 6, 8, 13]
+  },
+  "notes": "Running total; the v6 reference documents no na remark, so pine-ts follows the obv/accdist cumulative convention."
+}
