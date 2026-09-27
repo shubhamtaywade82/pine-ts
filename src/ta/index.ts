@@ -6,3 +6,4 @@ export * from "./trend.js";
 export * from "./bands.js";
 export * from "./volume.js";
 export * from "./events.js";
+export * from "./pivot.js";

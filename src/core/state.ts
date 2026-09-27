@@ -23,6 +23,7 @@ class Cell<T> implements PersistentCell<T> {
     private readonly initial: T,
     private current: T,
     private committed: T = current,
+    private readonly onSet?: (value: T) => void,
   ) {}
 
   public get value(): T {
@@ -31,6 +32,7 @@ class Cell<T> implements PersistentCell<T> {
 
   public set(value: T): void {
     this.current = value;
+    this.onSet?.(value);
   }
 
   public reset(): void {
@@ -49,6 +51,26 @@ class Cell<T> implements PersistentCell<T> {
 
 export type PineStateSnapshot = ReadonlyMap<string, unknown>;
 
+/**
+ * Duck-typed rollback-exemption hook for mutable reference values stored in
+ * persistent cells. Pine arrays implement `_setVarip` so that a `varip` cell
+ * (whose value survives realtime revisions without rollback) can promote the
+ * backing store it references: subsequent mutations skip the session's
+ * mutation journal, and mutations recorded before the promotion are made
+ * permanent. `var` cells mark with `false` to (re)enable journaling, keeping
+ * the assignment boundary symmetric.
+ */
+const markValue = (value: unknown, varip: boolean): void => {
+  const marker = value as { _setVarip?: (enabled: boolean) => void } | null;
+  if (
+    typeof marker === "object" &&
+    marker !== null &&
+    typeof marker._setVarip === "function"
+  ) {
+    marker._setVarip(varip);
+  }
+};
+
 export class PineState {
   private readonly vars = new Map<string, Cell<unknown>>();
   private readonly varips = new Map<string, Cell<unknown>>();
@@ -58,8 +80,9 @@ export class PineState {
     if (existing !== undefined) return existing as PersistentCell<T>;
 
     const value = initializer();
-    const cell = new Cell<T>(name, value, value);
-    this.vars.set(name, cell);
+    markValue(value, false);
+    const cell = new Cell<T>(name, value, value, undefined, (next) => markValue(next, false));
+    this.vars.set(name, cell as unknown as Cell<unknown>);
     return cell;
   }
 
@@ -68,8 +91,9 @@ export class PineState {
     if (existing !== undefined) return existing as PersistentCell<T>;
 
     const value = initializer();
-    const cell = new Cell<T>(name, value, value);
-    this.varips.set(name, cell);
+    markValue(value, true);
+    const cell = new Cell<T>(name, value, value, undefined, (next) => markValue(next, true));
+    this.varips.set(name, cell as unknown as Cell<unknown>);
     return cell;
   }
 

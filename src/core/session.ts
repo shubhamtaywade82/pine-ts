@@ -18,6 +18,16 @@ export interface SourceBundle {
 
 export type BarExecutor = () => void;
 
+/**
+ * One undoable array mutation. `owner` is the backing store the mutation
+ * touched (an opaque token from the array namespace), so a backing can purge
+ * its entries when it is promoted to `varip` semantics.
+ */
+export interface ArrayMutationEntry {
+  readonly owner: object;
+  readonly undo: () => void;
+}
+
 export class PineSession {
   public revision = 0;
   public barIndex = -1;
@@ -41,6 +51,7 @@ export class PineSession {
     _resetWorking(): void;
     _rollback(): void;
   }[] = [];
+  private readonly arrayMutations: ArrayMutationEntry[] = [];
   private currentTime?: number;
   private symbolInfo?: SymbolInfo;
 
@@ -65,6 +76,23 @@ export class PineSession {
     _rollback(): void;
   }): void {
     this.orderedSeries.push(series);
+  }
+
+  /**
+   * Records one undoable mutation of a mutable collection (Pine arrays).
+   * Entries replay in reverse on realtime rollback — the array counterpart
+   * of a `var` cell rolling back to its committed value — and are discarded
+   * on bar confirmation, when mutations become permanent.
+   */
+  public journalArrayMutation(owner: object, undo: () => void): void {
+    this.arrayMutations.push({ owner, undo });
+  }
+
+  /** Drops every journaled mutation owned by `owner` (varip promotion). */
+  public purgeArrayMutations(owner: object): void {
+    for (let index = this.arrayMutations.length - 1; index >= 0; index -= 1) {
+      if (this.arrayMutations[index]!.owner === owner) this.arrayMutations.splice(index, 1);
+    }
   }
 
   public setSymbolInfo(symbolInfo: SymbolInfo): void {
@@ -127,6 +155,10 @@ export class PineSession {
   }
 
   private rollbackWorkingState(): void {
+    for (let index = this.arrayMutations.length - 1; index >= 0; index -= 1) {
+      this.arrayMutations[index]!.undo();
+    }
+    this.arrayMutations.length = 0;
     for (const series of this.orderedSeries) series._rollback();
     this.state.rollback();
   }
@@ -171,6 +203,7 @@ export class PineSession {
     // against incremental state that already advanced this bar, corrupting
     // chains such as an EMA of a derived series. History offsets like at(1)
     // resolve to the previous committed bar either way.
+    this.arrayMutations.length = 0;
     for (const series of this.orderedSeries.toReversed()) {
       series._commit();
       series._resetWorking();

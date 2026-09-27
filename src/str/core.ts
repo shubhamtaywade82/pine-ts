@@ -4,6 +4,8 @@
  * accept and propagate it unless the reference documents otherwise
  * (`str.trim` maps na to `""`, `str.tostring` maps na to `"NaN"`).
  */
+import { PineArray } from "../array/pine-array.js";
+
 export type PineString = string | undefined;
 
 /** str.contains — true if the source string contains the str substring, false otherwise; na source yields na. */
@@ -163,3 +165,18 @@ const STRICT_NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
  */
 export const tonumber = (source: PineString): number =>
   source !== undefined && STRICT_NUMBER_PATTERN.test(source) ? Number(source) : Number.NaN;
+
+/**
+ * str.split — divides a string into an array of substrings. A na source or
+ * na separator yields na; an empty separator yields the source as a single
+ * element (pine-ts decision: no Java-style character fission); trailing
+ * empty fields are preserved, matching JavaScript split semantics.
+ */
+export const split = (
+  source: PineString,
+  separator: PineString,
+): PineArray<string> | undefined => {
+  if (source === undefined || separator === undefined) return undefined;
+  if (separator === "") return PineArray.createRoot<string>([source]);
+  return PineArray.createRoot<string>(source.split(separator));
+};
