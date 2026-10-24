@@ -14,12 +14,38 @@ export interface Bar {
 export interface SymbolInfo {
   readonly ticker: string;
   readonly tickerId?: string;
+  /** Pine `syminfo.tickerid` — `<prefix>:<ticker>` composite key. */
   readonly baseCurrency?: string;
+  /** Pine `syminfo.currency` — quote currency of the symbol. */
   readonly quoteCurrency?: string;
+  /** Pine `syminfo.mintick` — minimum price tick (e.g. 0.01 for USD stocks). */
   readonly minTick?: number;
+  /** Pine `syminfo.pointvalue` — $-value of one point (e.g. 1 for stocks, 100 for some futures). */
+  readonly pointValue?: number;
+  /** Pine `syminfo.pricescale` — number of price units per point (e.g. 100 for 0.01 ticks). */
+  readonly priceScale?: number;
+  /** Pine `syminfo.minmove` — minimum price movement in points. */
+  readonly minMove?: number;
+  /** Pine `syminfo.session` — regular session string ("0930-1600"). */
+  readonly session?: string;
+  /** Pine `syminfo.volumetype` — "cash" | "contracts" | "shares" | etc. */
+  readonly volumeType?: string;
+  /** Pine `syminfo.root` — futures root ticker (e.g. "ES" for ES1!). */
+  readonly root?: string;
+  /** Pine `syminfo.prefix` — vendor prefix (e.g. "SSE", "NASDAQ"). */
+  readonly prefix?: string;
+  /** Pine `syminfo.main_tickerid` — composite key of the main ticker. */
+  readonly mainTickerId?: string;
+  /** Pine `syminfo.current_contract` — current futures contract month (e.g. "F24"). */
+  readonly currentContract?: string;
+  /** Pine `syminfo.currency` — ISO currency code (e.g. "USD"). */
+  readonly currency?: string;
+  /** Pine `syminfo.description` — human-readable description. */
+  readonly description?: string;
+  /** Pine `syminfo.type` — "stock" | "futures" | "crypto" | "forex" | etc. */
+  readonly type?: string;
   readonly minContract?: number;
   readonly timezone?: string;
-  readonly type?: string;
 }
 
 export type PineExecutionMode = "historical" | "realtime";

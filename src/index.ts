@@ -78,6 +78,8 @@ export * as input from "./input/index.js";
 export * as log from "./log/index.js";
 export * as global from "./global/index.js";
 export * as request from "./request/index.js";
+export * as syminfo from "./syminfo/index.js";
+export * as constants from "./constants/index.js";
 export {
   StrategyEngine,
   setActiveStrategyEngine,
