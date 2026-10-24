@@ -1,0 +1,23 @@
+{
+  "name": "ta.pivot_point_levels",
+  "pineVersion": 6,
+  "input": {
+    "type": "TRADITIONAL",
+    "previousPeriod": { "high": 110, "low": 90, "close": 100 }
+  },
+  "expected": {
+    "slots": 11,
+    "PP": 100,
+    "R1": 110,
+    "S1": 90,
+    "R2": 120,
+    "S2": 80,
+    "R3": 120,
+    "S3": 80,
+    "R4": 140,
+    "S4": 60,
+    "R5": 160,
+    "S5": 40
+  },
+  "notes": "Traditional pivot levels from previous-period H=110, L=90, C=100. PP=(110+90+100)/3=100; R1=2*100-90=110; S1=2*100-110=90; R2=100+(110-90)=120; S2=100-(110-90)=80; R3=110+2*(100-90)=130; S3=90-2*(110-100)=70. Draft fixture pending a TradingView-exported reference vector with concrete H/L/C."
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ta.rci",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 2, 3, 4, 5],
+    "length": 5
+  },
+  "expected": [null, null, null, null, 100.0],
+  "notes": "RCI with a strictly increasing series is +100 — the time ranks and price ranks align perfectly. Draft fixture pending a TradingView-exported reference vector with non-trivial input."
+}

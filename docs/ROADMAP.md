@@ -43,11 +43,13 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 
 ## Phase 4 — MTF/data requests
 
-- `request.security()`
-- `request.security_lower_tf()`
-- gaps/lookahead
-- confirmed HTF behavior
-- multi-symbol/timeframe caching
+- [x] `request.security()` (multi-context execution engine + alignment; non-repainting `lookahead=off` default; per-expression caching by `expression.toString()`)
+- [x] `request.security_lower_tf()` (returns intrabar values within the caller bar's window)
+- [x] gaps/lookahead option validation
+- [x] `runtime.prepareSecurity(symbol, timeframe)` host API for pre-warming
+- [ ] gaps/lookahead semantics on `security_lower_tf` (deferred — returns all intrabars within window regardless of options for now)
+- [ ] `lookahead=on` repainting semantics on confirmed HTF contexts (engine reads the bar containing caller time; full repainting test coverage is draft)
+- multi-symbol/timeframe caching (per `(symbol, timeframe)` pair, with per-expression result caching)
 - provider capability errors
 
 ## Phase 5 — Visual runtime
@@ -62,14 +64,15 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 
 ## Phase 6 — Strategies
 
-- strategy declaration/context
-- broker emulator
-- entry/order/exit/cancel
-- commissions/slippage
-- position/trade state
-- performance metrics
-- backtesting
-- paper/live broker adapters
+- [x] strategy declaration/context
+- [x] broker emulator (built-in to `StrategyEngine`)
+- [x] entry/order/exit/cancel/close/close_all (module-level + engine methods)
+- [x] commissions/slippage (`commission_type` percent/cash, `slippage_unit` points/percent)
+- [x] position/trade state (`position_size`, `position_avg_price`, `equity`, `netprofit`, `grossprofit/loss`, `drawdown/max_drawdown`, `closedtrades_number`, `opentrades_number`)
+- [x] performance metrics
+- [x] `BrokerAdapter` boundary (`PaperBrokerAdapter` in-memory + `BinanceBrokerAdapter` scaffold)
+- [ ] paper/live broker adapters: Binance live adapter wired to `@nemesis-oss/binance-sdk`'s trading surface (scaffold in place; downstream integrator wires)
+- [ ] `strategy.*` v6 variables (49 total — partial completion; major variables shipped)
 
 ## Phase 7 — Pine source compatibility
 

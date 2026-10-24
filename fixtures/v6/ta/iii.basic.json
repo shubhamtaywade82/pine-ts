@@ -1,0 +1,13 @@
+{
+  "name": "ta.iii",
+  "pineVersion": 6,
+  "input": {
+    "open":  [100, 100, 100, 100, 100],
+    "high":  [102, 105, 100, 103, 108],
+    "low":   [ 98,  99,  96,  97, 105],
+    "close": [100, 104,  99,  99, 107],
+    "volume":[10, 10, 12,  9,  8]
+  },
+  "expected": [0, 21.05263157894737, 11.999999999999991, 11.999999999999991, 16.380952380952367],
+  "notes": "Bostian Intraday Intensity Index — cumulative sum of ((2*C - H - L) / (H - L)) * V. Bar 0 has H=L=C contribution undefined; the cumulative stays at 0 (mirrors ta.obv first-bar convention)."
+}

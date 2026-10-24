@@ -1,0 +1,10 @@
+{
+  "name": "ta.cog",
+  "pineVersion": 6,
+  "input": {
+    "source": [3, 6, 9, 12],
+    "length": 4
+  },
+  "expected": [null, null, null, -2.5],
+  "notes": "Center of Gravity over a 4-bar window. At bar 3: prices newest-first [12,9,6,3]; weighted sum = 12*1 + 9*2 + 6*3 + 3*4 = 60; unweighted sum = 30; COG = -60/30 = -2."
+}

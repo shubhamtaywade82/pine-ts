@@ -293,6 +293,21 @@ functions:
     status: draft
     vectors: [fixtures/v6/ta/dev.basic.json]
 
+  - name: correlation
+    signature:
+      params:
+        - { name: source1, type: series<float> }
+        - { name: source2, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      na: "bars where either source is na are skipped; fewer than length paired samples yield na; a constant window yields na"
+      formula: "Pearson correlation coefficient over the last length non-na paired samples"
+    impl: { module: src/ta/statistics.ts, export: correlation }
+    status: draft
+    vectors: [fixtures/v6/ta/correlation.basic.json]
+
   - name: macd
     signature:
       params:
@@ -724,6 +739,196 @@ functions:
     impl: { module: src/ta/extra.ts, export: percentile_linear_interpolation }
     status: draft
     vectors: [fixtures/v6/ta/percentile_linear_interpolation.basic.json]
+
+  - name: alma
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+        - { name: offset, type: float }
+        - { name: sigma, type: float }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      kernel: "Gaussian weights w_i = exp(-(i - offset*(length-1))^2 / (2*sigma^2))"
+      formula: "alma = sum(w_i * source[length-1-i]) / sum(w_i)"
+      na: "na current value yields na; fewer than length non-na samples yields na"
+    impl: { module: src/ta/trend.ts, export: alma }
+    status: draft
+    vectors: [fixtures/v6/ta/alma.basic.json]
+
+  - name: cog
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      formula: "-sum(source[i] * (i+1), i=0..length-1) / sum(source, length)"
+      na: "na current value yields na; zero price-sum yields na (division by zero)"
+    impl: { module: src/ta/trend.ts, export: cog }
+    status: draft
+    vectors: [fixtures/v6/ta/cog.basic.json]
+
+  - name: cci
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      formula: "(source - sma(source, length)) / (0.015 * dev(source, length))"
+      na: "na current value yields na; zero MD (constant window) yields na"
+    impl: { module: src/ta/momentum.ts, export: cci }
+    status: draft
+    vectors: [fixtures/v6/ta/cci.basic.json]
+
+  - name: tsi
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: short_length, type: int, constraints: { min: 1 } }
+        - { name: long_length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: "long_length + 2 * (short_length - 1)"
+      formula: "100 * ema(ema(mom(source, long_length), long_length), short_length) / ema(ema(abs(mom(source, long_length)), long_length), short_length)"
+      na: "na during warmup; zero double-smoothed absolute change (constant source) yields na"
+    impl: { module: src/ta/momentum.ts, export: tsi }
+    status: draft
+    vectors: [fixtures/v6/ta/tsi.basic.json]
+
+  - name: rci
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      formula: "100 * Pearson correlation of bar-position ranks and price ranks; ties use average ranks"
+      na: "na current value yields na; fewer than length non-na values yields na; constant window yields na"
+    impl: { module: src/ta/momentum.ts, export: rci }
+    status: draft
+    vectors: [fixtures/v6/ta/rci.basic.json]
+
+  - name: max
+    signature:
+      params:
+        - { name: source, type: series<float> }
+    returns: series<float>
+    semantics:
+      core: "running maximum of all non-na source values seen so far (no length window)"
+      na: "na current value carries the previous maximum forward; first non-na bar seeds the value"
+    impl: { module: src/ta/statistics.ts, export: max }
+    status: draft
+    vectors: [fixtures/v6/ta/max.basic.json]
+
+  - name: min
+    signature:
+      params:
+        - { name: source, type: series<float> }
+    returns: series<float>
+    semantics:
+      core: "running minimum of all non-na source values seen so far (no length window)"
+      na: "na current value carries the previous minimum forward; first non-na bar seeds the value"
+    impl: { module: src/ta/statistics.ts, export: min }
+    status: draft
+    vectors: [fixtures/v6/ta/min.basic.json]
+
+  - name: median
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      core: "median of the last length non-na samples; even length averages the two middle sorted values"
+      na: "na current value yields na; fewer than length non-na values yields na"
+    impl: { module: src/ta/statistics.ts, export: median }
+    status: draft
+    vectors: [fixtures/v6/ta/median.basic.json]
+
+  - name: mode
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      core: "most frequent value among the last length non-na samples"
+      ties: "smallest tied value wins (v6 Reference Manual remark)"
+      na: "na current value yields na; fewer than length non-na values yields na"
+    impl: { module: src/ta/statistics.ts, export: mode }
+    status: draft
+    vectors: [fixtures/v6/ta/mode.basic.json]
+
+  - name: range
+    signature:
+      params:
+        - { name: source, type: series<float> }
+        - { name: length, type: int, constraints: { min: 1 } }
+    returns: series<float>
+    semantics:
+      warmup: length - 1
+      formula: "ta.highest(source, length) - ta.lowest(source, length)"
+      na: "inherits ta.highest/ta.lowest na semantics"
+    impl: { module: src/ta/statistics.ts, export: range }
+    status: draft
+    vectors: [fixtures/v6/ta/range.basic.json]
+
+  - name: pivot_point_levels
+    signature:
+      params:
+        - { name: type, type: string }
+        - { name: anchor, type: series<bool>, default: timeframe.change("1D") }
+    returns: array<float>
+    semantics:
+      slots: 11
+      types: [TRADITIONAL, FIBONACCI, WOODIE, CLASSIC, DE_MARK, CAMARILLA]
+      notes: "Returns 11 pivot levels (PP, R1..R5, S1..S5) computed from the previous anchor period's high/low/close; anchor marks bar boundaries where the levels reset. Implemented as a Series<PineArray<number>> whose evaluate/commit lifecycle tracks the running H/L/C of the current anchor period."
+    impl: { module: src/ta/extra.ts, export: pivot_point_levels }
+    status: draft
+    vectors: [fixtures/v6/ta/pivot_point_levels.basic.json]
+
+  - name: iii
+    signature: { params: [] }
+    returns: series<float>
+    semantics:
+      kind: variable
+      formula: "ta.cum(((2*close - high - low) / (high - low)) * volume)"
+      na: "zero bar range yields na for the term, so the bar contributes 0 to the cumulative sum"
+    impl: { module: src/ta/volume.ts, export: iii }
+    status: draft
+    vectors: [fixtures/v6/ta/iii.basic.json]
+
+  - name: wad
+    signature: { params: [] }
+    returns: series<float>
+    semantics:
+      kind: variable
+      formula: "cumulative sum: per-bar contribution = close - trueLow when close > prevClose; close - trueHigh when close < prevClose; 0 when close == prevClose"
+      trueHigh: "max(high, prevClose)"
+      trueLow: "min(low, prevClose)"
+      na: "na OHLC yields na contribution (skipped from cumulative sum)"
+    impl: { module: src/ta/volume.ts, export: wad }
+    status: draft
+    vectors: [fixtures/v6/ta/wad.basic.json]
+
+  - name: wvad
+    signature: { params: [] }
+    returns: series<float>
+    semantics:
+      kind: variable
+      formula: "(close - open) / (high - low) * volume (per-bar, non-cumulative per v6 re-implementation)"
+      na: "na OHLCV or zero bar range yields na"
+    impl: { module: src/ta/volume.ts, export: wvad }
+    status: draft
+    vectors: [fixtures/v6/ta/wvad.basic.json]
 
 variables:
   barstate:

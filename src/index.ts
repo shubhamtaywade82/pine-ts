@@ -72,3 +72,35 @@ export * as array from "./array/index.js";
 export * as map from "./map/index.js";
 export * as matrix from "./matrix/index.js";
 export * as time from "./time/index.js";
+export * as str from "./str/index.js";
+export * as color from "./color/index.js";
+export * as input from "./input/index.js";
+export * as log from "./log/index.js";
+export * as global from "./global/index.js";
+export * as request from "./request/index.js";
+export {
+  StrategyEngine,
+  setActiveStrategyEngine,
+  requireStrategyEngine,
+  type StrategyDeclaration,
+  type Direction,
+  type PendingOrder,
+  type OpenTrade,
+  type ClosedTrade,
+} from "./strategy/index.js";
+export * as strategy from "./strategy/index.js";
+export * as visual from "./visual/index.js";
+export {
+  PaperBrokerAdapter,
+  BinanceBrokerAdapter,
+  type BrokerAdapter,
+  type OrderRequest,
+  type OrderResult,
+  type OrderUpdate,
+  type Position,
+  type BrokerOrderType,
+  type TimeInForce,
+  type OrderStatus,
+  type BinanceTradingSurface,
+} from "./broker/index.js";
+export * as broker from "./broker/index.js";

@@ -58,6 +58,21 @@
 | `ta.percentrank`                     | yes            | draft                | % of window values strictly < current; 0–100; na during warmup                       |
 | `ta.percentile_nearest_rank`         | yes            | draft                | nearest-rank percentile: ceil(p/100\*n)-th sorted value                              |
 | `ta.percentile_linear_interpolation` | yes            | draft                | linear-interpolation percentile via fractional 0-based sorted index                  |
+| `ta.correlation`                     | yes            | draft                | Pearson correlation over the last `length` non-na paired samples                    |
+| `ta.max`                              | yes            | draft                | running maximum of all non-na values (no length window)                             |
+| `ta.min`                              | yes            | draft                | running minimum of all non-na values (no length window)                             |
+| `ta.median`                            | yes            | draft                | median of the last `length` non-na values; even length averages two middle          |
+| `ta.mode`                             | yes            | draft                | most frequent value; ties resolve to the smallest tied value (v6 remark)            |
+| `ta.range`                            | yes            | draft                | `ta.highest(source, length) - ta.lowest(source, length)`                           |
+| `ta.alma`                             | yes            | draft                | Arnaud Legoux Moving Average — Gaussian-weighted kernel over a length window        |
+| `ta.cog`                              | yes            | draft                | negative bar-position-weighted price sum divided by the unweighted sum              |
+| `ta.cci`                              | yes            | draft                | Lambert CCI: `(source - SMA) / (0.015 * MD)` over the rolling window                 |
+| `ta.tsi`                              | yes            | draft                | True Strength Index: `100 * ema(ema(mom,long),short) / ema(ema(abs(mom),long),short)` |
+| `ta.rci`                              | yes            | draft                | Rank Correlation Index: `100 * Spearman(price, time)` with average-rank tie-break   |
+| `ta.iii`                              | yes            | draft                | Intraday Intensity Index — cumulative `((2*C - H - L) / (H - L)) * V`               |
+| `ta.wad`                              | yes            | draft                | Williams A/D cumulative (true-high/true-low rule, no volume)                        |
+| `ta.wvad`                             | yes            | draft                | Williams Variable A/D per-bar term per v6 re-implementation                         |
+| `ta.pivot_point_levels`               | yes            | draft                | returns `PineArray<number>` of 11 levels (PP, R1..R5, S1..S5); supports TRADITIONAL, FIBONACCI, WOODIE, CLASSIC, DE_MARK, CAMARILLA |
 
 ## Compatibility states
 
@@ -92,10 +107,15 @@ state and carries its last value forward (see `docs/SEMANTICS.md`).
 
 ## Missing v6 `ta` symbols
 
-`alma`, `cci`, `cog`, `correlation`, `max`, `median`, `min`, `mode`,
-`pivot_point_levels`, `range`, `rci`, `tsi`, and the variables `iii`, `wad`,
-`wvad`. `api-manifest/ta.v6.json` now lists exactly the reference manual's `ta`
-symbols (see `api-manifest/v6-reference-index.json`).
+The entire v6 `ta.*` namespace is now implemented in pine-ts. The `ta.*` manifest
+tracks 67 functions, of which:
+- 7 are `verified` (`sma`, `ema`, `highest`, `lowest`, `change`, `crossover`, `crossunder`).
+- 60 are `draft` (deterministic unit coverage; pending TradingView-exported reference vectors for promotion to `verified`).
+
+The 2026-10 waves shipped: `correlation`, `alma`, `cci`, `cog`, `max`, `min`,
+`median`, `mode`, `range`, `rci`, `tsi`, the variables `iii`, `wad`, `wvad`,
+and finally `pivot_point_levels` — transcribed from the v6 Reference Manual
+re-implementations where available, and from the documented remarks otherwise.
 
 ## Next implementation groups
 

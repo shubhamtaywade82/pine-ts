@@ -1,7 +1,8 @@
 /**
  * Tests for ta.* functions not yet shipped:
  *   ta.cum, ta.cross, ta.percentrank,
- *   ta.percentile_nearest_rank, ta.percentile_linear_interpolation
+ *   ta.percentile_nearest_rank, ta.percentile_linear_interpolation,
+ *   ta.correlation
  *
  * Verified against TradingView Pine Script v6 Reference Manual semantics.
  */
@@ -165,5 +166,170 @@ describe("ta.percentile_linear_interpolation", () => {
       if (r !== undefined && !Number.isNaN(r)) results.push(r);
     });
     expect(results[results.length - 1]).toBeCloseTo(3, 6);
+  });
+});
+
+// ---------- ta.correlation ----------
+
+describe("ta.correlation", () => {
+  // Two perfectly correlated series (y = 2x) over a 4-bar window: r = 1
+  it("returns 1 for a perfectly linear positive relationship", async () => {
+    // close: 1,2,3,4 ; open: 2,4,6,8 (y = 2x)
+    const bars = [1, 2, 3, 4].map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: 2 * c,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const out: number[] = [];
+    await runtime.run((ctx) => {
+      const v = ta.correlation(ctx.close, ctx.open, 4).at(0);
+      if (typeof v === "number" && !Number.isNaN(v)) out.push(v);
+    }, bars);
+    expect(out.at(-1)).toBeCloseTo(1, 10);
+  });
+
+  // Two perfectly inversely correlated series over a 4-bar window: r = -1
+  it("returns -1 for a perfectly linear inverse relationship", async () => {
+    // close: 1,2,3,4 ; open: -2,-4,-6,-8 (y = -2x)
+    const bars = [1, 2, 3, 4].map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: -2 * c,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const out: number[] = [];
+    await runtime.run((ctx) => {
+      const v = ta.correlation(ctx.close, ctx.open, 4).at(0);
+      if (typeof v === "number" && !Number.isNaN(v)) out.push(v);
+    }, bars);
+    expect(out.at(-1)).toBeCloseTo(-1, 10);
+  });
+
+  // Constant window has zero variance → correlation is undefined → na
+  it("returns na when one series is constant (zero variance)", async () => {
+    const bars = [1, 2, 3, 4].map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: 5,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const out: Array<number | undefined> = [];
+    await runtime.run((ctx) => {
+      const v = ta.correlation(ctx.close, ctx.open, 4).at(0);
+      out.push(typeof v === "number" && !Number.isNaN(v) ? v : undefined);
+    }, bars);
+    expect(out.at(-1)).toBeUndefined();
+  });
+
+  // Warm-up: length=4 needs at least 4 paired samples; first 3 bars yield na
+  it("returns na during warm-up until length paired samples are available", async () => {
+    const bars = [1, 2, 3, 4, 5].map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: c * 2,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const out: Array<number | undefined> = [];
+    await runtime.run((ctx) => {
+      const v = ta.correlation(ctx.close, ctx.open, 4).at(0);
+      out.push(typeof v === "number" && !Number.isNaN(v) ? v : undefined);
+    }, bars);
+    expect(out.slice(0, 3)).toEqual([undefined, undefined, undefined]);
+    expect(out.at(3)).toBeCloseTo(1, 10);
+    expect(out.at(4)).toBeCloseTo(1, 10);
+  });
+
+  // Bars where either source is na are skipped; the window counts paired non-na
+  // samples, not raw bars.
+  it("skips bars where either source is na when forming the paired window", async () => {
+    // Pair (close, open):
+    //   bar0: (1, 2)
+    //   bar1: (na, 4)  -> skipped (close is na)
+    //   bar2: (3, 6)
+    //   bar3: (4, 8)
+    //   bar4: (5, 10)
+    // length=4: at bar4 the paired samples are (1,2),(3,6),(4,8),(5,10) → r=1
+    const closes = [1, Number.NaN, 3, 4, 5];
+    const bars = closes.map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: 2 * c,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const out: Array<number | undefined> = [];
+    await runtime.run((ctx) => {
+      const v = ta.correlation(ctx.close, ctx.open, 4).at(0);
+      out.push(typeof v === "number" && !Number.isNaN(v) ? v : undefined);
+    }, bars);
+    // bar1 has na close → correlation is na (current value na)
+    expect(out.at(1)).toBeUndefined();
+    // bar4 has 4 paired non-na samples (bars 0,2,3,4) all on y=2x line → r=1
+    expect(out.at(4)).toBeCloseTo(1, 10);
+  });
+
+  // Structural identity: two identical calls share one node, matching the
+  // runtime's call-site keying rule for stateless series functions.
+  it("preserves structural identity for repeated correlation nodes", async () => {
+    const bars = [1, 2, 3, 4].map((c, i) => ({
+      time: (i + 1) * 1000,
+      open: 2 * c,
+      high: 0,
+      low: 0,
+      close: c,
+      volume: 1,
+      isClosed: true,
+    })) satisfies readonly Bar[];
+    const runtime = new PineRuntime({
+      provider: new StaticProvider(bars),
+      symbol: "TEST",
+      timeframe: "1",
+    });
+    const identities: unknown[] = [];
+    await runtime.run((ctx) => {
+      identities.push(ta.correlation(ctx.close, ctx.open, 4));
+      identities.push(ta.correlation(ctx.close, ctx.open, 4));
+    }, bars);
+    expect(identities[0]).toBe(identities[1]);
   });
 });

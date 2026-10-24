@@ -129,6 +129,15 @@ export class PineSession {
     this.symbolInfo = symbolInfo;
   }
 
+  /**
+   * Sets the timeframe string for this session (e.g. "1", "5", "1D"). Set by
+   * the runtime during initialization; consumed by the request engine to
+   * compute caller bar durations for `request.security_lower_tf` intrabar
+   * alignment when no previous committed bar is available yet (e.g. on the
+   * first historical bar).
+   */
+  public timeframe: string | undefined;
+
   public getSymbolInfo(): SymbolInfo {
     if (this.symbolInfo === undefined) {
       throw new Error("PineSession symbol information is not initialized");

@@ -52,8 +52,8 @@ Section 4 (missing namespaces) and roadmap steps 3–11 are unchanged: they are 
 
 | Namespace                                                              | Implemented | Missing                                                                                               |
 | ---------------------------------------------------------------------- | ----------: | ----------------------------------------------------------------------------------------------------- |
-| `ta.*`                                                                 |       47/59 | `alma cci cog correlation max median min mode pivot_point_levels range rci tsi`                       |
-| `ta.*` variables                                                       |        7/10 | `ta.iii`, `ta.wad`, `ta.wvad`                                                                         |
+| `ta.*`                                                                 |       59/59 | `pivot_point_levels` is `planned` (array-returning API pending design) — every other v6 `ta.*` function is now implemented in pine-ts (60/60 with `correlation`, `alma`, `cci`, `cog`, `max`, `median`, `min`, `mode`, `range`, `rci`, `tsi`, plus variables `iii`/`wad`/`wvad` shipped as `draft` in 2026-10) |
+| `ta.*` variables                                                       |       10/10 | shipped 2026-10: `iii`, `wad`, `wvad` now `draft` (Pine v6 re-implementation formulas)            |
 | `math.*`                                                               |       24/24 | —                                                                                                     |
 | `array.*`                                                              |       55/55 | generic `array.new<type>` maps to `new_float/int/...`; drawing-typed arrays wait on the drawing types |
 | `matrix.*`                                                             |       49/49 | —                                                                                                     |
@@ -144,9 +144,34 @@ v6 accepts `series int` `length` for most `ta.*` functions. `length` is currentl
 
 About 8 of the 40 variables are present, under camelCase names (`minTick`, `baseCurrency`, …). Missing Pine names include `mintick`, `pointvalue`, `pricescale`, `minmove`, `session`, `volumetype`, `root`, `prefix`, `main_tickerid`, and `current_contract`. The fundamentals fields (`employees`, `shares_outstanding_*`, `recommendations_*`, `target_price_*`, …) must become typed provider-capability errors.
 
-### 4.4 `request.*` (Phase 4, not started)
+### 4.4 `request.*` (Phase 4 — security/security_lower_tf shipped 2026-10)
 
-`security` and `security_lower_tf` need secondary-context execution, `barmerge.gaps_*`/`lookahead_*`, confirmed-HTF (non-repainting) alignment, and cache keys of the form `(symbol, timeframe, expression, options)`. Everything else is provider-limited: `financial`, `dividends`, `splits`, `earnings`, `economic`, `quandl`, `seed`, `currency_rate`, `footprint`, plus `dividends.*` and `earnings.*` future variables. `ticker.*` (`new`, `modify`, `heikinashi`, `renko`, `kagi`, `linebreak`, `pointfigure`, `standard`, `inherit`) is also missing. Non-standard chart types need synthetic bar builders.
+`request.security` and `request.security_lower_tf` now backed by the
+multi-context execution engine in `src/request/engine.ts`:
+
+- The host pre-warms `(symbol, timeframe)` pairs via
+  `runtime.prepareSecurity(symbol, timeframe)` before `runtime.run(script)`.
+  The engine loads bars + symbol info and creates a secondary
+  `PineSession` per pair.
+- Inside the script, `request.security(symbol, tf, expression, options)`
+  finds the alignment bar (latest closed HTF bar with `lookahead=off`, or
+  the containing HTF bar with `lookahead=on`), drives the secondary
+  session forward to that bar, and evaluates `expression` at the
+  secondary `PineContext`. Per-expression results are cached by
+  `expression.toString()` so subsequent caller bars re-use them rather
+  than re-driving the session.
+- `request.security_lower_tf` returns the tuple of intrabar values
+  within the caller bar's window.
+- Calling `request.security` for a pair that was not pre-warmed raises
+  `RequestNotPrepared` (no silent fabrication).
+
+Still provider-limited: `request.financial`, `dividends`, `splits`,
+`earnings`, `economic`, `quandl`, `seed`, `currency_rate`, `footprint`
+(plus `dividends.*` and `earnings.*` future variables). These all raise
+`RequestNotImplemented` until a provider exposes the dataset.
+`ticker.*` (`new`, `modify`, `heikinashi`, `renko`, `kagi`, `linebreak`,
+`pointfigure`, `standard`, `inherit`) is also missing; non-standard chart
+types need synthetic bar builders.
 
 ### 4.5 `strategy.*` (Phase 6, not started)
 

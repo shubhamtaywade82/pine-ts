@@ -3,7 +3,9 @@ import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
+import { ema } from "./core.js";
 import { requirePositiveLength } from "./validation.js";
+import { collectNonNaWindow } from "./window.js";
 
 const requireCompatibleRuntime = (source: Series<number>, other?: Series<number>) => {
   const runtime = source.runtime;
@@ -248,6 +250,178 @@ export const cmo = (source: Series<number>, length: number): FloatSeries => {
           state.sumLoss -= Math.max(-removed, 0);
         }
       },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * `ta.cci(source, length)`. Commodity Channel Index (Lambert). Standard
+ * Lambert formula: `CCI = (source - SMA(source, length)) / (0.015 * MD)`
+ * where `MD` is the mean absolute deviation of `source` over the rolling
+ * length window. A na current value yields na; a zero MD (constant window)
+ * yields na, matching Pine's division-by-zero semantics. Composed from the
+ * verified `ta.sma` and the `ta.dev` kernel so the rolling window, na, and
+ * warm-up behavior inherit their semantics.
+ */
+export const cci = (source: Series<number>, length: number): FloatSeries => {
+  requirePositiveLength(length);
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.cci", source, length), () => {
+    const definition = {
+      warmupBars: length - 1,
+      init: (): null => null,
+      evaluate: (): number => {
+        const current = source.at(0);
+        if (current === undefined || isNa(current)) return Number.NaN;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return Number.NaN;
+        const values = window.map((entry) => entry.value);
+        const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+        const md = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / values.length;
+        if (md === 0) return Number.NaN;
+        return (current - mean) / (0.015 * md);
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * `ta.tsi(source, short_length, long_length)`. True Strength Index.
+ *
+ * Transcribed from the standard TSI formula documented in the v6 reference:
+ *
+ * ```
+ * PC = source - source[long_length]
+ * doubleSmoothedPC = ta.ema(ta.ema(PC, long_length), short_length)
+ * doubleSmoothedAbsPC = ta.ema(ta.ema(math.abs(PC), long_length), short_length)
+ * TSI = 100 * doubleSmoothedPC / doubleSmoothedAbsPC
+ * ```
+ *
+ * A zero double-smoothed absolute change (e.g. constant source) yields na,
+ * matching Pine's division-by-zero semantics. Composed from `ta.ema` and
+ * `ta.mom` so na/warm-up behavior is inherited.
+ */
+export const tsi = (
+  source: Series<number>,
+  shortLength: number,
+  longLength: number,
+): FloatSeries => {
+  requirePositiveLength(shortLength);
+  requirePositiveLength(longLength);
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(
+    nodeKey("ta.tsi", source, shortLength, longLength),
+    () => {
+      // Build the change series, take its absolute value, then double-smooth
+      // both. The compositions are stateful nodes that share the source's
+      // runtime; each gets independent state through the NodeRegistry.
+      const change = mom(source, longLength);
+      // math.abs applied per bar to a Series<number>. Inline rather than pull
+      // in `math.*` to keep momentum.ts self-contained; math.abs is a pure
+      // node-side transform.
+      const absChange = runtime.nodes.getOrCreate(nodeKey("ta.tsi.absChange", change), () => {
+        const definition = {
+          init: (): null => null,
+          evaluate: (): number => {
+            const v = change.at(0);
+            return v === undefined || isNa(v) ? Number.NaN : Math.abs(v);
+          },
+          commit: (): void => undefined,
+        };
+        return new FloatSeries(runtime, new IndicatorNode(definition));
+      }) as FloatSeries;
+      const longSmoothed = ema(change, longLength);
+      const shortSmoothed = ema(longSmoothed, shortLength);
+      const longAbsSmoothed = ema(absChange, longLength);
+      const shortAbsSmoothed = ema(longAbsSmoothed, shortLength);
+      const definition = {
+        warmupBars: longLength + 2 * (shortLength - 1),
+        init: (): null => null,
+        evaluate: (): number => {
+          const numerator = shortSmoothed.at(0);
+          const denominator = shortAbsSmoothed.at(0);
+          if (numerator === undefined || isNa(numerator)) return Number.NaN;
+          if (denominator === undefined || isNa(denominator)) return Number.NaN;
+          if (denominator === 0) return Number.NaN;
+          return (100 * numerator) / denominator;
+        },
+        commit: (): void => undefined,
+      };
+      return new FloatSeries(runtime, new IndicatorNode(definition));
+    },
+  ) as FloatSeries;
+};
+
+/**
+ * `ta.rci(source, length)`. Rank Correlation Index — Spearman rank
+ * correlation between price and bar index over the rolling `length` window,
+ * scaled to ±100. Tied prices receive average ranks (the v6 Reference Manual
+ * behaviour), so the Pearson-on-ranks formula handles ties correctly:
+ *
+ * ```
+ * r = Σ((t - t̄)(p - p̄)) / √(Σ(t - t̄)² × Σ(p - p̄)²)
+ * RCI = 100 * r
+ * ```
+ *
+ * where `t` is the time rank (1..length, fixed by position) and `p` is the
+ * price rank within the window (tied prices share the average of the ranks
+ * they would have occupied). A na current value yields na; fewer than
+ * `length` non-na values (warm-up) yields na. A constant window (zero price
+ * variance) yields na, matching the Pine remark that "all prices equal"
+ * returns na.
+ */
+export const rci = (source: Series<number>, length: number): FloatSeries => {
+  requirePositiveLength(length);
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey("ta.rci", source, length), () => {
+    /** Assigns average ranks to ties, 1 = smallest value. */
+    const averageRanks = (values: readonly number[]): number[] => {
+      const indexed = values.map((value, index) => ({ value, index }));
+      indexed.sort((a, b) => a.value - b.value);
+      const ranks: number[] = values.map(() => 0);
+      let i = 0;
+      while (i < indexed.length) {
+        let j = i + 1;
+        while (j < indexed.length && indexed[j]!.value === indexed[i]!.value) j += 1;
+        const avgRank = (i + 1 + j) / 2; // ranks are 1-based, average of i+1..j
+        for (let k = i; k < j; k += 1) ranks[indexed[k]!.index] = avgRank;
+        i = j;
+      }
+      return ranks;
+    };
+    const definition = {
+      warmupBars: length - 1,
+      init: (): null => null,
+      evaluate: (): number => {
+        if (isNa(source.at(0))) return Number.NaN;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return Number.NaN;
+        const prices = window.map((entry) => entry.value);
+        const priceRanks = averageRanks(prices);
+        // Time ranks are 1..length in window order (newest = length, oldest = 1).
+        // That is, window[0] (newest, latest time) gets rank length, window[length-1]
+        // (oldest) gets rank 1.
+        const timeRanks: number[] = Array.from({ length }, (_, i) => length - i);
+        const meanTime = (length + 1) / 2;
+        const meanPrice = priceRanks.reduce((sum, r) => sum + r, 0) / length;
+        let num = 0;
+        let sumTime2 = 0;
+        let sumPrice2 = 0;
+        for (let i = 0; i < length; i += 1) {
+          const dt = timeRanks[i]! - meanTime;
+          const dp = priceRanks[i]! - meanPrice;
+          num += dt * dp;
+          sumTime2 += dt * dt;
+          sumPrice2 += dp * dp;
+        }
+        const denom = Math.sqrt(sumTime2 * sumPrice2);
+        if (denom === 0) return Number.NaN;
+        return (100 * num) / denom;
+      },
+      commit: (): void => undefined,
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;

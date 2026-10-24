@@ -1,0 +1,10 @@
+{
+  "name": "ta.range",
+  "pineVersion": 6,
+  "input": {
+    "source": [1, 5, 3, 4, 2],
+    "length": 3
+  },
+  "expected": [null, null, 4, 2, 2],
+  "notes": "Range = ta.highest(source, length) - ta.lowest(source, length). Sorted windows: [1,5,3]→[1,5] range 4; [5,3,4]→[3,5] range 2; [3,4,2]→[2,4] range 2."
+}

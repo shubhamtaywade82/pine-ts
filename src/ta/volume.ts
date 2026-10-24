@@ -359,3 +359,191 @@ export const accdist = (): FloatSeries => {
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
 };
+
+/**
+ * `ta.iii` — Intraday Intensity Index (David Bostian, featured in Bollinger's
+ * "Bollinger on Bollinger Bands"). Per-bar intensity
+ * `((2 * close - high - low) / (high - low)) * volume` accumulated cumulatively
+ * (`ta.cum` of the per-bar term), matching the documented Bostian formula.
+ * A zero bar range makes the per-bar term na (division by zero), so the bar
+ * contributes nothing to the cumulative sum — consistent with the
+ * `ta.cum` and `ta.accdist` conventions used elsewhere.
+ *
+ * The v6 reference entry documents `ta.iii` as a variable that takes no
+ * arguments and reads the current bar's OHLCV. The first bar's contribution
+ * has no `close[1]` to compare against, so on the first bar the term is na
+ * and the cumulative sum stays at zero (mirroring `ta.obv`'s first-bar
+ * behaviour).
+ */
+export const iii = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, low, high, volume } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.iii", close, low, high, volume), () => {
+    interface State {
+      sum: number;
+    }
+    const contribution = (): number | undefined => {
+      const closeValue = close.at(0);
+      const lowValue = low.at(0);
+      const highValue = high.at(0);
+      const volumeValue = volume.at(0);
+      if (
+        isNa(closeValue) ||
+        isNa(lowValue) ||
+        isNa(highValue) ||
+        isNa(volumeValue) ||
+        highValue === lowValue
+      ) {
+        return undefined;
+      }
+      return (((2 * closeValue - highValue - lowValue) / (highValue - lowValue)) * volumeValue);
+    };
+    const definition = {
+      init: (): State => ({ sum: 0 }),
+      evaluate: (state: Readonly<State>): number =>
+        state.sum + cumulativeContribution(contribution()),
+      commit: (state: State): void => {
+        state.sum += cumulativeContribution(contribution());
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * `ta.wad` — Williams Accumulation/Distribution. Cumulative line that does
+ * NOT use volume. Per the v6 Reference Manual re-implementation documented
+ * at pineify.app/.../wad:
+ *
+ * - trueHigh = max(high, prevClose)
+ * - trueLow = min(low, prevClose)
+ * - if close > prevClose: contribution = close - trueLow (positive)
+ * - if close < prevClose: contribution = close - trueHigh (negative)
+ * - if close == prevClose: contribution = 0
+ * - WAD = prevWAD + contribution
+ *
+ * The first bar has no previous close, so it seeds the cumulative line at
+ * zero (matching `ta.obv`'s first-bar convention). A na close, high, or low
+ * on either side of the comparison makes the contribution undefined, so the
+ * bar contributes nothing to the cumulative sum.
+ */
+export const wad = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, low, high } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.wad", close, low, high), () => {
+    interface State {
+      sum: number;
+      previousClose: number;
+      seeded: boolean;
+    }
+    const contribution = (state: Readonly<State>): number | undefined => {
+      const closeValue = close.at(0);
+      const lowValue = low.at(0);
+      const highValue = high.at(0);
+      if (isNa(closeValue) || isNa(lowValue) || isNa(highValue)) return undefined;
+      if (!state.seeded) return 0;
+      if (isNa(state.previousClose)) return undefined;
+      const trueHigh = Math.max(highValue, state.previousClose);
+      const trueLow = Math.min(lowValue, state.previousClose);
+      if (closeValue > state.previousClose) return closeValue - trueLow;
+      if (closeValue < state.previousClose) return closeValue - trueHigh;
+      return 0;
+    };
+    /** Apply the WAD contribution rule for a single committed bar. */
+    const applyBarContribution = (
+      sum: number,
+      closeValue: number,
+      previousClose: number,
+      highValue: number,
+      lowValue: number,
+    ): number => {
+      const trueHigh = Math.max(highValue, previousClose);
+      const trueLow = Math.min(lowValue, previousClose);
+      if (closeValue > previousClose) return sum + (closeValue - trueLow);
+      if (closeValue < previousClose) return sum + (closeValue - trueHigh);
+      return sum;
+    };
+    const definition = {
+      init: (): State => {
+        // Seed from committed history so a node created mid-run matches one
+        // that had been running all along.
+        let sum = 0;
+        let previousClose = Number.NaN;
+        let seeded = false;
+        let offset = 1;
+        while (true) {
+          const c = close.at(offset);
+          if (c === undefined) break;
+          if (!isNa(c)) {
+            const h = high.at(offset);
+            const l = low.at(offset);
+            if (seeded && !isNa(h) && !isNa(l)) {
+              sum = applyBarContribution(sum, c, previousClose, h, l);
+            }
+            previousClose = c;
+            seeded = true;
+          }
+          offset += 1;
+        }
+        return { sum, previousClose, seeded };
+      },
+      evaluate: (state: Readonly<State>): number =>
+        state.sum + cumulativeContribution(contribution(state)),
+      commit: (state: State): void => {
+        const contributionValue = contribution(state);
+        if (contributionValue !== undefined) state.sum += contributionValue;
+        const current = close.at(0);
+        if (!isNa(current)) {
+          state.previousClose = current;
+          state.seeded = true;
+        }
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
+/**
+ * `ta.wvad` — Williams Variable Accumulation/Distribution. Per the v6
+ * Reference Manual re-implementation:
+ * `(close - open) / (high - low) * volume` (per-bar, non-cumulative; the
+ * v6 reference's documented equivalent re-implementation returns the per-bar
+ * value without a cumulative sum).
+ *
+ * A zero bar range (high == low) makes the term na (division by zero),
+ * matching the convention used by `ta.accdist` and `ta.iii`. A na value in
+ * any of open, high, low, close, or volume yields na for the bar.
+ *
+ * Note: classic Larry Williams WVAD is cumulative; v6's `ta.wvad` returns
+ * the per-bar term per the documented re-implementation. Mark as draft
+ * pending a pinned TradingView reference vector.
+ */
+export const wvad = (): FloatSeries => {
+  const runtime = requireCurrentSession();
+  const { close, open, low, high, volume } = runtime.sources;
+  return runtime.nodes.getOrCreate(nodeKey("ta.wvad", close, open, low, high, volume), () => {
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const closeValue = close.at(0);
+        const openValue = open.at(0);
+        const lowValue = low.at(0);
+        const highValue = high.at(0);
+        const volumeValue = volume.at(0);
+        if (
+          isNa(closeValue) ||
+          isNa(openValue) ||
+          isNa(lowValue) ||
+          isNa(highValue) ||
+          isNa(volumeValue) ||
+          highValue === lowValue
+        ) {
+          return Number.NaN;
+        }
+        return ((closeValue - openValue) / (highValue - lowValue)) * volumeValue;
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};

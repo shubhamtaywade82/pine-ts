@@ -1,0 +1,11 @@
+{
+  "name": "ta.correlation",
+  "pineVersion": 6,
+  "input": {
+    "source1": [1, 2, 3, 4],
+    "source2": [2, 4, 6, 8],
+    "length": 4
+  },
+  "expected": [null, null, null, 1],
+  "notes": "Pearson correlation of perfectly linear y=2x over a 4-bar window. Pine v6 remark: na values in either source are ignored; fewer than length paired samples yield na (warm-up). A constant window (zero variance) yields na."
+}

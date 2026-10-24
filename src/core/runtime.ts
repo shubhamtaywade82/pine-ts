@@ -4,6 +4,11 @@ import { PineSession, type RealtimeTickOutcome, type SourceBundle } from "./sess
 import type { PineState } from "./state.js";
 import type { Bar, BarState, MarketDataProvider, SymbolInfo } from "./types.js";
 import { parse, type TimeframeInfo } from "../time/timeframe.js";
+import {
+  RequestEngine,
+  setActiveRequestEngine,
+  withActiveRequestEngine,
+} from "../request/engine.js";
 
 export type PineScript = (context: PineContext) => void;
 
@@ -36,11 +41,23 @@ export interface RuntimeOptions {
 export class PineRuntime {
   private readonly session: PineSession;
   private readonly timeframe: TimeframeInfo;
+  private readonly requestEngine: RequestEngine;
   private symbolInfo?: SymbolInfo;
 
   public constructor(private readonly options: RuntimeOptions) {
     this.session = new PineSession({ maxBarsBack: options.maxBarsBack });
     this.timeframe = parse(options.timeframe);
+    this.requestEngine = new RequestEngine(options.provider);
+  }
+
+  /**
+   * Pre-warms a `(symbol, timeframe)` pair for `request.security` /
+   * `request.security_lower_tf`. Loads bars + symbol info via the provider
+   * and creates the secondary `PineSession`. MUST be called for every
+   * unique pair the script will request before `runtime.run(script)`.
+   */
+  public async prepareSecurity(symbol: string, timeframe: string): Promise<void> {
+    await this.requestEngine.prepare(symbol, timeframe);
   }
 
   /**
@@ -58,12 +75,14 @@ export class PineRuntime {
     const confirmedCount = lastIsOpen ? data.length - 1 : data.length;
     this.session.expectHistoricalBars(data.length);
 
-    for (const [index, bar] of data.slice(0, confirmedCount).entries()) {
-      this.session.processHistoricalBar(bar, () => this.execute(script, bar), {
-        isLast: index === data.length - 1,
-        isLastConfirmedHistory: index === confirmedCount - 1,
-      });
-    }
+    withActiveRequestEngine(this.requestEngine, () => {
+      for (const [index, bar] of data.slice(0, confirmedCount).entries()) {
+        this.session.processHistoricalBar(bar, () => this.execute(script, bar), {
+          isLast: index === data.length - 1,
+          isLastConfirmedHistory: index === confirmedCount - 1,
+        });
+      }
+    });
 
     const openBar = lastIsOpen ? data.at(-1) : undefined;
     if (openBar !== undefined) this.feedRealtime(script, openBar);
@@ -71,12 +90,16 @@ export class PineRuntime {
 
   public async runRealtime(script: PineScript): Promise<void> {
     await this.initialize();
-
-    for await (const bar of this.options.provider.streamBars({
-      symbol: this.options.symbol,
-      timeframe: this.options.timeframe,
-    })) {
-      this.feedRealtime(script, bar);
+    setActiveRequestEngine(this.requestEngine);
+    try {
+      for await (const bar of this.options.provider.streamBars({
+        symbol: this.options.symbol,
+        timeframe: this.options.timeframe,
+      })) {
+        this.feedRealtime(script, bar);
+      }
+    } finally {
+      setActiveRequestEngine(undefined);
     }
   }
 
@@ -104,6 +127,11 @@ export class PineRuntime {
     return this.session.sources.time.at(0);
   }
 
+  /** The runtime-owned request engine (for host inspection / testing). */
+  public get requestEngineRef(): RequestEngine {
+    return this.requestEngine;
+  }
+
   private feedRealtime(script: PineScript, bar: Bar): void {
     const outcome = this.session.processRealtimeTick(bar, () => this.execute(script, bar));
     if (outcome !== "processed") this.options.onDiscardedTick?.({ bar, reason: outcome });
@@ -112,6 +140,7 @@ export class PineRuntime {
   private async initialize(): Promise<void> {
     this.symbolInfo ??= await this.options.provider.getSymbolInfo(this.options.symbol);
     this.session.setSymbolInfo(this.symbolInfo);
+    this.session.timeframe = this.options.timeframe;
   }
 
   private async loadHistoricalBars(bars?: readonly Bar[]): Promise<readonly Bar[]> {

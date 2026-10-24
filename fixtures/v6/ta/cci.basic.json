@@ -1,0 +1,10 @@
+{
+  "name": "ta.cci",
+  "pineVersion": 6,
+  "input": {
+    "source": [10, 20, 30, 40, 50],
+    "length": 4
+  },
+  "expected": [null, null, null, 100.0, 100.0],
+  "notes": "CCI with constant-advance series yields +100 (each new value sits exactly the SMA distance from the SMA, with MD = SMA distance / 0.015). Used as a draft warm-up + warm-bar fixture pending TradingView-exported reference vectors."
+}

@@ -1,0 +1,13 @@
+{
+  "name": "ta.wvad",
+  "pineVersion": 6,
+  "input": {
+    "open":  [100, 105,  95, 100, 110],
+    "high":  [110, 110, 105, 110, 120],
+    "low":   [ 90, 100,  85,  90, 100],
+    "close": [105, 100, 100, 105, 115],
+    "volume":[10, 20, 15, 25, 30]
+  },
+  "expected": [7.5, -10.0, 7.5, 18.75, 5.0],
+  "notes": "Williams Variable A/D per the v6 re-implementation: (close - open) / (high - low) * volume, per-bar (non-cumulative). Zero-range bars (high == low) yield na."
+}
