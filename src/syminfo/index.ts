@@ -38,7 +38,8 @@ export const tickerid = (): string => requireSymbolInfo()?.tickerId ?? "";
 export const basecurrency = (): string => requireSymbolInfo()?.baseCurrency ?? "";
 
 /** `syminfo.currency` — quote currency ISO code (e.g. "USD"). */
-export const currency = (): string => requireSymbolInfo()?.currency ?? requireSymbolInfo()?.quoteCurrency ?? "";
+export const currency = (): string =>
+  requireSymbolInfo()?.currency ?? requireSymbolInfo()?.quoteCurrency ?? "";
 
 /** `syminfo.mintick` — minimum price tick (e.g. 0.01 for USD stocks). */
 export const mintick = (): number => requireSymbolInfo()?.minTick ?? Number.NaN;

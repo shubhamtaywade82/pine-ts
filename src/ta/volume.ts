@@ -169,16 +169,25 @@ export const mfi = (source: Series<number>, length: number): FloatSeries => {
     const flows = (offset = 0): { readonly upper: number; readonly lower: number } | undefined => {
       const src = source.at(offset);
       const volumeValue = volume.at(offset);
-      if (volumeValue === undefined || !Number.isFinite(volumeValue) || src === undefined || !Number.isFinite(src))
+      if (
+        volumeValue === undefined ||
+        !Number.isFinite(volumeValue) ||
+        src === undefined ||
+        !Number.isFinite(src)
+      )
         return undefined;
       const previous = source.at(offset + 1);
-      const change = previous === undefined || !Number.isFinite(previous) ? undefined : src - previous;
+      const change =
+        previous === undefined || !Number.isFinite(previous) ? undefined : src - previous;
       // na change comparisons are false in Pine v6, so both branches pick src.
       const upper = change !== undefined && change <= 0 ? 0 : volumeValue * src;
       const lower = change !== undefined && change >= 0 ? 0 : volumeValue * src;
       return { upper, lower };
     };
-    const seedHistory = (rs: RunningSum, picker: (flow: { upper: number; lower: number }) => number): void => {
+    const seedHistory = (
+      rs: RunningSum,
+      picker: (flow: { upper: number; lower: number }) => number,
+    ): void => {
       // Walk back through committed history (newest first), collect `length`
       // non-na flows (oldest first), step through them so the new node
       // matches one that had been running all along.
@@ -417,7 +426,7 @@ export const iii = (): FloatSeries => {
       ) {
         return undefined;
       }
-      return (((2 * closeValue - highValue - lowValue) / (highValue - lowValue)) * volumeValue);
+      return ((2 * closeValue - highValue - lowValue) / (highValue - lowValue)) * volumeValue;
     };
     const definition = {
       init: (): State => ({ sum: 0 }),

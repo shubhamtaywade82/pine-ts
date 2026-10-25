@@ -364,7 +364,10 @@ export class StrategyEngine {
   }
 
   /** Infers the broker order type from limit/stop presence. */
-  private inferOrderType(options: { limit?: number; stop?: number }): "market" | "limit" | "stop" | "stop-limit" {
+  private inferOrderType(options: {
+    limit?: number;
+    stop?: number;
+  }): "market" | "limit" | "stop" | "stop-limit" {
     const limit = options.limit;
     const stop = options.stop;
     if (limit !== undefined && stop !== undefined) return "stop-limit";
@@ -435,8 +438,7 @@ export class StrategyEngine {
   private applyCommission(price: number, qty: number): { fillPrice: number; commission: number } {
     const slippage = this.declaration.slippage ?? 0;
     const slippageUnit = this.declaration.slippage_unit ?? "points";
-    const filled =
-      slippageUnit === "points" ? price + slippage : price * (1 + slippage / 100);
+    const filled = slippageUnit === "points" ? price + slippage : price * (1 + slippage / 100);
     const commissionType = this.declaration.commission_type ?? "percent";
     const commissionValue = this.declaration.commission_value ?? 0;
     const commission =
@@ -618,9 +620,7 @@ export class StrategyEngine {
     commission: number,
   ): number {
     const gross =
-      direction === "long"
-        ? (exitPrice - entryPrice) * qty
-        : (entryPrice - exitPrice) * qty;
+      direction === "long" ? (exitPrice - entryPrice) * qty : (entryPrice - exitPrice) * qty;
     return gross - commission;
   }
 
@@ -628,10 +628,7 @@ export class StrategyEngine {
 
   /** `strategy.position_size`. Signed position (long+, short-). */
   public get position_size(): number {
-    return this.openTrades.reduce(
-      (sum, t) => sum + (t.direction === "long" ? t.qty : -t.qty),
-      0,
-    );
+    return this.openTrades.reduce((sum, t) => sum + (t.direction === "long" ? t.qty : -t.qty), 0);
   }
 
   /** `strategy.position_avg_price`. Average entry price of the open position. */
@@ -667,16 +664,12 @@ export class StrategyEngine {
 
   /** `strategy.grossprofit`. Sum of profitable closed trades. */
   public get grossprofit(): number {
-    return this.closedTrades
-      .filter((t) => t.profit > 0)
-      .reduce((s, t) => s + t.profit, 0);
+    return this.closedTrades.filter((t) => t.profit > 0).reduce((s, t) => s + t.profit, 0);
   }
 
   /** `strategy.grossloss`. Sum of unprofitable closed trades (negative). */
   public get grossloss(): number {
-    return this.closedTrades
-      .filter((t) => t.profit < 0)
-      .reduce((s, t) => s + t.profit, 0);
+    return this.closedTrades.filter((t) => t.profit < 0).reduce((s, t) => s + t.profit, 0);
   }
 
   /** `strategy.max_drawdown`. Largest peak-to-trough equity decline. */
@@ -866,7 +859,8 @@ export const risk = {
   /** `strategy.risk.max_drawdown(value, type)`. Caps max equity drawdown. */
   max_drawdown: (value: number, type: "percent" | "fixed" = "percent"): void => {
     requireStrategyEngine();
-    if (typeof type !== "string") throw new RangeError("strategy.risk.max_drawdown: type must be a string");
+    if (typeof type !== "string")
+      throw new RangeError("strategy.risk.max_drawdown: type must be a string");
     if (!Number.isFinite(value) || value <= 0) {
       throw new RangeError("strategy.risk.max_drawdown: value must be positive");
     }
@@ -874,7 +868,8 @@ export const risk = {
   /** `strategy.risk.max_intraday_loss(value, type)`. Caps intraday loss. */
   max_intraday_loss: (value: number, type: "percent" | "fixed" = "percent"): void => {
     requireStrategyEngine();
-    if (typeof type !== "string") throw new RangeError("strategy.risk.max_intraday_loss: type must be a string");
+    if (typeof type !== "string")
+      throw new RangeError("strategy.risk.max_intraday_loss: type must be a string");
     if (!Number.isFinite(value) || value <= 0) {
       throw new RangeError("strategy.risk.max_intraday_loss: value must be positive");
     }

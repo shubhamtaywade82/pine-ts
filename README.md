@@ -83,7 +83,6 @@ v5), the live Binance broker wiring (mainnet behind a flag), the alert
 delivery sinks (webhook + Telegram + email + broker action), and the
 Pine editor (TypeScript-first, Monaco + hot-reload).
 
-
 Verification status per `ta.*` symbol is tracked in
 [`docs/TA-COVERAGE.md`](docs/TA-COVERAGE.md); functions with
 PineScript-exported reference vectors are marked `verified`
@@ -91,7 +90,6 @@ PineScript-exported reference vectors are marked `verified`
 `tests/reference-pine-vectors-running-sum.test.ts` pin several
 bit-for-bit — see [`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md) for the audit
 and provenance).
-
 
 ## Goals
 

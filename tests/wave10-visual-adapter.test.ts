@@ -55,7 +55,7 @@ describe("ChartAdapter", () => {
     });
     expect(svg.startsWith("<svg")).toBe(true);
     expect(svg).toContain("polyline");
-    expect(svg).toContain("stroke-dasharray=\"6,3\""); // hline dashed
+    expect(svg).toContain('stroke-dasharray="6,3"'); // hline dashed
     expect(svg).toContain("rect"); // fill band
     expect(svg.endsWith("</svg>")).toBe(true);
   });
@@ -63,7 +63,11 @@ describe("ChartAdapter", () => {
   it("serializes a marker (plotshape) as a circle in SVG", () => {
     const adapter = new ChartAdapter();
     visual.setVisualSink(adapter.consume);
-    visual.plotshape(true, { title: "arrow", style: "shapearrowup", color: colorNs.rgb(0, 128, 255) });
+    visual.plotshape(true, {
+      title: "arrow",
+      style: "shapearrowup",
+      color: colorNs.rgb(0, 128, 255),
+    });
     const svg = adapter.serializeSvg({
       width: 200,
       height: 100,
@@ -112,7 +116,15 @@ describe("ChartAdapter", () => {
       seriesId: "lbl1",
       barIndex: 0,
       barTime: 1,
-      payload: { kind: "label", x: 1, y: 50, text: "<script>alert('xss')</script>", color: "#fff", style: "label.style_label_left", size: "normal" },
+      payload: {
+        kind: "label",
+        x: 1,
+        y: 50,
+        text: "<script>alert('xss')</script>",
+        color: "#fff",
+        style: "label.style_label_left",
+        size: "normal",
+      },
     });
     const svg = adapter.serializeSvg({
       width: 200,

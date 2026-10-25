@@ -103,10 +103,7 @@ export const substring = (
  * `str.pos(source, str)`. Returns the 0-based index of the first occurrence
  * of `str` in `source`, or -1 when `str` is not found.
  */
-export const pos = (
-  source: string | undefined,
-  str: string | undefined,
-): number | undefined => {
+export const pos = (source: string | undefined, str: string | undefined): number | undefined => {
   if (source === undefined || str === undefined) return undefined;
   return source.indexOf(str);
 };
@@ -122,8 +119,7 @@ export const replace = (
   replacement: string | undefined,
   occurrence = -1,
 ): string | undefined => {
-  if (source === undefined || target === undefined || replacement === undefined)
-    return undefined;
+  if (source === undefined || target === undefined || replacement === undefined) return undefined;
   if (target === "") return source;
   if (occurrence === -1) return source.split(target).join(replacement);
   let result = source;
@@ -146,8 +142,7 @@ export const replace_all = (
   target: string | undefined,
   replacement: string | undefined,
 ): string | undefined => {
-  if (source === undefined || target === undefined || replacement === undefined)
-    return undefined;
+  if (source === undefined || target === undefined || replacement === undefined) return undefined;
   if (target === "") return source;
   return source.split(target).join(replacement);
 };
@@ -224,7 +219,7 @@ export const match = (
   if (source === undefined || regex === undefined) return undefined;
   const re = new RegExp(regex);
   const result = re.exec(source);
-  return result === null ? undefined : result[0] ?? "";
+  return result === null ? undefined : (result[0] ?? "");
 };
 
 // ---------- internal helpers ----------
@@ -261,7 +256,7 @@ const formatNumber = (value: number, format: string): string => {
   const totalDec = decFixed + decOptional;
   const rounded = Number(value.toFixed(totalDec));
   const [intPartRaw, decPartRaw] = rounded.toFixed(totalDec).split(".");
-  const intPart = intDigits > 0 ? padLeft(intPartRaw ?? "0", intDigits, "0") : intPartRaw ?? "0";
+  const intPart = intDigits > 0 ? padLeft(intPartRaw ?? "0", intDigits, "0") : (intPartRaw ?? "0");
   let decPart = decPartRaw ?? "";
   // Truncate trailing zeros beyond `decFixed` (optional # placeholders).
   if (decOptional > 0) {

@@ -50,17 +50,93 @@ export type MarkerSize = "tiny" | "small" | "normal" | "large" | "huge" | "auto"
 
 /** A renderable primitive. The `kind` discriminates the payload. */
 export type Primitive =
-  | { readonly kind: "line"; readonly seriesId: string; readonly points: readonly Point[]; readonly color: string; readonly linewidth: number; readonly style: "solid" | "dashed" | "dotted" }
-  | { readonly kind: "marker"; readonly seriesId: string; readonly point: Point; readonly shape: MarkerShape; readonly color: string; readonly size: MarkerSize; readonly text?: string }
-  | { readonly kind: "hline"; readonly seriesId: string; readonly price: number; readonly color: string; readonly linestyle: "solid" | "dashed" | "dotted" | "arrowed"; readonly linewidth: number }
-  | { readonly kind: "fill_band"; readonly seriesId: string; readonly topPrice: number; readonly bottomPrice: number; readonly color: string }
-  | { readonly kind: "bgcolor"; readonly seriesId: string; readonly color: string; readonly barTime: number | undefined }
-  | { readonly kind: "barcolor"; readonly seriesId: string; readonly color: string; readonly barTime: number | undefined }
-  | { readonly kind: "candle"; readonly seriesId: string; readonly time: number; readonly open: number; readonly high: number; readonly low: number; readonly close: number; readonly color: string }
-  | { readonly kind: "bar"; readonly seriesId: string; readonly time: number; readonly open: number; readonly high: number; readonly low: number; readonly close: number; readonly color: string }
-  | { readonly kind: "label"; readonly seriesId: string; readonly point: Point; readonly text: string; readonly color: string; readonly style: string; readonly size: MarkerSize }
-  | { readonly kind: "box"; readonly seriesId: string; readonly topLeft: Point; readonly bottomRight: Point; readonly color: string; readonly borderColor: string }
-  | { readonly kind: "table"; readonly seriesId: string; readonly position: string; readonly rows: readonly (readonly (string | undefined)[])[] };
+  | {
+      readonly kind: "line";
+      readonly seriesId: string;
+      readonly points: readonly Point[];
+      readonly color: string;
+      readonly linewidth: number;
+      readonly style: "solid" | "dashed" | "dotted";
+    }
+  | {
+      readonly kind: "marker";
+      readonly seriesId: string;
+      readonly point: Point;
+      readonly shape: MarkerShape;
+      readonly color: string;
+      readonly size: MarkerSize;
+      readonly text?: string;
+    }
+  | {
+      readonly kind: "hline";
+      readonly seriesId: string;
+      readonly price: number;
+      readonly color: string;
+      readonly linestyle: "solid" | "dashed" | "dotted" | "arrowed";
+      readonly linewidth: number;
+    }
+  | {
+      readonly kind: "fill_band";
+      readonly seriesId: string;
+      readonly topPrice: number;
+      readonly bottomPrice: number;
+      readonly color: string;
+    }
+  | {
+      readonly kind: "bgcolor";
+      readonly seriesId: string;
+      readonly color: string;
+      readonly barTime: number | undefined;
+    }
+  | {
+      readonly kind: "barcolor";
+      readonly seriesId: string;
+      readonly color: string;
+      readonly barTime: number | undefined;
+    }
+  | {
+      readonly kind: "candle";
+      readonly seriesId: string;
+      readonly time: number;
+      readonly open: number;
+      readonly high: number;
+      readonly low: number;
+      readonly close: number;
+      readonly color: string;
+    }
+  | {
+      readonly kind: "bar";
+      readonly seriesId: string;
+      readonly time: number;
+      readonly open: number;
+      readonly high: number;
+      readonly low: number;
+      readonly close: number;
+      readonly color: string;
+    }
+  | {
+      readonly kind: "label";
+      readonly seriesId: string;
+      readonly point: Point;
+      readonly text: string;
+      readonly color: string;
+      readonly style: string;
+      readonly size: MarkerSize;
+    }
+  | {
+      readonly kind: "box";
+      readonly seriesId: string;
+      readonly topLeft: Point;
+      readonly bottomRight: Point;
+      readonly color: string;
+      readonly borderColor: string;
+    }
+  | {
+      readonly kind: "table";
+      readonly seriesId: string;
+      readonly position: string;
+      readonly rows: readonly (readonly (string | undefined)[])[];
+    };
 
 // ---------- adapter ----------
 
@@ -70,17 +146,68 @@ export type Primitive =
  */
 export class ChartAdapter {
   private readonly plotSeries = new Map<string, Point[]>();
-  private readonly plotMeta = new Map<string, { color: string; linewidth: number; style: "solid" | "dashed" | "dotted" }>();
-  private readonly hlinePrices = new Map<string, { price: number; color: string; linestyle: "solid" | "dashed" | "dotted" | "arrowed"; linewidth: number }>();
+  private readonly plotMeta = new Map<
+    string,
+    { color: string; linewidth: number; style: "solid" | "dashed" | "dotted" }
+  >();
+  private readonly hlinePrices = new Map<
+    string,
+    {
+      price: number;
+      color: string;
+      linestyle: "solid" | "dashed" | "dotted" | "arrowed";
+      linewidth: number;
+    }
+  >();
   private readonly fills: { id: string; hline1: string; hline2: string; color: string }[] = [];
   private readonly bgcolors: { id: string; color: string; barTime: number | undefined }[] = [];
   private readonly barcolors: { id: string; color: string; barTime: number | undefined }[] = [];
-  private readonly candles: { id: string; time: number; open: number; high: number; low: number; close: number; color: string }[] = [];
-  private readonly bars: { id: string; time: number; open: number; high: number; low: number; close: number; color: string }[] = [];
-  private readonly markers: { id: string; point: Point; shape: MarkerShape; color: string; size: MarkerSize; text?: string }[] = [];
-  private readonly labels: { id: string; point: Point; text: string; color: string; style: string; size: MarkerSize }[] = [];
-  private readonly boxes: { id: string; topLeft: Point; bottomRight: Point; color: string; borderColor: string }[] = [];
-  private readonly tables: { id: string; position: string; rows: readonly (readonly (string | undefined)[])[] }[] = [];
+  private readonly candles: {
+    id: string;
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    color: string;
+  }[] = [];
+  private readonly bars: {
+    id: string;
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    color: string;
+  }[] = [];
+  private readonly markers: {
+    id: string;
+    point: Point;
+    shape: MarkerShape;
+    color: string;
+    size: MarkerSize;
+    text?: string;
+  }[] = [];
+  private readonly labels: {
+    id: string;
+    point: Point;
+    text: string;
+    color: string;
+    style: string;
+    size: MarkerSize;
+  }[] = [];
+  private readonly boxes: {
+    id: string;
+    topLeft: Point;
+    bottomRight: Point;
+    color: string;
+    borderColor: string;
+  }[] = [];
+  private readonly tables: {
+    id: string;
+    position: string;
+    rows: readonly (readonly (string | undefined)[])[];
+  }[] = [];
   private markerCounter = 0;
   private labelCounter = 0;
   private boxCounter = 0;
@@ -140,11 +267,23 @@ export class ChartAdapter {
   public primitives(): readonly Primitive[] {
     const out: Primitive[] = [];
     for (const [seriesId, points] of this.plotSeries) {
-      const meta = this.plotMeta.get(seriesId) ?? { color: "#1e90ff", linewidth: 1, style: "solid" as const };
+      const meta = this.plotMeta.get(seriesId) ?? {
+        color: "#1e90ff",
+        linewidth: 1,
+        style: "solid" as const,
+      };
       out.push({ kind: "line", seriesId, points, ...meta });
     }
     for (const marker of this.markers) {
-      const primitive: { kind: "marker"; seriesId: string; point: Point; shape: MarkerShape; color: string; size: MarkerSize; text?: string } = {
+      const primitive: {
+        kind: "marker";
+        seriesId: string;
+        point: Point;
+        shape: MarkerShape;
+        color: string;
+        size: MarkerSize;
+        text?: string;
+      } = {
         kind: "marker",
         seriesId: marker.id,
         point: marker.point,
@@ -156,13 +295,26 @@ export class ChartAdapter {
       out.push(primitive);
     }
     for (const [seriesId, h] of this.hlinePrices) {
-      out.push({ kind: "hline", seriesId, price: h.price, color: h.color, linestyle: h.linestyle, linewidth: h.linewidth });
+      out.push({
+        kind: "hline",
+        seriesId,
+        price: h.price,
+        color: h.color,
+        linestyle: h.linestyle,
+        linewidth: h.linewidth,
+      });
     }
     for (const fill of this.fills) {
       const top = this.hlinePrices.get(fill.hline1);
       const bottom = this.hlinePrices.get(fill.hline2);
       if (top === undefined || bottom === undefined) continue;
-      out.push({ kind: "fill_band", seriesId: fill.id, topPrice: top.price, bottomPrice: bottom.price, color: fill.color });
+      out.push({
+        kind: "fill_band",
+        seriesId: fill.id,
+        topPrice: top.price,
+        bottomPrice: bottom.price,
+        color: fill.color,
+      });
     }
     for (const bg of this.bgcolors) {
       out.push({ kind: "bgcolor", seriesId: bg.id, color: bg.color, barTime: bg.barTime });
@@ -171,16 +323,49 @@ export class ChartAdapter {
       out.push({ kind: "barcolor", seriesId: bc.id, color: bc.color, barTime: bc.barTime });
     }
     for (const c of this.candles) {
-      out.push({ kind: "candle", seriesId: c.id, time: c.time, open: c.open, high: c.high, low: c.low, close: c.close, color: c.color });
+      out.push({
+        kind: "candle",
+        seriesId: c.id,
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        color: c.color,
+      });
     }
     for (const b of this.bars) {
-      out.push({ kind: "bar", seriesId: b.id, time: b.time, open: b.open, high: b.high, low: b.low, close: b.close, color: b.color });
+      out.push({
+        kind: "bar",
+        seriesId: b.id,
+        time: b.time,
+        open: b.open,
+        high: b.high,
+        low: b.low,
+        close: b.close,
+        color: b.color,
+      });
     }
     for (const l of this.labels) {
-      out.push({ kind: "label", seriesId: l.id, point: l.point, text: l.text, color: l.color, style: l.style, size: l.size });
+      out.push({
+        kind: "label",
+        seriesId: l.id,
+        point: l.point,
+        text: l.text,
+        color: l.color,
+        style: l.style,
+        size: l.size,
+      });
     }
     for (const box of this.boxes) {
-      out.push({ kind: "box", seriesId: box.id, topLeft: box.topLeft, bottomRight: box.bottomRight, color: box.color, borderColor: box.borderColor });
+      out.push({
+        kind: "box",
+        seriesId: box.id,
+        topLeft: box.topLeft,
+        bottomRight: box.bottomRight,
+        color: box.color,
+        borderColor: box.borderColor,
+      });
     }
     for (const t of this.tables) {
       out.push({ kind: "table", seriesId: t.id, position: t.position, rows: t.rows });
@@ -268,7 +453,8 @@ export class ChartAdapter {
       innerWidth,
       innerHeight,
       xOf: (t: number): number => padding + ((t - opts.timeMin) / timeSpan) * innerWidth,
-      yOf: (v: number): number => padding + innerHeight - ((v - opts.priceMin) / priceSpan) * innerHeight,
+      yOf: (v: number): number =>
+        padding + innerHeight - ((v - opts.priceMin) / priceSpan) * innerHeight,
     };
   }
 
@@ -290,16 +476,26 @@ export class ChartAdapter {
         this.appendMarkerSvg(parts, p, ctx);
         break;
       case "hline":
-        parts.push(`<line x1="${ctx.padding}" y1="${ctx.yOf(p.price)}" x2="${ctx.width - ctx.padding}" y2="${ctx.yOf(p.price)}" stroke="${p.color}" stroke-width="${p.linewidth}" stroke-dasharray="${dashArrayForHline(p.linestyle)}" />`);
+        parts.push(
+          `<line x1="${ctx.padding}" y1="${ctx.yOf(p.price)}" x2="${ctx.width - ctx.padding}" y2="${ctx.yOf(p.price)}" stroke="${p.color}" stroke-width="${p.linewidth}" stroke-dasharray="${dashArrayForHline(p.linestyle)}" />`,
+        );
         break;
       case "fill_band":
-        parts.push(`<rect x="${ctx.padding}" y="${ctx.yOf(p.topPrice)}" width="${ctx.innerWidth}" height="${ctx.yOf(p.bottomPrice) - ctx.yOf(p.topPrice)}" fill="${p.color}" fill-opacity="0.3" />`);
+        parts.push(
+          `<rect x="${ctx.padding}" y="${ctx.yOf(p.topPrice)}" width="${ctx.innerWidth}" height="${ctx.yOf(p.bottomPrice) - ctx.yOf(p.topPrice)}" fill="${p.color}" fill-opacity="0.3" />`,
+        );
         break;
       case "bgcolor":
-        if (p.barTime !== undefined) parts.push(`<rect x="${ctx.xOf(p.barTime) - 2}" y="${ctx.padding}" width="4" height="${ctx.innerHeight}" fill="${p.color}" fill-opacity="0.5" />`);
+        if (p.barTime !== undefined)
+          parts.push(
+            `<rect x="${ctx.xOf(p.barTime) - 2}" y="${ctx.padding}" width="4" height="${ctx.innerHeight}" fill="${p.color}" fill-opacity="0.5" />`,
+          );
         break;
       case "barcolor":
-        if (p.barTime !== undefined) parts.push(`<rect x="${ctx.xOf(p.barTime) - 2}" y="${ctx.padding}" width="4" height="${ctx.innerHeight}" fill="${p.color}" fill-opacity="0.3" />`);
+        if (p.barTime !== undefined)
+          parts.push(
+            `<rect x="${ctx.xOf(p.barTime) - 2}" y="${ctx.padding}" width="4" height="${ctx.innerHeight}" fill="${p.color}" fill-opacity="0.3" />`,
+          );
         break;
       case "candle":
         this.appendCandleSvg(parts, p, ctx);
@@ -308,7 +504,9 @@ export class ChartAdapter {
         this.appendBarSvg(parts, p, ctx);
         break;
       case "label":
-        parts.push(`<text x="${ctx.xOf(p.point.time)}" y="${ctx.yOf(p.point.value)}" text-anchor="middle" fill="${p.color}" font-size="11">${escapeXml(p.text)}</text>`);
+        parts.push(
+          `<text x="${ctx.xOf(p.point.time)}" y="${ctx.yOf(p.point.value)}" text-anchor="middle" fill="${p.color}" font-size="11">${escapeXml(p.text)}</text>`,
+        );
         break;
       case "box":
         this.appendBoxSvg(parts, p, ctx);
@@ -323,51 +521,87 @@ export class ChartAdapter {
     }
   }
 
-  private appendLineSvg(parts: string[], p: Extract<Primitive, { kind: "line" }>, ctx: ReturnType<ChartAdapter["makeRenderContext"]>): void {
+  private appendLineSvg(
+    parts: string[],
+    p: Extract<Primitive, { kind: "line" }>,
+    ctx: ReturnType<ChartAdapter["makeRenderContext"]>,
+  ): void {
     if (p.points.length < 2) return;
     const pts = p.points.map((pt) => `${ctx.xOf(pt.time)},${ctx.yOf(pt.value)}`).join(" ");
-    parts.push(`<polyline points="${pts}" stroke="${p.color}" stroke-width="${p.linewidth}" fill="none" stroke-dasharray="${dashArray(p.style)}" />`);
+    parts.push(
+      `<polyline points="${pts}" stroke="${p.color}" stroke-width="${p.linewidth}" fill="none" stroke-dasharray="${dashArray(p.style)}" />`,
+    );
   }
 
-  private appendMarkerSvg(parts: string[], p: Extract<Primitive, { kind: "marker" }>, ctx: ReturnType<ChartAdapter["makeRenderContext"]>): void {
+  private appendMarkerSvg(
+    parts: string[],
+    p: Extract<Primitive, { kind: "marker" }>,
+    ctx: ReturnType<ChartAdapter["makeRenderContext"]>,
+  ): void {
     const cx = ctx.xOf(p.point.time);
     const cy = ctx.yOf(p.point.value);
     const r = markerRadius(p.size);
     parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${p.color}" />`);
     if (p.text !== undefined) {
-      parts.push(`<text x="${cx}" y="${cy - r - 2}" text-anchor="middle" fill="${p.color}" font-size="10">${escapeXml(p.text)}</text>`);
+      parts.push(
+        `<text x="${cx}" y="${cy - r - 2}" text-anchor="middle" fill="${p.color}" font-size="10">${escapeXml(p.text)}</text>`,
+      );
     }
   }
 
-  private appendCandleSvg(parts: string[], p: Extract<Primitive, { kind: "candle" }>, ctx: ReturnType<ChartAdapter["makeRenderContext"]>): void {
+  private appendCandleSvg(
+    parts: string[],
+    p: Extract<Primitive, { kind: "candle" }>,
+    ctx: ReturnType<ChartAdapter["makeRenderContext"]>,
+  ): void {
     const x = ctx.xOf(p.time);
     const yO = ctx.yOf(p.open);
     const yH = ctx.yOf(p.high);
     const yL = ctx.yOf(p.low);
     const yC = ctx.yOf(p.close);
-    parts.push(`<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${p.color}" stroke-width="1" />`);
+    parts.push(
+      `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${p.color}" stroke-width="1" />`,
+    );
     const bodyTop = Math.min(yO, yC);
     const bodyHeight = Math.abs(yC - yO) || 1;
-    parts.push(`<rect x="${x - 3}" y="${bodyTop}" width="6" height="${bodyHeight}" fill="${p.color}" />`);
+    parts.push(
+      `<rect x="${x - 3}" y="${bodyTop}" width="6" height="${bodyHeight}" fill="${p.color}" />`,
+    );
   }
 
-  private appendBarSvg(parts: string[], p: Extract<Primitive, { kind: "bar" }>, ctx: ReturnType<ChartAdapter["makeRenderContext"]>): void {
+  private appendBarSvg(
+    parts: string[],
+    p: Extract<Primitive, { kind: "bar" }>,
+    ctx: ReturnType<ChartAdapter["makeRenderContext"]>,
+  ): void {
     const x = ctx.xOf(p.time);
     const yO = ctx.yOf(p.open);
     const yC = ctx.yOf(p.close);
     const yH = ctx.yOf(p.high);
     const yL = ctx.yOf(p.low);
-    parts.push(`<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${p.color}" stroke-width="1" />`);
-    parts.push(`<line x1="${x - 3}" y1="${yO}" x2="${x}" y2="${yO}" stroke="${p.color}" stroke-width="1" />`);
-    parts.push(`<line x1="${x + 3}" y1="${yC}" x2="${x}" y2="${yC}" stroke="${p.color}" stroke-width="1" />`);
+    parts.push(
+      `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${p.color}" stroke-width="1" />`,
+    );
+    parts.push(
+      `<line x1="${x - 3}" y1="${yO}" x2="${x}" y2="${yO}" stroke="${p.color}" stroke-width="1" />`,
+    );
+    parts.push(
+      `<line x1="${x + 3}" y1="${yC}" x2="${x}" y2="${yC}" stroke="${p.color}" stroke-width="1" />`,
+    );
   }
 
-  private appendBoxSvg(parts: string[], p: Extract<Primitive, { kind: "box" }>, ctx: ReturnType<ChartAdapter["makeRenderContext"]>): void {
+  private appendBoxSvg(
+    parts: string[],
+    p: Extract<Primitive, { kind: "box" }>,
+    ctx: ReturnType<ChartAdapter["makeRenderContext"]>,
+  ): void {
     const x1 = ctx.xOf(p.topLeft.time);
     const y1 = ctx.yOf(p.topLeft.value);
     const x2 = ctx.xOf(p.bottomRight.time);
     const y2 = ctx.yOf(p.bottomRight.value);
-    parts.push(`<rect x="${Math.min(x1, x2)}" y="${Math.min(y1, y2)}" width="${Math.abs(x2 - x1)}" height="${Math.abs(y2 - y1)}" fill="${p.color}" fill-opacity="0.2" stroke="${p.borderColor}" />`);
+    parts.push(
+      `<rect x="${Math.min(x1, x2)}" y="${Math.min(y1, y2)}" width="${Math.abs(x2 - x1)}" height="${Math.abs(y2 - y1)}" fill="${p.color}" fill-opacity="0.2" stroke="${p.borderColor}" />`,
+    );
   }
 
   private appendTableSvg(
@@ -382,7 +616,9 @@ export class ChartAdapter {
       let cx = x;
       for (const cell of row) {
         if (cell !== undefined) {
-          parts.push(`<text x="${cx}" y="${y}" fill="${opts.foregroundColor ?? "#d0d0d0"}" font-size="11">${escapeXml(cell)}</text>`);
+          parts.push(
+            `<text x="${cx}" y="${y}" fill="${opts.foregroundColor ?? "#d0d0d0"}" font-size="11">${escapeXml(cell)}</text>`,
+          );
         }
         cx += 80;
       }
@@ -410,9 +646,11 @@ export class ChartAdapter {
     // (Pine does not reset to default when the option is omitted).
     const existing = this.plotMeta.get(event.seriesId);
     const incomingColor = event.payload["color"];
-    const color = incomingColor !== undefined ? colorToCss(incomingColor) : existing?.color ?? "#1e90ff";
+    const color =
+      incomingColor !== undefined ? colorToCss(incomingColor) : (existing?.color ?? "#1e90ff");
     const incomingLinewidth = event.payload["linewidth"];
-    const linewidth = typeof incomingLinewidth === "number" ? incomingLinewidth : existing?.linewidth ?? 1;
+    const linewidth =
+      typeof incomingLinewidth === "number" ? incomingLinewidth : (existing?.linewidth ?? 1);
     this.plotMeta.set(event.seriesId, { color, linewidth, style });
   }
 
@@ -424,7 +662,14 @@ export class ChartAdapter {
     const size: MarkerSize = (event.payload["size"] as MarkerSize | undefined) ?? "normal";
     const text = event.payload["char"] as string | undefined;
     this.markerCounter += 1;
-    const marker: { id: string; point: Point; shape: MarkerShape; color: string; size: MarkerSize; text?: string } = {
+    const marker: {
+      id: string;
+      point: Point;
+      shape: MarkerShape;
+      color: string;
+      size: MarkerSize;
+      text?: string;
+    } = {
       id: `${event.seriesId || "marker"}_${this.markerCounter}`,
       point: { time, value },
       shape,
@@ -441,8 +686,23 @@ export class ChartAdapter {
     const low = event.payload["low"] as number | undefined;
     const close = event.payload["close"] as number | undefined;
     const color = colorToCss(event.payload["color"]);
-    if (open === undefined || high === undefined || low === undefined || close === undefined || event.barTime === undefined) return;
-    this.bars.push({ id: `${event.seriesId || "bar"}_${this.bars.length + 1}`, time: event.barTime, open, high, low, close, color });
+    if (
+      open === undefined ||
+      high === undefined ||
+      low === undefined ||
+      close === undefined ||
+      event.barTime === undefined
+    )
+      return;
+    this.bars.push({
+      id: `${event.seriesId || "bar"}_${this.bars.length + 1}`,
+      time: event.barTime,
+      open,
+      high,
+      low,
+      close,
+      color,
+    });
   }
 
   private handleCandle(event: VisualEvent): void {
@@ -451,15 +711,32 @@ export class ChartAdapter {
     const low = event.payload["low"] as number | undefined;
     const close = event.payload["close"] as number | undefined;
     const color = colorToCss(event.payload["color"]);
-    if (open === undefined || high === undefined || low === undefined || close === undefined || event.barTime === undefined) return;
-    this.candles.push({ id: `${event.seriesId || "candle"}_${this.candles.length + 1}`, time: event.barTime, open, high, low, close, color });
+    if (
+      open === undefined ||
+      high === undefined ||
+      low === undefined ||
+      close === undefined ||
+      event.barTime === undefined
+    )
+      return;
+    this.candles.push({
+      id: `${event.seriesId || "candle"}_${this.candles.length + 1}`,
+      time: event.barTime,
+      open,
+      high,
+      low,
+      close,
+      color,
+    });
   }
 
   private handleHline(event: VisualEvent): void {
     const price = event.payload["price"] as number | undefined;
     if (price === undefined) return;
     const color = colorToCss(event.payload["color"]);
-    const linestyle = (event.payload["linestyle"] as "solid" | "dashed" | "dotted" | "arrowed" | undefined) ?? "solid";
+    const linestyle =
+      (event.payload["linestyle"] as "solid" | "dashed" | "dotted" | "arrowed" | undefined) ??
+      "solid";
     const linewidth = (event.payload["linewidth"] as number | undefined) ?? 1;
     this.hlinePrices.set(event.seriesId, { price, color, linestyle, linewidth });
   }
@@ -469,17 +746,30 @@ export class ChartAdapter {
     const hline2 = event.payload["hline2"] as string | undefined;
     const color = colorToCss(event.payload["color"]);
     if (hline1 === undefined || hline2 === undefined) return;
-    this.fills.push({ id: `${event.seriesId || "fill"}_${this.fills.length + 1}`, hline1, hline2, color });
+    this.fills.push({
+      id: `${event.seriesId || "fill"}_${this.fills.length + 1}`,
+      hline1,
+      hline2,
+      color,
+    });
   }
 
   private handleBgcolor(event: VisualEvent): void {
     const color = colorToCss(event.payload["color"]);
-    this.bgcolors.push({ id: `${event.seriesId || "bgcolor"}_${this.bgcolors.length + 1}`, color, barTime: event.barTime });
+    this.bgcolors.push({
+      id: `${event.seriesId || "bgcolor"}_${this.bgcolors.length + 1}`,
+      color,
+      barTime: event.barTime,
+    });
   }
 
   private handleBarcolor(event: VisualEvent): void {
     const color = colorToCss(event.payload["color"]);
-    this.barcolors.push({ id: `${event.seriesId || "barcolor"}_${this.barcolors.length + 1}`, color, barTime: event.barTime });
+    this.barcolors.push({
+      id: `${event.seriesId || "barcolor"}_${this.barcolors.length + 1}`,
+      color,
+      barTime: event.barTime,
+    });
   }
 
   private handleDrawing(event: VisualEvent): void {
@@ -497,7 +787,14 @@ export class ChartAdapter {
         const size: MarkerSize = (event.payload["size"] as MarkerSize | undefined) ?? "normal";
         if (x === undefined || y === undefined || event.barTime === undefined) return;
         this.labelCounter += 1;
-        this.labels.push({ id: event.seriesId, point: { time: event.barTime, value: y }, text, color, style, size });
+        this.labels.push({
+          id: event.seriesId,
+          point: { time: event.barTime, value: y },
+          text,
+          color,
+          style,
+          size,
+        });
       } else if (kind === "box") {
         const topLeftX = event.payload["left"] as number | undefined;
         const topLeftY = event.payload["top"] as number | undefined;
@@ -505,7 +802,13 @@ export class ChartAdapter {
         const bottomRightY = event.payload["bottom"] as number | undefined;
         const color = colorToCss(event.payload["bgcolor"]);
         const borderColor = colorToCss(event.payload["border_color"]);
-        if (topLeftX === undefined || topLeftY === undefined || bottomRightX === undefined || bottomRightY === undefined) return;
+        if (
+          topLeftX === undefined ||
+          topLeftY === undefined ||
+          bottomRightX === undefined ||
+          bottomRightY === undefined
+        )
+          return;
         this.boxCounter += 1;
         this.boxes.push({
           id: event.seriesId,
@@ -838,9 +1141,7 @@ const toLightweightChartsPrimitive = (p: Primitive): LightweightChartsPrimitive 
 };
 
 /** Maps a pine-ts MarkerShape to the LWC v5 marker shape. */
-const markerShapeToLWC = (
-  shape: MarkerShape,
-): "circle" | "square" | "arrowUp" | "arrowDown" => {
+const markerShapeToLWC = (shape: MarkerShape): "circle" | "square" | "arrowUp" | "arrowDown" => {
   switch (shape) {
     case "arrowup":
       return "arrowUp";

@@ -10,18 +10,17 @@ import type { FloatSeries } from "../core/series.js";
 import type { PineContext } from "../core/context.js";
 
 /** The Pine v6 source series selectable via the `"source"` input kind. */
-export type SourceSelector =
-  | "open"
-  | "high"
-  | "low"
-  | "close"
-  | "hl2"
-  | "hlc3"
-  | "ohlc4";
+export type SourceSelector = "open" | "high" | "low" | "close" | "hl2" | "hlc3" | "ohlc4";
 
 /** The list of valid source selectors (for `input.options` defaults). */
 export const SOURCE_SELECTORS: readonly SourceSelector[] = [
-  "open", "high", "low", "close", "hl2", "hlc3", "ohlc4",
+  "open",
+  "high",
+  "low",
+  "close",
+  "hl2",
+  "hlc3",
+  "ohlc4",
 ];
 
 /**
@@ -31,13 +30,20 @@ export const SOURCE_SELECTORS: readonly SourceSelector[] = [
  */
 export const resolveSource = (ctx: PineContext, selector: string): FloatSeries => {
   switch (selector) {
-    case "open": return ctx.open;
-    case "high": return ctx.high;
-    case "low": return ctx.low;
-    case "close": return ctx.close;
-    case "hl2": return ctx.hl2;
-    case "hlc3": return ctx.hlc3;
-    case "ohlc4": return ctx.ohlc4;
+    case "open":
+      return ctx.open;
+    case "high":
+      return ctx.high;
+    case "low":
+      return ctx.low;
+    case "close":
+      return ctx.close;
+    case "hl2":
+      return ctx.hl2;
+    case "hlc3":
+      return ctx.hlc3;
+    case "ohlc4":
+      return ctx.ohlc4;
     default:
       throw new RangeError(
         `Unknown source selector: ${JSON.stringify(selector)}. ` +
@@ -53,7 +59,9 @@ export const resolveSource = (ctx: PineContext, selector: string): FloatSeries =
 export const readNumber = (inputs: Record<string, unknown>, name: string): number => {
   const value = inputs[name];
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new TypeError(`Input ${JSON.stringify(name)} must be a finite number; got ${String(value)}`);
+    throw new TypeError(
+      `Input ${JSON.stringify(name)} must be a finite number; got ${String(value)}`,
+    );
   }
   return value;
 };

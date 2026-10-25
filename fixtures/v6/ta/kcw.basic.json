@@ -15,7 +15,14 @@
     "useTrueRange": true
   },
   "expected": {
-    "kcw": [null, null, 0.4983164983164983, 0.32666666666666655, 0.36858974358974345, 0.375951293759513]
+    "kcw": [
+      null,
+      null,
+      0.4983164983164983,
+      0.32666666666666655,
+      0.36858974358974345,
+      0.375951293759513
+    ]
   },
   "notes": "Official v6 re-implementation: ((basis + rangeEma * mult) - (basis - rangeEma * mult)) / basis. Unlike ta.bbw there is no * 100. Values derive from the kc.basic.json channels with the corrected ta.ema warm-up (see docs/ECOSYSTEM.md)."
 }

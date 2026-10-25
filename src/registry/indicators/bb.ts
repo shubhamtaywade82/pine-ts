@@ -15,7 +15,14 @@
  */
 
 import { ta } from "../../index.js";
-import { defineIndicator, floatInput, intInput, linePlot, fillBandPlot, sourceInput } from "../define.js";
+import {
+  defineIndicator,
+  floatInput,
+  intInput,
+  linePlot,
+  fillBandPlot,
+  sourceInput,
+} from "../define.js";
 import { type Indicator } from "../types.js";
 import { readNumber, readString, resolveSource } from "../helpers.js";
 

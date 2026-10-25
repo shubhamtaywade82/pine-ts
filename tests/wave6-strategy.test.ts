@@ -11,13 +11,15 @@ import {
 } from "../src/index.js";
 import type { Direction } from "../src/strategy/index.js";
 
-const bar = (
-  t: number,
-  o: number,
-  h: number,
-  l: number,
-  c: number,
-): Bar => ({ time: t, open: o, high: h, low: l, close: c, volume: 1, isClosed: true });
+const bar = (t: number, o: number, h: number, l: number, c: number): Bar => ({
+  time: t,
+  open: o,
+  high: h,
+  low: l,
+  close: c,
+  volume: 1,
+  isClosed: true,
+});
 
 describe("strategy.* engine", () => {
   let engine: StrategyEngine;

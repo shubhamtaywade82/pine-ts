@@ -25,9 +25,7 @@ export const sma: Indicator = defineIndicator({
     sourceInput("source", "Source", "close"),
     intInput("length", "Length", 14, { min: 1, max: 5000 }),
   ],
-  plots: [
-    linePlot("main", "SMA", { color: "#1e88e5", linewidth: 2, pane: "main" }),
-  ],
+  plots: [linePlot("main", "SMA", { color: "#1e88e5", linewidth: 2, pane: "main" })],
   calculate: ({ ctx, inputs }) => {
     const source = resolveSource(ctx, readString(inputs, "source"));
     const length = readNumber(inputs, "length");

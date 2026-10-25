@@ -173,12 +173,7 @@ export const percentile_linear_interpolation = (
  * TradingView v6 Reference Manual `pivot_point_levels` parameter values.
  */
 export type PivotPointStyle =
-  | "TRADITIONAL"
-  | "FIBONACCI"
-  | "WOODIE"
-  | "CLASSIC"
-  | "DE_MARK"
-  | "CAMARILLA";
+  "TRADITIONAL" | "FIBONACCI" | "WOODIE" | "CLASSIC" | "DE_MARK" | "CAMARILLA";
 
 /**
  * `ta.pivot_point_levels(type, anchor?)`. Returns a `PineArray<number>` of
@@ -249,7 +244,14 @@ export const pivot_point_levels = (
           const h = high.at(0);
           const l = low.at(0);
           const c = close.at(0);
-          if (h === undefined || l === undefined || c === undefined || isNa(h) || isNa(l) || isNa(c)) {
+          if (
+            h === undefined ||
+            l === undefined ||
+            c === undefined ||
+            isNa(h) ||
+            isNa(l) ||
+            isNa(c)
+          ) {
             return state.levels;
           }
           if (reset.at(0)) {
@@ -259,7 +261,12 @@ export const pivot_point_levels = (
             if (state.lastAnchorBar < 0) {
               return new PineArray<number>(new Array(11).fill(0));
             }
-            return computeLevels(state.periodHigh, state.periodLow, state.periodClose, state.periodOpen);
+            return computeLevels(
+              state.periodHigh,
+              state.periodLow,
+              state.periodClose,
+              state.periodOpen,
+            );
           }
           return state.levels;
         },
@@ -267,7 +274,14 @@ export const pivot_point_levels = (
           const h = high.at(0);
           const l = low.at(0);
           const c = close.at(0);
-          if (h === undefined || l === undefined || c === undefined || isNa(h) || isNa(l) || isNa(c)) {
+          if (
+            h === undefined ||
+            l === undefined ||
+            c === undefined ||
+            isNa(h) ||
+            isNa(l) ||
+            isNa(c)
+          ) {
             return;
           }
           if (reset.at(0)) {
@@ -305,27 +319,30 @@ export const pivot_point_levels = (
 const dailyAnchorForPivots = (runtime: PineSession): BooleanSeries => {
   const { time } = runtime.sources;
   const timezone = runtime.getSymbolInfo().timezone ?? "UTC";
-  return runtime.nodes.getOrCreate(nodeKey("ta.pivot_point_levels.anchorDaily", time, timezone), () => {
-    const formatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    const dayKey = (timestamp: number): string => formatter.format(new Date(timestamp * 1000));
-    const definition = {
-      init: (): null => null,
-      evaluate: (): boolean => {
-        const current = time.at(0);
-        const previous = time.at(1);
-        if (current === undefined) return false;
-        if (previous === undefined) return true;
-        return dayKey(current) !== dayKey(previous);
-      },
-      commit: (): void => undefined,
-    };
-    return new BooleanSeries(runtime, new IndicatorNode(definition));
-  }) as BooleanSeries;
+  return runtime.nodes.getOrCreate(
+    nodeKey("ta.pivot_point_levels.anchorDaily", time, timezone),
+    () => {
+      const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+      const dayKey = (timestamp: number): string => formatter.format(new Date(timestamp * 1000));
+      const definition = {
+        init: (): null => null,
+        evaluate: (): boolean => {
+          const current = time.at(0);
+          const previous = time.at(1);
+          if (current === undefined) return false;
+          if (previous === undefined) return true;
+          return dayKey(current) !== dayKey(previous);
+        },
+        commit: (): void => undefined,
+      };
+      return new BooleanSeries(runtime, new IndicatorNode(definition));
+    },
+  ) as BooleanSeries;
 };
 
 /**
@@ -402,23 +419,21 @@ const computePivotLevels = (
       //   if close < open: PP = (high + low + 2*close) / 4
       //   else:             PP = (2*high + low + close) / 4
       // (Some sources use a single formula; we follow the standard.)
-      const pp = close < open
-        ? (high + low + 2 * close) / 4
-        : (2 * high + low + close) / 4;
+      const pp = close < open ? (high + low + 2 * close) / 4 : (2 * high + low + close) / 4;
       const r1 = 2 * pp - low;
       const s1 = 2 * pp - high;
       return [pp, r1, s1, 0, 0, 0, 0, 0, 0, 0, 0];
     }
     case "CAMARILLA": {
       const pp = (high + low + close) / 3;
-      const r1 = close + range * 1.1 / 12;
-      const s1 = close - range * 1.1 / 12;
-      const r2 = close + range * 1.1 / 6;
-      const s2 = close - range * 1.1 / 6;
-      const r3 = close + range * 1.1 / 4;
-      const s3 = close - range * 1.1 / 4;
-      const r4 = close + range * 1.1 / 2;
-      const s4 = close - range * 1.1 / 2;
+      const r1 = close + (range * 1.1) / 12;
+      const s1 = close - (range * 1.1) / 12;
+      const r2 = close + (range * 1.1) / 6;
+      const s2 = close - (range * 1.1) / 6;
+      const r3 = close + (range * 1.1) / 4;
+      const s3 = close - (range * 1.1) / 4;
+      const r4 = close + (range * 1.1) / 2;
+      const s4 = close - (range * 1.1) / 2;
       const r5 = close + range * 1.1;
       const s5 = close - range * 1.1;
       return [pp, r1, s1, r2, s2, r3, s3, r4, s4, r5, s5];

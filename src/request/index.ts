@@ -16,11 +16,7 @@
  * in. This is honest — Pine v6 NEVER fabricates provider-specific data.
  */
 
-import {
-  getActiveRequestEngine,
-  RequestNotPrepared,
-  type SecurityOptions,
-} from "./engine.js";
+import { getActiveRequestEngine, RequestNotPrepared, type SecurityOptions } from "./engine.js";
 import type { PineContext } from "../core/context.js";
 
 // Re-exports for callers that prefer the typed namespace.
@@ -159,9 +155,7 @@ export const splits = (symbol: string): readonly number[] =>
 /**
  * `request.earnings(symbol)`. Provider-limited.
  */
-export const earnings = (
-  symbol: string,
-): readonly { date: number; value: number }[] =>
+export const earnings = (symbol: string): readonly { date: number; value: number }[] =>
   notImplemented("earnings", symbol, "earnings");
 
 /**
@@ -197,11 +191,7 @@ export const quandl = (ticker: string): number | undefined => {
 /**
  * `request.seed(symbol, price_source, currency)`. Provider-limited.
  */
-export const seed = (
-  symbol: string,
-  priceSource: string,
-  currency: string,
-): number | undefined => {
+export const seed = (symbol: string, priceSource: string, currency: string): number | undefined => {
   if (typeof priceSource !== "string" || priceSource.trim() === "") {
     throw new RequestNotImplemented("request.seed: price_source required");
   }

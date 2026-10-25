@@ -16,8 +16,22 @@
   },
   "expected": {
     "middle": [null, null, 9.9, 10, 10.4, 10.95],
-    "upper": [null, null, 12.366666666666667, 11.633333333333333, 12.316666666666666, 13.008333333333333],
-    "lower": [null, null, 7.433333333333334, 8.366666666666667, 8.483333333333334, 8.891666666666666]
+    "upper": [
+      null,
+      null,
+      12.366666666666667,
+      11.633333333333333,
+      12.316666666666666,
+      13.008333333333333
+    ],
+    "lower": [
+      null,
+      null,
+      7.433333333333334,
+      8.366666666666667,
+      8.483333333333334,
+      8.891666666666666
+    ]
   },
   "notes": "Official v6 re-implementation: basis = ta.ema(src, length); span = ta.tr when useTrueRange else (high - low); rangeEma = ta.ema(span, length); [basis, basis + rangeEma * mult, basis - rangeEma * mult]. Bar 1 gaps below the previous close so ta.tr (0.6) differs from high - low (0.4). Corrected ta.ema warm-up (SMA seed, na until the length-th valid bar; see docs/ECOSYSTEM.md): basis and rangeEma are na on bars 0-1 and seed at bar 2 (SMA of the first 3 valid values)."
 }

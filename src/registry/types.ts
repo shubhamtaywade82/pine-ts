@@ -158,14 +158,7 @@ export interface PlotConfig {
 // ---------- indicator metadata ----------
 
 export type IndicatorCategory =
-  | "overlay"
-  | "oscillator"
-  | "volume"
-  | "trend"
-  | "momentum"
-  | "bands"
-  | "volatility"
-  | "custom";
+  "overlay" | "oscillator" | "volume" | "trend" | "momentum" | "bands" | "volatility" | "custom";
 
 export interface IndicatorMetadata {
   readonly id: string;

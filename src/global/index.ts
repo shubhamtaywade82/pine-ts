@@ -81,11 +81,7 @@ export const alert = (message: string, freq: AlertFrequency = "once_per_bar_clos
  * `alertcondition` calls in the same script are distinguishable.
  */
 let alertConditionCounter = 0;
-export const alertcondition = (
-  condition: boolean,
-  title?: string,
-  message?: string,
-): void => {
+export const alertcondition = (condition: boolean, title?: string, message?: string): void => {
   alertConditionCounter += 1;
   const id = title ?? `alertcondition_${alertConditionCounter}`;
   const existing = globalState.conditions.get(id);

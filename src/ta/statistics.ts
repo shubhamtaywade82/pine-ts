@@ -130,13 +130,7 @@ const createRunningVariance = (
 
 export const variance = (source: Series<number>, length: number, biased = true): FloatSeries => {
   requirePositiveLength(length);
-  return createRunningVariance(
-    source,
-    length,
-    `ta.variance:${biased}`,
-    biased,
-    (v) => v,
-  );
+  return createRunningVariance(source, length, `ta.variance:${biased}`, biased, (v) => v);
 };
 
 export const stdev = (source: Series<number>, length: number, biased = true): FloatSeries => {
@@ -343,9 +337,7 @@ export const median = (source: Series<number>, length: number): FloatSeries => {
   return createRollingStatistic(source, length, "ta.median", (values) => {
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0
-      ? (sorted[mid - 1]! + sorted[mid]!) / 2
-      : sorted[mid]!;
+    return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
   });
 };
 

@@ -23,9 +23,7 @@ export const obv: Indicator = defineIndicator({
   version: "1.0.0",
   tags: ["volume", "momentum"],
   inputs: [],
-  plots: [
-    linePlot("main", "OBV", { color: "#26a69a", linewidth: 2, pane: "sub" }),
-  ],
+  plots: [linePlot("main", "OBV", { color: "#26a69a", linewidth: 2, pane: "sub" })],
   calculate: () => ({
     main: ta.obv().at(0),
   }),

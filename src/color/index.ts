@@ -36,12 +36,7 @@ export const new_ = (col: Color, transparency: number): Color => ({
  * channel values. `transparency` defaults to 0 (opaque). Each channel is
  * clamped to 0–255; transparency to 0–100.
  */
-export const rgb = (
-  red: number,
-  green: number,
-  blue: number,
-  transparency = 0,
-): Color => ({
+export const rgb = (red: number, green: number, blue: number, transparency = 0): Color => ({
   r: clampByte(red),
   g: clampByte(green),
   b: clampByte(blue),
@@ -95,8 +90,12 @@ export const from_gradient = (
 // ---------- Named color constants (Pine v6) ----------
 // All standard 17 Pine v6 color constants, exposed as opaque colors with t=0.
 
-const constant = (red: number, green: number, blue: number): Color =>
-  ({ r: clampByte(red), g: clampByte(green), b: clampByte(blue), t: 0 });
+const constant = (red: number, green: number, blue: number): Color => ({
+  r: clampByte(red),
+  g: clampByte(green),
+  b: clampByte(blue),
+  t: 0,
+});
 
 export const black: Color = constant(0, 0, 0);
 export const white: Color = constant(255, 255, 255);
