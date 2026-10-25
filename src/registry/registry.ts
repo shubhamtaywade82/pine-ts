@@ -124,3 +124,20 @@ export const registerIndicator = (indicator: Indicator): void => {
 export const resetIndicatorRegistry = (): void => {
   activeRegistry = new IndicatorRegistryImpl();
 };
+
+/**
+ * A proxy `IndicatorRegistry` whose methods forward to the active registry.
+ * Lets consumers write `registry.list()` / `registry.get(id)` / etc. without
+ * the extra `getIndicatorRegistry()` call. Re-exported as the `registry`
+ * namespace in `src/index.ts`.
+ *
+ * Note: the proxy reads `activeRegistry` on every call, so resetting the
+ * registry via {@link resetIndicatorRegistry} is reflected immediately.
+ */
+export const registry: IndicatorRegistry = {
+  register: (indicator: Indicator) => activeRegistry.register(indicator),
+  list: () => activeRegistry.list(),
+  get: (id: string) => activeRegistry.get(id),
+  metadata: (id: string) => activeRegistry.metadata(id),
+  instantiate: (id: string, inputs?: InputsBag) => activeRegistry.instantiate(id, inputs),
+};

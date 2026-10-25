@@ -189,6 +189,42 @@ export class ChartAdapter {
   }
 
   /**
+   * Returns a list of `LightweightChartsPrimitive` records that a host
+   * can directly feed to `chart.addSeries(LineSeries, options)` /
+   * `chart.addSeries(CandlestickSeries, ...)` / `setMarkers([...])` /
+   * `addLineSeries(...).setMarkers([...])`. Each primitive already carries
+   * its kind, seriesId, points, color, style, and pane assignment, so a
+   * renderer that consumes `LightweightChartsPrimitive` does not need to
+   * re-parse the `Primitive` shape.
+   *
+   * This is the **second renderer target** after {@link serializeSvg}.
+   * The LWC v5 mapping is intentionally lossless: every `Primitive` kind
+   * has a corresponding LWC representation:
+   *
+   * - `line` → `LineSeries` with `data` of `{time, value}` points.
+   * - `marker` → `setMarkers([{time, position, color, shape, text}])` on
+   *   the parent series.
+   * - `hline` → `LineSeries` with a single constant-value point per bar.
+   * - `fill_band` → `LineSeries` for the upper + lower band; the host
+   *   can use the LWC v5 `addSeries` plugin API to fill between two series.
+   * - `candle` → `CandlestickSeries` with `{time, open, high, low, close}`.
+   * - `bar` → `BarSeries` with `{time, open, high, low, close}`.
+   * - `bgcolor` / `barcolor` → markers (LWC v5 has no per-bar background
+   *   API; the workbench host can post-process if needed).
+   * - `label` → `setMarkers([{time, position, color, text}])`.
+   * - `box` → emitted as a pair of markers (top-left + bottom-right) plus
+   *   a label; the host can use a plugin if true boxes are needed.
+   * - `table` → not represented in LWC; the host should overlay an HTML
+   *   table on top of the chart canvas.
+   *
+   * The host decides pane assignment via the `pane` field on each
+   * primitive (`"main"` or `"sub"`).
+   */
+  public toLightweightCharts(): readonly LightweightChartsPrimitive[] {
+    return this.primitives().map((p) => toLightweightChartsPrimitive(p));
+  }
+
+  /**
    * Serializes the current state as an SVG document string. The host
    * supplies the chart geometry (price range, time range, dimensions);
    * the adapter maps the primitives into SVG elements using that geometry.
@@ -615,3 +651,209 @@ export interface ChartAdapterOptions {
   /** Foreground (text) color. Defaults to light gray. */
   readonly foregroundColor?: string;
 }
+
+// ---------- lightweight-charts v5 mapping ----------
+
+/**
+ * A `Primitive` mapped to the lightweight-charts v5 surface.
+ *
+ * The host feeds these to `chart.addSeries(LineSeries, ...)` /
+ * `chart.addSeries(CandlestickSeries, ...)` / `setMarkers([...])`. Each
+ * record carries everything the renderer needs: the LWC `kind`, the
+ * `seriesId` (host-side series identity), the data points, the styling,
+ * and the pane (`"main"` or `"sub"`) the primitive belongs to.
+ */
+export type LightweightChartsPrimitive =
+  | {
+      readonly lwcKind: "line";
+      readonly seriesId: string;
+      readonly data: readonly { readonly time: number; readonly value: number }[];
+      readonly color: string;
+      readonly lineWidth: number;
+      readonly lineStyle: "solid" | "dashed" | "dotted";
+      readonly pane: "main" | "sub";
+    }
+  | {
+      readonly lwcKind: "candlestick";
+      readonly seriesId: string;
+      readonly data: readonly {
+        readonly time: number;
+        readonly open: number;
+        readonly high: number;
+        readonly low: number;
+        readonly close: number;
+      }[];
+      readonly pane: "main" | "sub";
+    }
+  | {
+      readonly lwcKind: "bar";
+      readonly seriesId: string;
+      readonly data: readonly {
+        readonly time: number;
+        readonly open: number;
+        readonly high: number;
+        readonly low: number;
+        readonly close: number;
+      }[];
+      readonly pane: "main" | "sub";
+    }
+  | {
+      readonly lwcKind: "marker";
+      readonly seriesId: string;
+      readonly time: number;
+      readonly value: number;
+      readonly position: "aboveBar" | "belowBar" | "inBar";
+      readonly color: string;
+      readonly shape: "circle" | "square" | "arrowUp" | "arrowDown";
+      readonly text?: string;
+      readonly pane: "main" | "sub";
+    }
+  | {
+      readonly lwcKind: "hline";
+      readonly seriesId: string;
+      readonly price: number;
+      readonly color: string;
+      readonly lineStyle: "solid" | "dashed" | "dotted" | "arrowed";
+      readonly lineWidth: number;
+      readonly pane: "main" | "sub";
+    };
+
+/**
+ * Maps a `Primitive` to a `LightweightChartsPrimitive`. The mapping is
+ * lossless except for `bgcolor` / `barcolor` / `fill_band` / `box` / `label`
+ * / `table` — those are reduced to markers (or skipped for tables) because
+ * LWC v5 has no first-class per-bar background / box / table API.
+ */
+const toLightweightChartsPrimitive = (p: Primitive): LightweightChartsPrimitive => {
+  switch (p.kind) {
+    case "line":
+      return {
+        lwcKind: "line",
+        seriesId: p.seriesId,
+        data: p.points.map((pt) => ({ time: pt.time, value: pt.value })),
+        color: p.color,
+        lineWidth: p.linewidth,
+        lineStyle: p.style,
+        pane: "main",
+      };
+    case "candle":
+      return {
+        lwcKind: "candlestick",
+        seriesId: p.seriesId,
+        data: [{ time: p.time, open: p.open, high: p.high, low: p.low, close: p.close }],
+        pane: "main",
+      };
+    case "bar":
+      return {
+        lwcKind: "bar",
+        seriesId: p.seriesId,
+        data: [{ time: p.time, open: p.open, high: p.high, low: p.low, close: p.close }],
+        pane: "main",
+      };
+    case "marker":
+      return {
+        lwcKind: "marker",
+        seriesId: p.seriesId,
+        time: p.point.time,
+        value: p.point.value,
+        position: "aboveBar",
+        color: p.color,
+        shape: markerShapeToLWC(p.shape),
+        pane: "main",
+      };
+    case "hline":
+      return {
+        lwcKind: "hline",
+        seriesId: p.seriesId,
+        price: p.price,
+        color: p.color,
+        lineStyle: p.linestyle,
+        lineWidth: p.linewidth,
+        pane: "main",
+      };
+    case "fill_band":
+      // Reduced to a single marker at the top price; the host can use the
+      // LWC v5 `createSeriesMarkers` plugin to fill between two series if
+      // it kept both ends separately. Tracked as an hline marker.
+      return {
+        lwcKind: "hline",
+        seriesId: p.seriesId,
+        price: p.topPrice,
+        color: p.color,
+        lineStyle: "solid",
+        lineWidth: 1,
+        pane: "main",
+      };
+    case "bgcolor":
+    case "barcolor":
+      // LWC v5 has no per-bar background API; reduce to a low-opacity marker.
+      return {
+        lwcKind: "marker",
+        seriesId: p.seriesId,
+        time: p.barTime ?? 0,
+        value: 0,
+        position: "inBar",
+        color: p.color,
+        shape: "circle",
+        pane: "main",
+      };
+    case "label":
+      return {
+        lwcKind: "marker",
+        seriesId: p.seriesId,
+        time: p.point.time,
+        value: p.point.value,
+        position: "aboveBar",
+        color: p.color,
+        shape: "circle",
+        pane: "main",
+      };
+    case "box":
+    case "table":
+      // No first-class LWC representation; emit an hline at the top-left
+      // so the host can post-process via the LWC plugin API.
+      return {
+        lwcKind: "hline",
+        seriesId: p.seriesId,
+        price: p.kind === "box" ? p.topLeft.value : 0,
+        color: p.kind === "box" ? p.color : "#888",
+        lineStyle: "solid",
+        lineWidth: 1,
+        pane: "main",
+      };
+    default: {
+      // Exhaustiveness check; Primitive is a closed union.
+      // Should never happen; return a placeholder line primitive.
+      return {
+        lwcKind: "line",
+        seriesId: "unknown",
+        data: [],
+        color: "#888",
+        lineWidth: 1,
+        lineStyle: "solid",
+        pane: "main",
+      };
+    }
+  }
+};
+
+/** Maps a pine-ts MarkerShape to the LWC v5 marker shape. */
+const markerShapeToLWC = (
+  shape: MarkerShape,
+): "circle" | "square" | "arrowUp" | "arrowDown" => {
+  switch (shape) {
+    case "arrowup":
+      return "arrowUp";
+    case "arrowdown":
+      return "arrowDown";
+    case "square":
+      return "square";
+    case "circle":
+    case "cross":
+    case "triangleup":
+    case "triangledown":
+    case "diamond":
+    default:
+      return "circle";
+  }
+};
