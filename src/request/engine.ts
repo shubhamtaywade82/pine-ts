@@ -39,7 +39,7 @@
 
 import { createContext, type PineContext } from "../core/context.js";
 import { getCurrentSession, setCurrentSession } from "../core/execution-context.js";
-import type { Bar, MarketDataProvider, SymbolInfo } from "../core/types.js";
+import type { Bar, MarketDataProvider } from "../core/types.js";
 import { PineSession, type HistoricalBarFlags } from "../core/session.js";
 import { in_seconds, parse, type TimeframeInfo } from "../time/timeframe.js";
 
