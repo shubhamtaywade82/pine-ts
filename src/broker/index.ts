@@ -41,12 +41,7 @@ export type TimeInForce = "GTC" | "IOC" | "FOK" | "GTD";
 
 /** Order status as reported by the broker. */
 export type OrderStatus =
-  | "new"
-  | "partially_filled"
-  | "filled"
-  | "canceled"
-  | "rejected"
-  | "expired";
+  "new" | "partially_filled" | "filled" | "canceled" | "rejected" | "expired";
 
 /** A request to submit an order to the broker. */
 export interface OrderRequest {
@@ -371,8 +366,7 @@ export class PaperBrokerAdapter implements BrokerAdapter {
     position: Position,
   ): void {
     const newTotalQty = position.qty + order.qty;
-    const newAvg =
-      (position.avgEntryPrice * position.qty + fillPrice * order.qty) / newTotalQty;
+    const newAvg = (position.avgEntryPrice * position.qty + fillPrice * order.qty) / newTotalQty;
     this.positions.set(order.symbol, {
       symbol: order.symbol,
       direction: position.direction,
@@ -445,9 +439,7 @@ export class PaperBrokerAdapter implements BrokerAdapter {
     const commissionType = this.options.commissionType ?? "percent";
     const commissionValue = this.options.commissionValue ?? 0;
     const commission =
-      commissionType === "percent"
-        ? (filled * qty * commissionValue) / 100
-        : commissionValue;
+      commissionType === "percent" ? (filled * qty * commissionValue) / 100 : commissionValue;
     return { fillPrice: filled, commission };
   }
 
@@ -460,12 +452,7 @@ export class PaperBrokerAdapter implements BrokerAdapter {
 // ---------- BinanceBrokerAdapter scaffold ----------
 
 /** Binance-side order status, used in both submit-order responses and order updates. */
-export type BinanceOrderStatus =
-  | "NEW"
-  | "PARTIALLY_FILLED"
-  | "FILLED"
-  | "CANCELED"
-  | "REJECTED";
+export type BinanceOrderStatus = "NEW" | "PARTIALLY_FILLED" | "FILLED" | "CANCELED" | "REJECTED";
 
 /** Binance order-update event payload (REST or websocket). */
 export interface BinanceOrderUpdateEvent {
@@ -683,7 +670,11 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
   }
 
   /** Sets the current bar OHLC used to simulate order fills. */
-  public setBar(bar: { readonly high: number; readonly low: number; readonly close: number }): void {
+  public setBar(bar: {
+    readonly high: number;
+    readonly low: number;
+    readonly close: number;
+  }): void {
     this.bar = bar;
   }
 
@@ -694,7 +685,14 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
 
   public async newOrder(params: BinanceNewOrderParams): Promise<BinanceOrderResponse> {
     const orderId = `mock_${this.nextId++}`;
-    const order: MockOrder = { ...params, orderId, status: "NEW", executedQty: 0, avgPrice: undefined, rejectReason: undefined };
+    const order: MockOrder = {
+      ...params,
+      orderId,
+      status: "NEW",
+      executedQty: 0,
+      avgPrice: undefined,
+      rejectReason: undefined,
+    };
     this.orders.set(orderId, order);
     await this.attemptFillAndUpdateSubscribers(order);
     return {
@@ -718,8 +716,15 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
     const p = this.positionBySymbol.get(symbol);
     if (p === undefined || p.qty === 0) return undefined;
     const mark = this.bar?.close ?? p.avgEntryPrice;
-    const unrealisedPnl = p.side === "LONG" ? (mark - p.avgEntryPrice) * p.qty : (p.avgEntryPrice - mark) * p.qty;
-    return Promise.resolve({ symbol: p.symbol, side: p.side, qty: p.qty, avgEntryPrice: p.avgEntryPrice, unrealisedPnl });
+    const unrealisedPnl =
+      p.side === "LONG" ? (mark - p.avgEntryPrice) * p.qty : (p.avgEntryPrice - mark) * p.qty;
+    return Promise.resolve({
+      symbol: p.symbol,
+      side: p.side,
+      qty: p.qty,
+      avgEntryPrice: p.avgEntryPrice,
+      unrealisedPnl,
+    });
   }
 
   public async getBalance(): Promise<number> {
@@ -767,7 +772,9 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
    * Returns the fill result for `order` against the current bar OHLC, or
    * `undefined` if the order cannot fill on this bar.
    */
-  private computeFill(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+  private computeFill(
+    order: MockOrder,
+  ): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
     if (this.bar === undefined) return undefined;
     if (order.type === "MARKET") return this.fillAt(order, this.bar.close);
     if (order.type === "LIMIT") return this.fillLimit(order);
@@ -777,29 +784,40 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
   }
 
   /** Fills `order` at `price` and updates the position book. */
-  private fillAt(order: MockOrder, price: number): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } {
+  private fillAt(
+    order: MockOrder,
+    price: number,
+  ): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } {
     this.applyFillToPosition(order, order.quantity, price);
     return { status: "FILLED", executedQty: order.quantity, avgPrice: price };
   }
 
-  private fillLimit(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+  private fillLimit(
+    order: MockOrder,
+  ): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
     if (order.price === undefined) return undefined;
     const bar = this.bar!;
     const wouldFill = order.side === "BUY" ? bar.low <= order.price : bar.high >= order.price;
     return wouldFill ? this.fillAt(order, order.price) : undefined;
   }
 
-  private fillStop(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+  private fillStop(
+    order: MockOrder,
+  ): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
     if (order.stopPrice === undefined) return undefined;
     const bar = this.bar!;
-    const triggered = order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
+    const triggered =
+      order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
     return triggered ? this.fillAt(order, order.stopPrice) : undefined;
   }
 
-  private fillStopLimit(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+  private fillStopLimit(
+    order: MockOrder,
+  ): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
     if (order.price === undefined || order.stopPrice === undefined) return undefined;
     const bar = this.bar!;
-    const triggered = order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
+    const triggered =
+      order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
     if (!triggered) return undefined;
     const wouldFill = order.side === "BUY" ? bar.low <= order.price : bar.high >= order.price;
     return wouldFill ? this.fillAt(order, order.price) : undefined;
@@ -808,9 +826,14 @@ export class MockBinanceTradingSurface implements BinanceTradingSurface {
   /** Updates the in-memory position to reflect a fill. */
   private applyFillToPosition(order: MockOrder, qty: number, price: number): void {
     const existing = this.positionBySymbol.get(order.symbol);
-    const side = order.side === "BUY" ? "LONG" as const : "SHORT" as const;
+    const side = order.side === "BUY" ? ("LONG" as const) : ("SHORT" as const);
     if (existing === undefined) {
-      this.positionBySymbol.set(order.symbol, { symbol: order.symbol, side, qty, avgEntryPrice: price });
+      this.positionBySymbol.set(order.symbol, {
+        symbol: order.symbol,
+        side,
+        qty,
+        avgEntryPrice: price,
+      });
       return;
     }
     if (existing.side === side) {

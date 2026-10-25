@@ -83,7 +83,9 @@ interface PerExpressionCache<T> {
  * evaluates them per caller bar but does not re-drive the secondary
  * session past the alignment bar.
  */
-const expressionKey = (expression: ((ctx: PineContext) => unknown) | ((ctx: unknown) => unknown)): string => {
+const expressionKey = (
+  expression: ((ctx: PineContext) => unknown) | ((ctx: unknown) => unknown),
+): string => {
   const source = expression.toString();
   // Reset the cache when the source changes is automatic via the Map key.
   return source;
@@ -229,7 +231,9 @@ export class RequestEngine {
     const callerTime = callerSession.sources.time.at(0);
     if (callerTime === undefined) return [];
 
-    const callerCloseTime = callerTime + this.callerBarDuration(callerTime, callerSession.sources.time.at(1), callerSession.timeframe);
+    const callerCloseTime =
+      callerTime +
+      this.callerBarDuration(callerTime, callerSession.sources.time.at(1), callerSession.timeframe);
     const lookahead = options?.lookahead ?? "lookahead_off";
     const gaps = options?.gaps ?? "gaps_off";
 
@@ -441,7 +445,7 @@ export const setActiveRequestEngine = (engine: RequestEngine | undefined): void 
 export const getActiveRequestEngine = (): RequestEngine | undefined => activeEngine;
 
 // Re-exports for callers that prefer the typed namespace.
-export type { PineContext, Bar, SymbolInfo, MarketDataProvider };
+export type { PineContext, MarketDataProvider };
 
 /**
  * Helper used by the runtime to scope an active engine around a script

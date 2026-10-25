@@ -32,9 +32,7 @@ class StaticProvider implements MarketDataProvider {
   public getSymbolInfo = async (): Promise<SymbolInfo> => testInfo;
 }
 
-const makeBars = (
-  rows: ReadonlyArray<{ o: number; h: number; l: number; c: number }>,
-): Bar[] =>
+const makeBars = (rows: ReadonlyArray<{ o: number; h: number; l: number; c: number }>): Bar[] =>
   rows.map((r, i) => ({
     time: (i + 1) * 86_400_000, // 1-day bars so the daily anchor fires on every bar
     open: r.o,
@@ -93,14 +91,11 @@ describe("ta.pivot_point_levels", () => {
 
   it("returns 0-filled levels on the first bar (no previous anchor period)", async () => {
     const captured: Array<PineArray<number>> = [];
-    await runScript(
-      [{ o: 95, h: 110, l: 90, c: 100 }],
-      (ctx) => {
-        if (ctx.bar_index.at(0) === 0) {
-          captured.push(ta.pivot_point_levels("TRADITIONAL"));
-        }
-      },
-    );
+    await runScript([{ o: 95, h: 110, l: 90, c: 100 }], (ctx) => {
+      if (ctx.bar_index.at(0) === 0) {
+        captured.push(ta.pivot_point_levels("TRADITIONAL"));
+      }
+    });
     expect(captured[0]?.size()).toBe(11);
     for (let i = 0; i < 11; i += 1) {
       expect(captured[0]?.get(i)).toBe(0);

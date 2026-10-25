@@ -26,7 +26,10 @@ import type {
 
 // ---------- input factories ----------
 
-export type NumberInputExtra = Omit<NumberInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type NumberInputExtra = Omit<
+  NumberInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const intInput = (
   name: string,
   displayName: string,
@@ -49,7 +52,10 @@ export const boolInput = (
   extra: BoolExtra = {},
 ): BoolInputConfig => ({ kind: "bool", name, displayName, defaultValue, ...extra });
 
-export type StringInputExtra = Omit<StringInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type StringInputExtra = Omit<
+  StringInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const stringInput = (
   name: string,
   displayName: string,
@@ -57,7 +63,10 @@ export const stringInput = (
   extra: StringInputExtra = {},
 ): StringInputConfig => ({ kind: "string", name, displayName, defaultValue, ...extra });
 
-export type SourceInputExtra = Omit<SourceInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type SourceInputExtra = Omit<
+  SourceInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const sourceInput = (
   name: string,
   displayName: string,
@@ -65,7 +74,10 @@ export const sourceInput = (
   extra: SourceInputExtra = {},
 ): SourceInputConfig => ({ kind: "source", name, displayName, defaultValue, ...extra });
 
-export type ColorInputExtra = Omit<ColorInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type ColorInputExtra = Omit<
+  ColorInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const colorInput = (
   name: string,
   displayName: string,
@@ -73,7 +85,10 @@ export const colorInput = (
   extra: ColorInputExtra = {},
 ): ColorInputConfig => ({ kind: "color", name, displayName, defaultValue, ...extra });
 
-export type TimeframeInputExtra = Omit<TimeframeInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type TimeframeInputExtra = Omit<
+  TimeframeInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const timeframeInput = (
   name: string,
   displayName: string,
@@ -81,7 +96,10 @@ export const timeframeInput = (
   extra: TimeframeInputExtra = {},
 ): TimeframeInputConfig => ({ kind: "timeframe", name, displayName, defaultValue, ...extra });
 
-export type SymbolInputExtra = Omit<SymbolInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type SymbolInputExtra = Omit<
+  SymbolInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const symbolInput = (
   name: string,
   displayName: string,
@@ -89,7 +107,10 @@ export const symbolInput = (
   extra: SymbolInputExtra = {},
 ): SymbolInputConfig => ({ kind: "symbol", name, displayName, defaultValue, ...extra });
 
-export type SessionInputExtra = Omit<SessionInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type SessionInputExtra = Omit<
+  SessionInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const sessionInput = (
   name: string,
   displayName: string,
@@ -97,7 +118,10 @@ export const sessionInput = (
   extra: SessionInputExtra = {},
 ): SessionInputConfig => ({ kind: "session", name, displayName, defaultValue, ...extra });
 
-export type ResolutionInputExtra = Omit<ResolutionInputConfig, "kind" | "name" | "displayName" | "defaultValue">;
+export type ResolutionInputExtra = Omit<
+  ResolutionInputConfig,
+  "kind" | "name" | "displayName" | "defaultValue"
+>;
 export const resolutionInput = (
   name: string,
   displayName: string,
@@ -139,11 +163,8 @@ const normalizePlotOptions = (
   return plot;
 };
 
-export const linePlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "line", displayName, opts);
+export const linePlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "line", displayName, opts);
 
 export const histogramPlot = (
   id: string,
@@ -151,17 +172,11 @@ export const histogramPlot = (
   opts: PlotOptions = {},
 ): PlotConfig => normalizePlotOptions(id, "histogram", displayName, opts);
 
-export const markerPlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "marker", displayName, opts);
+export const markerPlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "marker", displayName, opts);
 
-export const hlinePlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "hline", displayName, opts);
+export const hlinePlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "hline", displayName, opts);
 
 export const fillBandPlot = (
   id: string,
@@ -170,11 +185,8 @@ export const fillBandPlot = (
   opts: PlotOptions = {},
 ): PlotConfig => normalizePlotOptions(id, "fill_band", displayName, { ...opts, fillBetween });
 
-export const bgcolorPlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "bgcolor", displayName, opts);
+export const bgcolorPlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "bgcolor", displayName, opts);
 
 export const barcolorPlot = (
   id: string,
@@ -182,23 +194,14 @@ export const barcolorPlot = (
   opts: PlotOptions = {},
 ): PlotConfig => normalizePlotOptions(id, "barcolor", displayName, opts);
 
-export const candlePlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "candle", displayName, opts);
+export const candlePlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "candle", displayName, opts);
 
-export const barPlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "bar", displayName, opts);
+export const barPlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "bar", displayName, opts);
 
-export const areaPlot = (
-  id: string,
-  displayName?: string,
-  opts: PlotOptions = {},
-): PlotConfig => normalizePlotOptions(id, "area", displayName, opts);
+export const areaPlot = (id: string, displayName?: string, opts: PlotOptions = {}): PlotConfig =>
+  normalizePlotOptions(id, "area", displayName, opts);
 
 // ---------- indicator factory ----------
 

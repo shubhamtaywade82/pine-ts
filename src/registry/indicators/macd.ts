@@ -49,9 +49,7 @@ export const macd: Indicator = defineIndicator({
     const signalLength = readNumber(inputs, "signalLength");
     // `ta.macd` returns a MacdResult; we cache it in `ctx.scope` so the node
     // is reused across bars (otherwise we'd create a new MACD graph each bar).
-    const result = ctx.scope("macd", () =>
-      ta.macd(source, fastLength, slowLength, signalLength),
-    );
+    const result = ctx.scope("macd", () => ta.macd(source, fastLength, slowLength, signalLength));
     return {
       macd: result.macdLine.at(0),
       signal: result.signalLine.at(0),

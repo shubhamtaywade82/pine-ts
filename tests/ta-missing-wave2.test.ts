@@ -289,9 +289,8 @@ describe("ta.tsi", () => {
     // 12 bars with constant 1-bar changes; the double-smoothed change equals
     // the double-smoothed absolute change, so the TSI ratio converges to +1.
     const out: Array<number | undefined> = [];
-    await runScript(
-      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      (ctx) => out.push(maybe(ta.tsi(ctx.close, 3, 5).at(0))),
+    await runScript([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (ctx) =>
+      out.push(maybe(ta.tsi(ctx.close, 3, 5).at(0))),
     );
     expect(out.at(-1)).toBeCloseTo(1, 6);
   });

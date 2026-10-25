@@ -183,7 +183,5 @@ export const varianceFromSums = (
   biased: boolean,
 ): number => {
   const mean = sum / length;
-  return biased
-    ? sumSq / length - mean * mean
-    : sumSq / (length - 1) - (mean * sum) / (length - 1);
+  return biased ? sumSq / length - mean * mean : sumSq / (length - 1) - (mean * sum) / (length - 1);
 };

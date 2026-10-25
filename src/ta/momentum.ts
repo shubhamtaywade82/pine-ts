@@ -382,43 +382,40 @@ export const tsi = (
   requirePositiveLength(shortLength);
   requirePositiveLength(longLength);
   const runtime = requireCompatibleRuntime(source);
-  return runtime.nodes.getOrCreate(
-    nodeKey("ta.tsi", source, shortLength, longLength),
-    () => {
-      // 1-bar price change: ta.change(source) = source - source[1].
-      const priceChange = change(source, 1);
-      // math.abs applied per bar to the change series.
-      const absChange = runtime.nodes.getOrCreate(nodeKey("ta.tsi.absChange", priceChange), () => {
-        const definition = {
-          init: (): null => null,
-          evaluate: (): number => {
-            const v = priceChange.at(0);
-            return v === undefined || isNa(v) ? Number.NaN : Math.abs(v);
-          },
-          commit: (): void => undefined,
-        };
-        return new FloatSeries(runtime, new IndicatorNode(definition));
-      }) as FloatSeries;
-      const longSmoothed = ema(priceChange, longLength);
-      const shortSmoothed = ema(longSmoothed, shortLength);
-      const longAbsSmoothed = ema(absChange, longLength);
-      const shortAbsSmoothed = ema(longAbsSmoothed, shortLength);
+  return runtime.nodes.getOrCreate(nodeKey("ta.tsi", source, shortLength, longLength), () => {
+    // 1-bar price change: ta.change(source) = source - source[1].
+    const priceChange = change(source, 1);
+    // math.abs applied per bar to the change series.
+    const absChange = runtime.nodes.getOrCreate(nodeKey("ta.tsi.absChange", priceChange), () => {
       const definition = {
         init: (): null => null,
         evaluate: (): number => {
-          const numerator = shortSmoothed.at(0);
-          const denominator = shortAbsSmoothed.at(0);
-          if (numerator === undefined || isNa(numerator)) return Number.NaN;
-          if (denominator === undefined || isNa(denominator)) return Number.NaN;
-          if (denominator === 0) return Number.NaN;
-          // Ratio in [-1, 1] — the built-in does NOT scale by 100.
-          return numerator / denominator;
+          const v = priceChange.at(0);
+          return v === undefined || isNa(v) ? Number.NaN : Math.abs(v);
         },
         commit: (): void => undefined,
       };
       return new FloatSeries(runtime, new IndicatorNode(definition));
-    },
-  ) as FloatSeries;
+    }) as FloatSeries;
+    const longSmoothed = ema(priceChange, longLength);
+    const shortSmoothed = ema(longSmoothed, shortLength);
+    const longAbsSmoothed = ema(absChange, longLength);
+    const shortAbsSmoothed = ema(longAbsSmoothed, shortLength);
+    const definition = {
+      init: (): null => null,
+      evaluate: (): number => {
+        const numerator = shortSmoothed.at(0);
+        const denominator = shortAbsSmoothed.at(0);
+        if (numerator === undefined || isNa(numerator)) return Number.NaN;
+        if (denominator === undefined || isNa(denominator)) return Number.NaN;
+        if (denominator === 0) return Number.NaN;
+        // Ratio in [-1, 1] — the built-in does NOT scale by 100.
+        return numerator / denominator;
+      },
+      commit: (): void => undefined,
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
 };
 
 /**

@@ -302,7 +302,8 @@ describe("BinanceBrokerAdapter structural typing", () => {
 
 describe("MockBinanceTradingSurface (reference implementation)", () => {
   const mkOrder = (
-    overrides: Partial<OrderRequest> & Pick<OrderRequest, "symbol" | "direction" | "orderType" | "qty" | "clientId">,
+    overrides: Partial<OrderRequest> &
+      Pick<OrderRequest, "symbol" | "direction" | "orderType" | "qty" | "clientId">,
   ): OrderRequest => ({
     limitPrice: undefined,
     stopPrice: undefined,
@@ -317,7 +318,13 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     mock.setBar({ high: 105, low: 95, close: 100 });
     const adapter = new BinanceBrokerAdapter(mock, { symbol: "BTCUSDT" });
     const result = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "market", qty: 0.5, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "market",
+        qty: 0.5,
+        clientId: "c1",
+      }),
     );
     expect(result.status).toBe("filled");
     expect(result.filledQty).toBe(0.5);
@@ -333,11 +340,25 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     mock.setBar({ high: 105, low: 95, close: 100 });
     const adapter = new BinanceBrokerAdapter(mock, { symbol: "BTCUSDT" });
     const below = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "limit", qty: 0.5, limitPrice: 90, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "limit",
+        qty: 0.5,
+        limitPrice: 90,
+        clientId: "c1",
+      }),
     );
     expect(below.status).toBe("new");
     const at = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "limit", qty: 0.5, limitPrice: 95, clientId: "c2" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "limit",
+        qty: 0.5,
+        limitPrice: 95,
+        clientId: "c2",
+      }),
     );
     expect(at.status).toBe("filled");
     expect(at.avgFillPrice).toBe(95);
@@ -348,7 +369,14 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     mock.setBar({ high: 110, low: 95, close: 100 });
     const adapter = new BinanceBrokerAdapter(mock, { symbol: "BTCUSDT" });
     const triggered = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "stop", qty: 0.5, stopPrice: 105, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "stop",
+        qty: 0.5,
+        stopPrice: 105,
+        clientId: "c1",
+      }),
     );
     expect(triggered.status).toBe("filled");
     expect(triggered.avgFillPrice).toBe(105);
@@ -361,7 +389,13 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     const updates: OrderUpdate[] = [];
     adapter.onOrderUpdate((u) => updates.push(u));
     const r1 = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "market", qty: 0.5, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "market",
+        qty: 0.5,
+        clientId: "c1",
+      }),
     );
     expect(updates).toHaveLength(1);
     expect(updates[0]?.status).toBe("filled");
@@ -369,7 +403,14 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
 
     // Cancel a resting limit order.
     const r2 = await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "limit", qty: 0.5, limitPrice: 50, clientId: "c2" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "limit",
+        qty: 0.5,
+        limitPrice: 50,
+        clientId: "c2",
+      }),
     );
     expect(r2.status).toBe("new");
     await adapter.cancelOrder(r2.orderId);
@@ -381,11 +422,23 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     mock.setBar({ high: 105, low: 95, close: 100 });
     const adapter = new BinanceBrokerAdapter(mock, { symbol: "BTCUSDT" });
     await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "market", qty: 0.5, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "market",
+        qty: 0.5,
+        clientId: "c1",
+      }),
     );
     mock.setBar({ high: 110, low: 100, close: 105 });
     await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "market", qty: 0.5, clientId: "c2" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "market",
+        qty: 0.5,
+        clientId: "c2",
+      }),
     );
     const pos = await adapter.getPosition("BTCUSDT");
     expect(pos?.qty).toBe(1);
@@ -398,7 +451,14 @@ describe("MockBinanceTradingSurface (reference implementation)", () => {
     mock.setBar({ high: 105, low: 95, close: 100 });
     const adapter = new BinanceBrokerAdapter(mock, { symbol: "BTCUSDT" });
     await adapter.submitOrder(
-      mkOrder({ symbol: "BTCUSDT", direction: "long", orderType: "limit", qty: 0.5, limitPrice: 50, clientId: "c1" }),
+      mkOrder({
+        symbol: "BTCUSDT",
+        direction: "long",
+        orderType: "limit",
+        qty: 0.5,
+        limitPrice: 50,
+        clientId: "c1",
+      }),
     );
     expect(mock.getOpenOrders()).toHaveLength(1);
     expect(mock.getOpenOrders()[0]?.clientOrderId).toBe("c1");

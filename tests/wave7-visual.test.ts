@@ -192,7 +192,11 @@ describe("visual runtime", () => {
       const events: visual.VisualEvent[] = [];
       visual.setVisualSink((e) => events.push(e));
       visual.polyline.new(
-        [{ index: 0, price: 100 }, { index: 1, price: 110 }, { index: 2, price: 105 }],
+        [
+          { index: 0, price: 100 },
+          { index: 1, price: 110 },
+          { index: 2, price: 105 },
+        ],
         { color: colorNs.rgb(255, 0, 0), line_width: 2 },
       );
       expect(events[0]?.kind).toBe("drawing.create");

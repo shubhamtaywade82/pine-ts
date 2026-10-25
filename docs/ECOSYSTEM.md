@@ -27,14 +27,14 @@ range, #145 `ta.stoch` carry-forward).
 
 **What we took from it (this audit already paid off):**
 
-| pine-ts function | Before | After (verified against Pine output) |
-| --- | --- | --- |
-| `ta.ema` | seeded with the first source value, no warm-up | `na` until the `length`-th valid bar, seeds with `ta.sma` (Kahan running-sum order); recurrence `(v - prev) * alpha + prev` |
-| `ta.rma` | plain-sum SMA seed, algebraic recurrence | Kahan-ordered SMA seed; recurrence `(v + (length-1) * prev) / length` |
-| `ta.tsi` | `mom(source, longLength)` change, `x100` scale | `ta.change(source)` (1-bar) change, **ratio in [-1, 1]** — the v6 remark states the built-in is not percentage-scaled |
-| `ta.stoch` | `na` on zero range / na source | **keeps the previous result** on zero range and na source; peak/valley windows skip na values |
-| `ta.cci` | `na` on zero mean deviation | **keeps the previous CCI** on flat windows (1e-10 tolerance); a first flat window gives 0 |
-| `ta.linreg` | newest-first accumulation, `(sumY - slope*sumX)/length` intercept | oldest-first `x = 1..length` accumulation, intercept `sumY/length - (slope*sumX)/length + slope` (the fitted value at x = 1) |
+| pine-ts function | Before                                                            | After (verified against Pine output)                                                                                         |
+| ---------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `ta.ema`         | seeded with the first source value, no warm-up                    | `na` until the `length`-th valid bar, seeds with `ta.sma` (Kahan running-sum order); recurrence `(v - prev) * alpha + prev`  |
+| `ta.rma`         | plain-sum SMA seed, algebraic recurrence                          | Kahan-ordered SMA seed; recurrence `(v + (length-1) * prev) / length`                                                        |
+| `ta.tsi`         | `mom(source, longLength)` change, `x100` scale                    | `ta.change(source)` (1-bar) change, **ratio in [-1, 1]** — the v6 remark states the built-in is not percentage-scaled        |
+| `ta.stoch`       | `na` on zero range / na source                                    | **keeps the previous result** on zero range and na source; peak/valley windows skip na values                                |
+| `ta.cci`         | `na` on zero mean deviation                                       | **keeps the previous CCI** on flat windows (1e-10 tolerance); a first flat window gives 0                                    |
+| `ta.linreg`      | newest-first accumulation, `(sumY - slope*sumX)/length` intercept | oldest-first `x = 1..length` accumulation, intercept `sumY/length - (slope*sumX)/length + slope` (the fitted value at x = 1) |
 
 The corrected implementations now pass
 [`tests/reference-pine-vectors.test.ts`](../tests/reference-pine-vectors.test.ts)
@@ -44,8 +44,8 @@ OakScriptJS's MIT-licensed tests, attribution in the file header). The old
 "do not promote on mathematical plausibility" failure mode the coverage
 policy warns about, caught only because someone had exported real values.
 
-**Known remaining numerical gap (now CLOSED):** ~~Pine keeps a *compensated
-(Kahan) running sum* for `math.sum` / `ta.sma` / `ta.stdev` / `ta.variance` /
+**Known remaining numerical gap (now CLOSED):** ~~Pine keeps a _compensated
+(Kahan) running sum_ for `math.sum` / `ta.sma` / `ta.stdev` / `ta.variance` /
 `ta.mfi`, including a resync rule when the compensation would be absorbed.
 pine-ts's EMA/RMA **seeds** use the Kahan chain (so `ta.tsi` is bit-exact),
 but the rolling-window kernels still use plain incremental sums, so
@@ -117,7 +117,7 @@ React-free; this would live in a thin app layer.
 ### [lwc-plugin-visible-price-range-util](https://github.com/SlicedSilver/lwc-plugin-visible-price-range-util)
 
 Viewport-aware drawing behaviour (targets **v4.1.0** — needs migration for
-a v5 chart). Borrow the *idea* for viewport-adaptive overlays only;
+a v5 chart). Borrow the _idea_ for viewport-adaptive overlays only;
 viewport state must never reach the trading engine (signals must not change
 when the user zooms). License needs confirming before copying code.
 

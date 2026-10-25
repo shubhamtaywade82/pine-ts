@@ -80,11 +80,7 @@ export interface IntegerInputOptions {
  * out-of-range bound value clamps into range, matching Pine v6's clamping
  * behaviour.
  */
-export const int = (
-  defval: number,
-  title = "",
-  options: IntegerInputOptions = {},
-): number => {
+export const int = (defval: number, title = "", options: IntegerInputOptions = {}): number => {
   const key = options.inline ?? title;
   const value = resolve({ key, title, ...options, defval }, defval);
   if (!Number.isInteger(value)) {
@@ -149,11 +145,7 @@ export interface StringInputOptions {
  * `options.options` is supplied, the bound value must be one of them;
  * otherwise it falls back to `defval`.
  */
-export const string = (
-  defval: string,
-  title = "",
-  options: StringInputOptions = {},
-): string => {
+export const string = (defval: string, title = "", options: StringInputOptions = {}): string => {
   const key = options.inline ?? title;
   const value = resolve({ key, title, ...options, defval }, defval);
   if (options.options !== undefined && !options.options.includes(value)) {
@@ -172,11 +164,7 @@ export interface ColorInputOptions {
 /**
  * `input.color(defval, title?, ...)`. Binds a `color` parameter.
  */
-export const color = (
-  defval: Color,
-  title = "",
-  options: ColorInputOptions = {},
-): Color => {
+export const color = (defval: Color, title = "", options: ColorInputOptions = {}): Color => {
   const key = options.inline ?? title;
   return resolve({ key, title, ...options, defval }, defval);
 };
@@ -231,11 +219,7 @@ export interface SessionInputOptions {
  * `input.session(defval, title?, ...)`. Binds a session string (Pine's
  * `"0930-1600"` or `"0930-1600:UTC"` format).
  */
-export const session = (
-  defval: string,
-  title = "",
-  options: SessionInputOptions = {},
-): string => {
+export const session = (defval: string, title = "", options: SessionInputOptions = {}): string => {
   const key = options.inline ?? title;
   return resolve({ key, title, ...options, defval }, defval);
 };
@@ -250,11 +234,7 @@ export interface SymbolInputOptions {
 /**
  * `input.symbol(defval, title?, ...)`. Binds a symbol/ticker string.
  */
-export const symbol = (
-  defval: string,
-  title = "",
-  options: SymbolInputOptions = {},
-): string => {
+export const symbol = (defval: string, title = "", options: SymbolInputOptions = {}): string => {
   const key = options.inline ?? title;
   return resolve({ key, title, ...options, defval }, defval);
 };

@@ -42,7 +42,9 @@ class StaticProvider implements MarketDataProvider {
 const runScript = async (
   script: (ctx: import("../src/index.js").PineContext) => void,
 ): Promise<void> => {
-  const bars: Bar[] = [{ time: 1, open: 100, high: 100, low: 100, close: 100, volume: 1, isClosed: true }];
+  const bars: Bar[] = [
+    { time: 1, open: 100, high: 100, low: 100, close: 100, volume: 1, isClosed: true },
+  ];
   const runtime = new PineRuntime({
     provider: new StaticProvider(),
     symbol: "BTCUSDT",
@@ -125,7 +127,9 @@ describe("syminfo.*", () => {
       }),
       getSymbolInfo: async () => minimal,
     };
-    const bars: Bar[] = [{ time: 1, open: 1, high: 1, low: 1, close: 1, volume: 1, isClosed: true }];
+    const bars: Bar[] = [
+      { time: 1, open: 1, high: 1, low: 1, close: 1, volume: 1, isClosed: true },
+    ];
     const runtime = new PineRuntime({ provider, symbol: "TEST", timeframe: "1" });
 
     const captured: {
@@ -135,7 +139,14 @@ describe("syminfo.*", () => {
       minmove: unknown;
       currency: unknown;
       session: unknown;
-    } = { mintick: undefined, pointvalue: undefined, pricescale: undefined, minmove: undefined, currency: undefined, session: undefined };
+    } = {
+      mintick: undefined,
+      pointvalue: undefined,
+      pricescale: undefined,
+      minmove: undefined,
+      currency: undefined,
+      session: undefined,
+    };
     await runtime.run(() => {
       captured.mintick = syminfo.mintick();
       captured.pointvalue = syminfo.pointvalue();

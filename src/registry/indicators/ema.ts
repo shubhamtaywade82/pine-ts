@@ -35,9 +35,7 @@ export const ema: Indicator = defineIndicator({
     sourceInput("source", "Source", "close"),
     intInput("length", "Length", 12, { min: 1, max: 100000 }),
   ],
-  plots: [
-    linePlot("main", "EMA", { color: "#ff6d00", linewidth: 2, pane: "main" }),
-  ],
+  plots: [linePlot("main", "EMA", { color: "#ff6d00", linewidth: 2, pane: "main" })],
   calculate: ({ ctx, inputs }) => {
     const source = resolveSource(ctx, readString(inputs, "source"));
     const length = readNumber(inputs, "length");

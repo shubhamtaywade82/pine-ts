@@ -32,13 +32,7 @@
 import type { Bar } from "../core/types.js";
 
 /** A non-standard chart type. */
-export type TickerKind =
-  | "standard"
-  | "heikinashi"
-  | "renko"
-  | "linebreak"
-  | "kagi"
-  | "pointfigure";
+export type TickerKind = "standard" | "heikinashi" | "renko" | "linebreak" | "kagi" | "pointfigure";
 
 /** Adjustment parameters supported by `ticker.new` and `ticker.modify`. */
 export interface TickerAdjustments {
@@ -183,9 +177,10 @@ const buildRenko = (bars: readonly Bar[], options: TickerOptions): Bar[] => {
     // Fall back to the median absolute deviation of the close series.
     const closes = bars.map((b) => b.close);
     const median = closes.slice().sort((a, b) => a - b)[Math.floor(closes.length / 2)] ?? 1;
-    const mad = closes
-      .map((c) => Math.abs(c - median))
-      .sort((a, b) => a - b)[Math.floor(closes.length / 2)] ?? 1;
+    const mad =
+      closes.map((c) => Math.abs(c - median)).sort((a, b) => a - b)[
+        Math.floor(closes.length / 2)
+      ] ?? 1;
     brickSize = mad > 0 ? mad : 1;
   }
   const out: Bar[] = [];
@@ -307,9 +302,7 @@ const buildKagi = (bars: readonly Bar[], options: TickerOptions): Bar[] => {
   let lineOpen = lastExtreme;
   for (const bar of bars) {
     const reversalThreshold =
-      reversalType === "percent"
-        ? lastExtreme * (reversalAmount / 100)
-        : reversalAmount;
+      reversalType === "percent" ? lastExtreme * (reversalAmount / 100) : reversalAmount;
     const delta = bar.close - lastExtreme;
     const reversed =
       (direction === 1 && delta < -reversalThreshold) ||
@@ -432,10 +425,7 @@ export const new_ = (symbol: string, adjustments: TickerAdjustments = {}): Ticke
  * `ticker.modify(ticker, params)`. Returns a new ticker with updated
  * adjustment parameters. The chart-type bar builder is preserved.
  */
-export const modify = (
-  ticker: Ticker,
-  adjustments: TickerAdjustments,
-): Ticker => ({
+export const modify = (ticker: Ticker, adjustments: TickerAdjustments): Ticker => ({
   symbol: ticker.symbol,
   kind: ticker.kind,
   adjustments: { ...ticker.adjustments, ...adjustments },

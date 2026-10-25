@@ -66,14 +66,15 @@ class FixtureProvider implements MarketDataProvider {
   };
 }
 
-const bar = (
-  t: number,
-  o: number,
-  h: number,
-  l: number,
-  c: number,
-  isClosed = true,
-): Bar => ({ time: t, open: o, high: h, low: l, close: c, volume: 1, isClosed });
+const bar = (t: number, o: number, h: number, l: number, c: number, isClosed = true): Bar => ({
+  time: t,
+  open: o,
+  high: h,
+  low: l,
+  close: c,
+  volume: 1,
+  isClosed,
+});
 
 // Build 5 caller bars of 1-minute duration starting at t=60_000 (00:01:00 UTC).
 // Each caller bar covers [t, t+60s). The HTF (5-minute) bar covers [0, 5min).
@@ -201,12 +202,9 @@ describe("request.security (multi-context execution engine)", () => {
 
       const captured: Array<{ callerTime: number | undefined; htfClose: number | undefined }> = [];
       await runtime.run((ctx) => {
-        const htfClose = request.security(
-          "TEST",
-          "5",
-          (sctx) => sctx.close.at(0),
-          { lookahead: "lookahead_on" },
-        );
+        const htfClose = request.security("TEST", "5", (sctx) => sctx.close.at(0), {
+          lookahead: "lookahead_on",
+        });
         captured.push({ callerTime: ctx.time.at(0), htfClose });
       }, callerBars);
 
@@ -308,12 +306,9 @@ describe("request.security (multi-context execution engine)", () => {
       const captured: Array<number | undefined> = [];
       await runtime.run(() => {
         captured.push(
-          request.security(
-            "TEST",
-            "5",
-            (sctx) => ta.sma(sctx.close, 1).at(0),
-            { lookahead: "lookahead_on" },
-          ),
+          request.security("TEST", "5", (sctx) => ta.sma(sctx.close, 1).at(0), {
+            lookahead: "lookahead_on",
+          }),
         );
       }, callerBars);
 
@@ -408,10 +403,7 @@ describe("request.security (multi-context execution engine)", () => {
       // DIFFERENT caller bar — the first caller bar covers [0..300_000) but
       // the lower-tf bars are at [300_000..540_000].
       const caller5MinBars: Bar[] = [bar(0, 0, 0, 0, 0)];
-      const ltf1MinBars: Bar[] = [
-        bar(300_000, 15, 16, 14, 15),
-        bar(360_000, 16, 17, 15, 16),
-      ];
+      const ltf1MinBars: Bar[] = [bar(300_000, 15, 16, 14, 15), bar(360_000, 16, 17, 15, 16)];
       const provider = new FixtureProvider();
       provider.addBars("TEST", "5", caller5MinBars);
       provider.addBars("TEST", "1", ltf1MinBars);

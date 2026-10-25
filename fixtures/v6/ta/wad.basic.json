@@ -2,11 +2,11 @@
   "name": "ta.wad",
   "pineVersion": 6,
   "input": {
-    "open":  [100, 100,  97,  98, 106],
-    "high":  [102, 105, 100, 103, 108],
-    "low":   [ 98,  99,  96,  97, 105],
-    "close": [100, 104,  99,  99, 107],
-    "volume":[1000, 1000, 1200, 900, 800]
+    "open": [100, 100, 97, 98, 106],
+    "high": [102, 105, 100, 103, 108],
+    "low": [98, 99, 96, 97, 105],
+    "close": [100, 104, 99, 99, 107],
+    "volume": [1000, 1000, 1200, 900, 800]
   },
   "expected": [0, 5, 0, 0, 8],
   "notes": "Williams A/D cumulative line (volume not used). Bar 0 has no previous close so the line seeds at 0. Bar 1: C=104 > prevC=100, trueLow=min(99,100)=99 → +5. Bar 2: C=99 < prevC=104, trueHigh=max(100,104)=104 → 99-104=-5, total=0. Bar 3: C=99 == prevC=99 → contribution 0, total stays 0. Bar 4: C=107 > prevC=99, trueLow=min(105,99)=99 → +8, total=8. Matches the worked example in the v6 reference."

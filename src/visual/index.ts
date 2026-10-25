@@ -84,14 +84,7 @@ export interface PlotOptions {
 }
 
 export type PlotStyle =
-  | "line"
-  | "circles"
-  | "columns"
-  | "histogram"
-  | "area"
-  | "stepline"
-  | "cross"
-  | "shading";
+  "line" | "circles" | "columns" | "histogram" | "area" | "stepline" | "cross" | "shading";
 
 export type DisplayMode = "none" | "data_window" | "all";
 
@@ -123,13 +116,7 @@ export interface PlotShapeOptions {
 }
 
 export type ShapeLocation =
-  | "abovebar"
-  | "belowbar"
-  | "top"
-  | "bottom"
-  | "absolute"
-  | "left"
-  | "right";
+  "abovebar" | "belowbar" | "top" | "bottom" | "absolute" | "left" | "right";
 
 export type ShapeStyle =
   | "shapecircle"
@@ -163,7 +150,13 @@ export const plotshape = (condition: boolean, options: PlotShapeOptions = {}): v
 /** `plotchar(series, title?, char?, location?, color?, ...)`. */
 export const plotchar = (
   condition: boolean,
-  options: { title?: string; char?: string; location?: ShapeLocation; color?: Color; text?: string } = {},
+  options: {
+    title?: string;
+    char?: string;
+    location?: ShapeLocation;
+    color?: Color;
+    text?: string;
+  } = {},
 ): void => {
   if (!condition) return;
   emit("plotchar", options.title ?? nextId("plotchar"), {
@@ -178,7 +171,13 @@ export const plotchar = (
 /** `plotarrow(series, title?, colorup?, colordown?, ...)`. */
 export const plotarrow = (
   value: number,
-  options: { title?: string; colorup?: Color; colordown?: Color; minheight?: number; maxheight?: number } = {},
+  options: {
+    title?: string;
+    colorup?: Color;
+    colordown?: Color;
+    minheight?: number;
+    maxheight?: number;
+  } = {},
 ): void => {
   emit("plotarrow", options.title ?? nextId("plotarrow"), {
     value,
@@ -277,7 +276,10 @@ export const bgcolor = (color: Color, options: { offset?: number; title?: string
 };
 
 /** `barcolor(color, offset?, editable?, title?, ...)`. */
-export const barcolor = (color: Color, options: { offset?: number; title?: string; editable?: boolean } = {}): void => {
+export const barcolor = (
+  color: Color,
+  options: { offset?: number; title?: string; editable?: boolean } = {},
+): void => {
   emit("barcolor", nextId("barcolor"), {
     color,
     offset: options.offset ?? 0,
@@ -298,10 +300,22 @@ const drawings = new Map<string, Drawing<unknown>>();
 
 /** `chart.point.from_time(time, price)`. A point used by `line.*` and `polyline`. */
 export const chartPoint = {
-  from_time: (time: number, price: number): { time: number; price: number; index: number | undefined } =>
-    ({ time, price, index: undefined }),
-  from_index: (index: number, price: number): { time: number | undefined; price: number; index: number } =>
-    ({ time: undefined, price, index }),
+  from_time: (
+    time: number,
+    price: number,
+  ): { time: number; price: number; index: number | undefined } => ({
+    time,
+    price,
+    index: undefined,
+  }),
+  from_index: (
+    index: number,
+    price: number,
+  ): { time: number | undefined; price: number; index: number } => ({
+    time: undefined,
+    price,
+    index,
+  }),
 };
 
 export interface LineAttrs {
@@ -362,7 +376,8 @@ export const line = {
     const drawing = drawings.get(id);
     if (drawing === undefined) return undefined;
     const p = drawing.payload as LineAttrs;
-    if (p.x1 === undefined || p.y1 === undefined || p.x2 === undefined || p.y2 === undefined) return undefined;
+    if (p.x1 === undefined || p.y1 === undefined || p.x2 === undefined || p.y2 === undefined)
+      return undefined;
     if (p.x2 === p.x1) return p.y1;
     return p.y1 + ((p.y2 - p.y1) * (x - p.x1)) / (p.x2 - p.x1);
   },
