@@ -5,6 +5,6 @@
     "source": [1, 2, 3, 4, 5],
     "length": 3
   },
-  "expected": [1, 1.5, 2.25, 3.125, 4.0625],
-  "notes": "Seeded with the first source value, alpha = 2 / (length + 1)."
+  "expected": [null, null, 2, 3, 4],
+  "notes": "Corrected seeding model (see docs/ECOSYSTEM.md): ta.ema returns na until the bar supplying the length-th valid value, then seeds with ta.sma of the first length valid values (SMA(1,2,3)=2 at bar 2), then applies alpha=2/(length+1)=0.5: bar 3 = 0.5*4+0.5*2 = 3, bar 4 = 0.5*5+0.5*3 = 4. Confirmed indirectly by the PineScript-exported ta.tsi reference vectors (tests/reference-pine-vectors.test.ts), which are only reproducible with this SMA-seed warm-up model."
 }

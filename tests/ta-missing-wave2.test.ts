@@ -253,13 +253,14 @@ describe("ta.cci", () => {
     expect(out.slice(0, 3).every((v) => v === undefined)).toBe(true);
   });
 
-  it("returns na for a constant window (zero MD)", async () => {
+  it("returns 0 for a first flat window and keeps it afterwards (zero MD)", async () => {
     const out: Array<number | undefined> = [];
     await runScript([5, 5, 5, 5], (ctx) => {
       out.push(maybe(ta.cci(ctx.close, 4).at(0)));
     });
-    // MD = 0 → division by zero → na
-    expect(out.at(-1)).toBeUndefined();
+    // Corrected flat-window semantics (Pine reference vectors): a first
+    // flat window gives 0, and later flat windows keep the previous result.
+    expect(out).toEqual([undefined, undefined, undefined, 0]);
   });
 
   it("returns a finite value for a normally-varying window", async () => {
@@ -284,14 +285,15 @@ describe("ta.tsi", () => {
     expect(out.every((v) => v === undefined)).toBe(true);
   });
 
-  it("returns 100 for a strictly increasing series once warmed up", async () => {
-    // 12 bars with constant-advance change; TSI converges to +100.
+  it("returns +1 for a strictly increasing series once warmed up (ratio, not x100)", async () => {
+    // 12 bars with constant 1-bar changes; the double-smoothed change equals
+    // the double-smoothed absolute change, so the TSI ratio converges to +1.
     const out: Array<number | undefined> = [];
     await runScript(
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
       (ctx) => out.push(maybe(ta.tsi(ctx.close, 3, 5).at(0))),
     );
-    expect(out.at(-1)).toBeCloseTo(100, 6);
+    expect(out.at(-1)).toBeCloseTo(1, 6);
   });
 });
 

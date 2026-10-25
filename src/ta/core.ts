@@ -51,66 +51,168 @@ export const sma = (source: Series<number>, length: number): FloatSeries => {
   }) as FloatSeries;
 };
 
+/**
+ * Kahan-compensated accumulation matching the Pine running-sum model,
+ * as measured bit-for-bit by OakScriptJS (#136, #142; MIT). Pine does not
+ * re-sum a window: it keeps a compensated running sum. When the pending
+ * compensation would be absorbed by the new value (lost), the sum is
+ * recomputed NEWEST-FIRST and the compensation resets. Reproducing this
+ * chain in the EMA seed is what makes `ta.tsi` agree with PineScript
+ * reference vectors to the last bit (tests/reference-pine-vectors.test.ts).
+ */
+const compensationLost = (x: number, c: number): boolean => {
+  if (c === 0 || x === 0) return false;
+  const size = Math.abs(c);
+  return Math.abs(x + size - x) < size;
+};
+
+/**
+ * Replays the Kahan accumulation chain over `values` (arrival order,
+ * oldest first) and returns the compensated sum. `lastValue` is the bar's
+ * own value; when its step would lose the compensation, the sum is
+ * recomputed newest-first (current value first), as in Pine.
+ */
+const kahanSum = (buffer: readonly number[], lastValue: number): number => {
+  let s = 0;
+  let c = 0;
+  for (const value of buffer) {
+    if (compensationLost(value, c)) {
+      let fresh = value;
+      // New value first, then the stored values newest → oldest.
+      const prior = buffer.slice(0, buffer.indexOf(value));
+      for (let k = prior.length - 1; k >= 0; k -= 1) fresh += prior[k]!;
+      s = fresh;
+      c = 0;
+    } else {
+      const y = value - c;
+      const t = s + y;
+      c = t - s - y;
+      s = t;
+    }
+  }
+  // The current bar's value is the last arrival.
+  if (compensationLost(lastValue, c)) {
+    let fresh = lastValue;
+    for (let k = buffer.length - 1; k >= 0; k -= 1) fresh += buffer[k]!;
+    return fresh;
+  }
+  const y = lastValue - c;
+  const t = s + y;
+  return t;
+};
+
+/**
+ * `ta.ema(source, length)`. Exponential moving average.
+ *
+ * Seeding and warm-up follow the Pine built-in model, confirmed against
+ * PineScript-exported reference vectors (see docs/ECOSYSTEM.md): the EMA
+ * returns `na` until the bar that supplies the `length`-th valid source
+ * value, and seeds with `ta.sma` of those first `length` valid values
+ * (not with the first value). From the next bar on it applies
+ * `alpha * value + (1 - alpha) * previous` with `alpha = 2 / (length + 1)`.
+ *
+ * The seed uses the Kahan-compensated accumulation order of Pine's running
+ * sum (see {@link kahanSum}), so downstream compositions such as `ta.tsi`
+ * match PineScript output bit-for-bit.
+ *
+ * `na` (and ±Infinity) source values are skipped during warm-up and produce
+ * `na` afterwards; the smoothing state (`previous`) is preserved across
+ * such bars, so the next valid bar continues from the last EMA value.
+ */
 export const ema = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.ema", source, length), () => {
     interface State {
-      seeded: boolean;
+      /** The first `length` valid source values, oldest first. */
+      seedBuffer: number[];
       previous: number;
     }
     const alpha = 2 / (length + 1);
+    const seedSma = (state: Readonly<State>, value: number): number =>
+      kahanSum(state.seedBuffer, value) / length;
     const definition = {
-      init: (): State => ({ seeded: false, previous: Number.NaN }),
+      warmupBars: length - 1,
+      init: (): State => ({ seedBuffer: [], previous: Number.NaN }),
       evaluate: (state: Readonly<State>): number => {
         const value = source.at(0);
-        if (isNa(value)) return Number.NaN;
-        return state.seeded ? alpha * value + (1 - alpha) * state.previous : value;
+        if (value === undefined || !Number.isFinite(value)) return Number.NaN;
+        if (state.seedBuffer.length < length - 1) return Number.NaN;
+        if (state.seedBuffer.length === length - 1) {
+          // Seed bar: SMA of the first `length` valid values (Kahan order).
+          return seedSma(state, value);
+        }
+        // Pine evaluates (value - previous) * alpha + previous; the algebraic
+        // form alpha*value + (1-alpha)*previous differs in the last bits.
+        return (value - state.previous) * alpha + state.previous;
       },
       commit: (state: State): void => {
         const value = source.at(0);
-        if (!isNa(value)) {
-          state.previous = state.seeded ? alpha * value + (1 - alpha) * state.previous : value;
-          state.seeded = true;
+        // na bars never enter the seed buffer and never move `previous`.
+        if (value === undefined || !Number.isFinite(value)) return;
+        if (state.seedBuffer.length < length) {
+          if (state.seedBuffer.length === length - 1) {
+            state.previous = seedSma(state, value);
+          }
+          state.seedBuffer.push(value);
+          return;
         }
+        // Pine evaluates (value - previous) * alpha + previous; the algebraic
+        // form alpha*value + (1-alpha)*previous differs in the last bits.
+        state.previous = (value - state.previous) * alpha + state.previous;
       },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
 };
 
+/**
+ * `ta.rma(source, length)`. Wilder's smoothing (Running Moving Average).
+ *
+ * Same warm-up model as {@link ema}, confirmed against the Pine built-in:
+ * `na` until the bar supplying the `length`-th valid value, seeded with
+ * `ta.sma` of the first `length` valid values (Kahan running-sum order).
+ * The recurrence is Pine's exact form `(value + (length - 1) * previous) /
+ * length` — the algebraic form `alpha * value + (1 - alpha) * previous`
+ * differs in the last bits (documented by OakScriptJS, #136).
+ *
+ * `na` source values are skipped during warm-up and produce `na` afterwards;
+ * `previous` is preserved across na bars.
+ */
 export const rma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.rma", source, length), () => {
     interface State {
-      seedCount: number;
-      seedSum: number;
+      /** The first `length` valid source values, oldest first. */
+      seedBuffer: number[];
       previous: number;
     }
-    const alpha = 1 / length;
+    const seedSma = (state: Readonly<State>, value: number): number =>
+      kahanSum(state.seedBuffer, value) / length;
     const definition = {
       warmupBars: length - 1,
-      init: (): State => ({ seedCount: 0, seedSum: 0, previous: Number.NaN }),
+      init: (): State => ({ seedBuffer: [], previous: Number.NaN }),
       evaluate: (state: Readonly<State>): number => {
         const value = source.at(0);
-        if (isNa(value)) return Number.NaN;
-        if (state.seedCount < length) {
-          if (state.seedCount + 1 < length) return Number.NaN;
-          return (state.seedSum + value) / length;
+        if (value === undefined || !Number.isFinite(value)) return Number.NaN;
+        if (state.seedBuffer.length < length - 1) return Number.NaN;
+        if (state.seedBuffer.length === length - 1) {
+          return seedSma(state, value);
         }
-        return alpha * value + (1 - alpha) * state.previous;
+        return (value + (length - 1) * state.previous) / length;
       },
       commit: (state: State): void => {
         const value = source.at(0);
-        if (isNa(value)) return;
-        if (state.seedCount < length) {
-          state.seedCount += 1;
-          state.seedSum += value;
-          if (state.seedCount === length) state.previous = state.seedSum / length;
+        if (value === undefined || !Number.isFinite(value)) return;
+        if (state.seedBuffer.length < length) {
+          if (state.seedBuffer.length === length - 1) {
+            state.previous = seedSma(state, value);
+          }
+          state.seedBuffer.push(value);
           return;
         }
-        state.previous = alpha * value + (1 - alpha) * state.previous;
+        state.previous = (value + (length - 1) * state.previous) / length;
       },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));

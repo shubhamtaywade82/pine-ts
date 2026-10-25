@@ -6,6 +6,6 @@
     "short_length": 3,
     "long_length": 5
   },
-  "expected": [null, null, null, null, null, null, null, null, null, null, null, 100.0],
-  "notes": "TSI with a constant-advance series yields +100 — the double-smoothed price change equals the double-smoothed absolute change. Draft fixture pending a real TradingView-exported reference vector with non-trivial input."
+  "expected": [null, null, null, null, null, null, null, 1, 1, 1, 1, 1],
+  "notes": "Corrected semantics (see docs/ECOSYSTEM.md and tests/reference-pine-vectors.test.ts): PC = ta.change(source) (1-bar change) and the result is a RATIO in [-1, 1], not x100. With constant +1 changes both double-smoothed branches converge to 1, so the ratio is +1 from the bar where the outer EMA seeds (bar 7). Pinned bit-for-bit against PineScript-exported values on daily BTCUSD data in tests/reference-pine-vectors.test.ts (source: OakScriptJS MIT test suite)."
 }

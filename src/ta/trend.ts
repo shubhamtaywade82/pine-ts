@@ -243,12 +243,14 @@ export const linreg = (source: Series<number>, length: number, offset: number): 
         let sumXY = 0;
         let sumX = 0;
         let sumXX = 0;
-        for (let back = 0; back < length; back += 1) {
+        // Accumulate oldest-first with x = 1 at the oldest bar, exactly as
+        // Pine does (bit-for-bit; the newest-first order differs in the last
+        // bits). The intercept is the fitted value at x = 1, evaluated in
+        // Pine's form sumY/length - (slope*sumX)/length + slope.
+        for (let back = length - 1; back >= 0; back -= 1) {
           const value = source.at(back);
           if (isNa(value)) return Number.NaN;
-          // x counts bars from the window start, so the current bar is
-          // x = length - 1 and the oldest bar is x = 0.
-          const x = length - 1 - back;
+          const x = length - back;
           sumY += value;
           sumXY += x * value;
           sumX += x;
@@ -256,7 +258,7 @@ export const linreg = (source: Series<number>, length: number, offset: number): 
         }
         const denominator = length * sumXX - sumX * sumX;
         const slope = (length * sumXY - sumX * sumY) / denominator;
-        const intercept = (sumY - slope * sumX) / length;
+        const intercept = sumY / length - (slope * sumX) / length + slope;
         return intercept + slope * (length - 1 - offset);
       },
       commit: (): void => undefined,

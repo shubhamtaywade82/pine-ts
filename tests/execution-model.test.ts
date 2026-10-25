@@ -229,13 +229,18 @@ describe("conditional execution (Pine local-scope rule)", () => {
   });
 
   it("seeds and smooths a conditional ta.ema over executed bars only", async () => {
-    const conditional: number[] = [];
+    const conditional: Array<number | undefined> = [];
     await run(closesToBars(closes), (ctx) => {
       if (ctx.barstate.index % 2 === 0) conditional.push(ta.ema(ctx.close, 3).value);
     });
 
-    // alpha = 0.5 over closes 1, 3, 5, 7.
-    expect(conditional).toEqual([1, 2, 3.5, 5.25]);
+    // Corrected ta.ema seeding (SMA seed, na until the length-th valid bar):
+    // the call runs on bars 0, 2, 4, 6 with closes 1, 3, 5, 7, so the seed
+    // lands on the 3rd executed bar as SMA(1, 3, 5) = 3, then
+    // (7 - 3) * 0.5 + 3 = 5.
+    expect(conditional.slice(0, 2).every((v) => Number.isNaN(v as number))).toBe(true);
+    expect(conditional[2]).toBe(3);
+    expect(conditional[3]).toBe(5);
   });
 
   it("resolves [1] on a conditional series to the last committed value (User Manual example)", async () => {

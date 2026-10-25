@@ -6,8 +6,9 @@
 
 | Symbol                               | Implementation | Compatibility status | Notes                                                                                |
 | ------------------------------------ | -------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| `ta.sma`                             | yes            | verified             | incremental rolling state                                                            |
-| `ta.ema`                             | yes            | verified             | incremental state, first-valid seed                                                  |
+| `ta.sma`                             | yes            | verified             | incremental rolling state (Kahan-sum port for rolling kernels is a follow-up; see ECOSYSTEM.md) |
+| `ta.ema`                             | yes            | verified             | SMA seed on the length-th valid bar, `na` warm-up, Kahan seed order, `(v - prev) * alpha + prev`; pinned via the Pine-exported `ta.tsi` vectors |
+| `ta.rma`                             | yes            | draft                | Wilder smoothing: SMA seed (Kahan order), `(v + (length-1) * prev) / length` |
 | `ta.highest`                         | yes            | verified             | rolling window                                                                       |
 | `ta.lowest`                          | yes            | verified             | rolling window                                                                       |
 | `ta.change`                          | yes            | verified             | Pine history semantics                                                               |
@@ -23,18 +24,18 @@
 | `ta.rsi`                             | yes            | draft                | Wilder smoothing; first value on the length-th change                                |
 | `ta.roc`                             | yes            | draft                | percentage rate of change                                                            |
 | `ta.mom`                             | yes            | draft                | `source - source[length]`                                                            |
-| `ta.stoch`                           | yes            | draft                | source against peak/valley windows                                                   |
+| `ta.stoch`                           | yes            | verified             | zero range and na source keep the previous result; windows skip na — pinned bit-for-bit against Pine output |
 | `ta.wpr`                             | yes            | draft                | William %R over high/low windows                                                     |
 | `ta.cmo`                             | yes            | draft                | rolling gain/loss balance over the last length changes                               |
 | `ta.variance`                        | yes            | draft                | biased/unbiased rolling variance                                                     |
 | `ta.stdev`                           | yes            | draft                | square root of rolling variance                                                      |
 | `ta.dev`                             | yes            | draft                | mean absolute deviation                                                              |
-| `ta.macd`                            | yes            | draft                | `MacdResult` from EMA nodes                                                          |
+| `ta.macd`                            | yes            | draft                | `MacdResult` from EMA nodes; outputs warm up with the corrected EMA seeding |
 | `ta.bb`                              | yes            | draft                | `BollingerBandsResult` from SMA/stdev nodes                                          |
 | `ta.dmi`                             | yes            | draft                | `DmiResult` with Wilder-smoothed +DI/-DI/ADX                                         |
 | `ta.supertrend`                      | yes            | draft                | `SupertrendResult` with carry-forward ATR bands                                      |
 | `ta.sar`                             | yes            | draft                | literal `pine_sar` algorithm from the v6 reference                                   |
-| `ta.linreg`                          | yes            | draft                | least-squares fit; `intercept + slope * (length - 1 - offset)`                       |
+| `ta.linreg`                          | yes            | verified             | oldest-first x = 1..length least squares; intercept at x = 1 — pinned bit-for-bit against Pine output |
 | `ta.bbw`                             | yes            | draft                | `(((basis + dev) - (basis - dev)) / basis) * 100` per the official re-implementation |
 | `ta.kc`                              | yes            | draft                | EMA basis, `ta.ema`-smoothed true-range (or `high - low`) bands                      |
 | `ta.kcw`                             | yes            | draft                | `(upper - lower) / basis` from `ta.kc`; no `* 100`                                   |
@@ -66,8 +67,8 @@
 | `ta.range`                            | yes            | draft                | `ta.highest(source, length) - ta.lowest(source, length)`                           |
 | `ta.alma`                             | yes            | draft                | Arnaud Legoux Moving Average — Gaussian-weighted kernel over a length window        |
 | `ta.cog`                              | yes            | draft                | negative bar-position-weighted price sum divided by the unweighted sum              |
-| `ta.cci`                              | yes            | draft                | Lambert CCI: `(source - SMA) / (0.015 * MD)` over the rolling window                 |
-| `ta.tsi`                              | yes            | draft                | True Strength Index: `100 * ema(ema(mom,long),short) / ema(ema(abs(mom),long),short)` |
+| `ta.cci`                              | yes            | verified             | Lambert CCI; flat windows keep the previous result (1e-10 tolerance), first flat window 0 — pinned bit-for-bit against Pine output |
+| `ta.tsi`                              | yes            | verified             | `ta.change(source)` (1-bar) double-smoothed; RATIO in [-1, 1], not x100 — pinned bit-for-bit against Pine output |
 | `ta.rci`                              | yes            | draft                | Rank Correlation Index: `100 * Spearman(price, time)` with average-rank tie-break   |
 | `ta.iii`                              | yes            | draft                | Intraday Intensity Index — cumulative `((2*C - H - L) / (H - L)) * V`               |
 | `ta.wad`                              | yes            | draft                | Williams A/D cumulative (true-high/true-low rule, no volume)                        |

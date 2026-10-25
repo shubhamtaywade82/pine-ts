@@ -6,7 +6,20 @@ Pine Script v6-inspired trading runtime for TypeScript.
 
 ## Project status
 
-Early foundation. The repository is intentionally starting with the runtime contracts and deterministic series/technical-analysis core before implementing the full Pine v6 surface.
+**Broad v6 surface, expanding verification depth.** The runtime contracts,
+the deterministic series/technical-analysis core, and the full `ta.*`
+namespace (67/67 manifest symbols, 0 `planned`) are implemented, along with
+`math.*`, `array.*`, `matrix.*`, `map.*`, `str.*`, `color.*`, `input.*`,
+`log.*`, global built-ins (`alert`, `timestamp`, type casts), `syminfo.*`,
+`ticker.*` (Heikin-Ashi / Renko / Kagi / Line Break / Point & Figure
+builders), a multi-context `request.security` / `request.security_lower_tf`
+engine, a `strategy.*` engine with broker emulator plus a live/paper
+`BrokerAdapter` boundary, and a renderer-neutral visual event stream with
+drawing objects. Verification status per `ta.*` symbol is tracked in
+[`docs/TA-COVERAGE.md`](docs/TA-COVERAGE.md); functions with
+PineScript-exported reference vectors are marked `verified`
+(`tests/reference-pine-vectors.test.ts` pins several bit-for-bit — see
+[`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md) for the audit and provenance).
 
 ## Goals
 

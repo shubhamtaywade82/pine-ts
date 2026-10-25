@@ -6,5 +6,5 @@
     "length": 4
   },
   "expected": [null, null, null, 100.0, 100.0],
-  "notes": "CCI with constant-advance series yields +100 (each new value sits exactly the SMA distance from the SMA, with MD = SMA distance / 0.015). Used as a draft warm-up + warm-bar fixture pending TradingView-exported reference vectors."
+  "notes": "CCI with constant-advance series yields +100 (each new value sits exactly the SMA distance from the SMA, with MD = 10 and (40 - 25) / (0.015 * 10) = 100). Flat-window semantics (keep previous; 0 for a first flat window) are verified against PineScript-exported values in tests/reference-pine-vectors.test.ts (source: OakScriptJS MIT test suite; see docs/ECOSYSTEM.md)."
 }

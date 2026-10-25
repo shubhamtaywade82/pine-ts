@@ -226,7 +226,7 @@ functions:
         - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
     impl: { module: src/ta/momentum.ts, export: stoch }
-    status: draft
+    status: verified
     vectors: [fixtures/v6/ta/stoch.basic.json]
 
   - name: wpr
@@ -408,7 +408,7 @@ functions:
       warmup: "length - 1"
       na: "na values in the window are included in the calculation and produce an na result"
     impl: { module: src/ta/trend.ts, export: linreg }
-    status: draft
+    status: verified
     vectors: [fixtures/v6/ta/linreg.basic.json, fixtures/v6/ta/linreg.start.json]
 
   - name: bbw
@@ -782,7 +782,7 @@ functions:
       formula: "(source - sma(source, length)) / (0.015 * dev(source, length))"
       na: "na current value yields na; zero MD (constant window) yields na"
     impl: { module: src/ta/momentum.ts, export: cci }
-    status: draft
+    status: verified
     vectors: [fixtures/v6/ta/cci.basic.json]
 
   - name: tsi
@@ -797,7 +797,7 @@ functions:
       formula: "100 * ema(ema(mom(source, long_length), long_length), short_length) / ema(ema(abs(mom(source, long_length)), long_length), short_length)"
       na: "na during warmup; zero double-smoothed absolute change (constant source) yields na"
     impl: { module: src/ta/momentum.ts, export: tsi }
-    status: draft
+    status: verified
     vectors: [fixtures/v6/ta/tsi.basic.json]
 
   - name: rci

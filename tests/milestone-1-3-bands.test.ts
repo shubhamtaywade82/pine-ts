@@ -170,9 +170,23 @@ describe("ta.kc", () => {
     { open: 10.1, high: 10.9, low: 9.8, close: 10.8 },
     { open: 10.8, high: 11.6, low: 10.5, close: 11.5 },
   ]);
-  const expectedMiddle = [10.0, 9.75, 9.975, 10.0375, 10.41875, 10.959375];
-  const expectedUpper = [14.0, 12.35, 12.375, 11.6375, 12.31875, 13.009374999999999];
-  const expectedLower = [6.0, 7.15, 7.575, 8.4375, 8.518749999999999, 8.909375];
+  const expectedMiddle = [Number.NaN, Number.NaN, 9.9, 10, 10.4, 10.95];
+  const expectedUpper = [
+    Number.NaN,
+    Number.NaN,
+    12.366666666666667,
+    11.633333333333333,
+    12.316666666666666,
+    13.008333333333333,
+  ];
+  const expectedLower = [
+    Number.NaN,
+    Number.NaN,
+    7.433333333333334,
+    8.366666666666667,
+    8.483333333333334,
+    8.891666666666666,
+  ];
 
   it("matches the true-range reference vector", async () => {
     const rows = await runHistorical(bars, (ctx) => {
@@ -184,9 +198,19 @@ describe("ta.kc", () => {
       };
     });
     rows.forEach((row, index) => {
-      expect(row.middle).toBeCloseTo(expectedMiddle[index] ?? Number.NaN, 10);
-      expect(row.upper).toBeCloseTo(expectedUpper[index] ?? Number.NaN, 10);
-      expect(row.lower).toBeCloseTo(expectedLower[index] ?? Number.NaN, 10);
+      const middle = expectedMiddle[index];
+      const upper = expectedUpper[index];
+      const lower = expectedLower[index];
+      if (Number.isNaN(middle)) {
+        // ta.ema warm-up: na until the length-th valid bar (SMA seed).
+        expect(Number.isNaN(row.middle as number)).toBe(true);
+        expect(Number.isNaN(row.upper as number)).toBe(true);
+        expect(Number.isNaN(row.lower as number)).toBe(true);
+        return;
+      }
+      expect(row.middle).toBeCloseTo(middle ?? Number.NaN, 10);
+      expect(row.upper).toBeCloseTo(upper ?? Number.NaN, 10);
+      expect(row.lower).toBeCloseTo(lower ?? Number.NaN, 10);
     });
   });
 
@@ -196,11 +220,32 @@ describe("ta.kc", () => {
       const channels = ta.kc(ctx.close, 3, 2, false);
       return { upper: channels.upper.value, lower: channels.lower.value };
     });
-    const expectedUpper = [14.0, 12.15, 12.274999999999999, 11.5875, 12.29375, 12.996875];
-    const expectedLower = [6.0, 7.35, 7.675, 8.487499999999999, 8.54375, 8.921875];
+    const expectedUpper = [
+      Number.NaN,
+      Number.NaN,
+      12.233333333333334,
+      11.566666666666666,
+      12.283333333333333,
+      12.991666666666665,
+    ];
+    const expectedLower = [
+      Number.NaN,
+      Number.NaN,
+      7.566666666666666,
+      8.433333333333334,
+      8.516666666666667,
+      8.908333333333333,
+    ];
     rows.forEach((row, index) => {
-      expect(row.upper).toBeCloseTo(expectedUpper[index] ?? Number.NaN, 10);
-      expect(row.lower).toBeCloseTo(expectedLower[index] ?? Number.NaN, 10);
+      const upper = expectedUpper[index];
+      const lower = expectedLower[index];
+      if (upper === undefined || Number.isNaN(upper)) {
+        expect(row.upper === undefined || Number.isNaN(row.upper)).toBe(true);
+        expect(row.lower === undefined || Number.isNaN(row.lower)).toBe(true);
+        return;
+      }
+      expect(row.upper).toBeCloseTo(upper ?? Number.NaN, 10);
+      expect(row.lower).toBeCloseTo(lower ?? Number.NaN, 10);
     });
   });
 
@@ -229,14 +274,23 @@ describe("ta.kcw", () => {
     { open: 10.8, high: 11.6, low: 10.5, close: 11.5 },
   ]);
   const expected = [
-    0.8, 0.5333333333333332, 0.48120300751879697, 0.3188044831880448, 0.3647270545890823,
-    0.3741089250071284,
+    Number.NaN,
+    Number.NaN,
+    0.4983164983164983,
+    0.32666666666666655,
+    0.36858974358974345,
+    0.375951293759513,
   ];
 
   it("matches the reference vector without the x100 factor", async () => {
     const values = await runHistorical(bars, (ctx) => ta.kcw(ctx.close, 3, 2, true).value);
     values.forEach((value, index) => {
-      expect(value).toBeCloseTo(expected[index] ?? Number.NaN, 10);
+      const expectedValue = expected[index];
+      if (expectedValue === undefined || Number.isNaN(expectedValue)) {
+        expect(value === undefined || Number.isNaN(value)).toBe(true);
+        return;
+      }
+      expect(value).toBeCloseTo(expectedValue, 10);
     });
   });
 });

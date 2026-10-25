@@ -3,7 +3,7 @@ import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
-import { ema } from "./core.js";
+import { change, ema } from "./core.js";
 import { requirePositiveLength } from "./validation.js";
 import { collectNonNaWindow } from "./window.js";
 
@@ -129,6 +129,20 @@ export const rsi = (source: Series<number>, length: number): FloatSeries => {
   }) as FloatSeries;
 };
 
+/**
+ * `ta.stoch(source, peak, valley, length)`. Stochastic oscillator.
+ *
+ * Semantics corrected against PineScript-exported reference vectors (see
+ * docs/ECOSYSTEM.md and tests/reference-pine-vectors.test.ts):
+ *
+ * - `na` values inside the `peak`/`valley` windows are SKIPPED: the windows
+ *   collect the last `length` non-na values (v6 "na values are ignored").
+ * - A zero range (highest === lowest) KEEPS THE PREVIOUS RESULT rather than
+ *   returning na; before any first result it stays na.
+ * - An `na` current source KEEPS THE PREVIOUS RESULT rather than returning
+ *   na.
+ * - Fewer than `length` non-na peak/valley values yields na.
+ */
 export const stoch = (
   source: Series<number>,
   peak: Series<number>,
@@ -139,25 +153,55 @@ export const stoch = (
   const runtime = requireCompatibleRuntime(source, peak);
   requireCompatibleRuntime(source, valley);
   return runtime.nodes.getOrCreate(nodeKey("ta.stoch", source, peak, valley, length), () => {
+    interface State {
+      /** The most recent stoch result; NaN before the first one. */
+      previous: number;
+    }
+    /** Collects the last `length` non-na values of a series, oldest first. */
+    const collectNonNa = (series: Series<number>): readonly number[] | undefined => {
+      const window: number[] = [];
+      let offset = 0;
+      while (window.length < length) {
+        const value = series.at(offset);
+        if (value === undefined) return undefined;
+        if (!isNa(value)) window.push(value);
+        offset += 1;
+      }
+      return window;
+    };
     const definition = {
       warmupBars: length - 1,
-      init: (): null => null,
-      evaluate: (): number => {
+      init: (): State => ({ previous: Number.NaN }),
+      evaluate: (state: Readonly<State>): number => {
         const current = source.at(0);
-        if (isNa(current)) return Number.NaN;
-        let highest = -Infinity;
-        let lowest = Infinity;
-        for (let offset = 0; offset < length; offset += 1) {
-          const high = peak.at(offset);
-          const low = valley.at(offset);
-          if (isNa(high) || isNa(low)) return Number.NaN;
-          highest = Math.max(highest, high);
-          lowest = Math.min(lowest, low);
+        if (current === undefined || isNa(current)) {
+          // na source: keep the previous result.
+          return state.previous;
         }
+        const highs = collectNonNa(peak);
+        const lows = collectNonNa(valley);
+        if (highs === undefined || lows === undefined) return Number.NaN;
+        const highest = Math.max(...highs);
+        const lowest = Math.min(...lows);
         const range = highest - lowest;
-        return range === 0 ? Number.NaN : ((current - lowest) / range) * 100;
+        if (range === 0) {
+          // Zero range: keep the previous result (na before the first one).
+          return state.previous;
+        }
+        return ((current - lowest) / range) * 100;
       },
-      commit: (): void => undefined,
+      commit: (state: State): void => {
+        const current = source.at(0);
+        if (current === undefined || isNa(current)) return;
+        const highs = collectNonNa(peak);
+        const lows = collectNonNa(valley);
+        if (highs === undefined || lows === undefined) return;
+        const highest = Math.max(...highs);
+        const lowest = Math.min(...lows);
+        const range = highest - lowest;
+        if (range === 0) return;
+        state.previous = ((current - lowest) / range) * 100;
+      },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
@@ -256,22 +300,31 @@ export const cmo = (source: Series<number>, length: number): FloatSeries => {
 };
 
 /**
- * `ta.cci(source, length)`. Commodity Channel Index (Lambert). Standard
- * Lambert formula: `CCI = (source - SMA(source, length)) / (0.015 * MD)`
- * where `MD` is the mean absolute deviation of `source` over the rolling
- * length window. A na current value yields na; a zero MD (constant window)
- * yields na, matching Pine's division-by-zero semantics. Composed from the
- * verified `ta.sma` and the `ta.dev` kernel so the rolling window, na, and
- * warm-up behavior inherit their semantics.
+ * `ta.cci(source, length)`. Commodity Channel Index (Lambert).
+ *
+ * `CCI = (source - SMA(source, length)) / (0.015 * MD)` where `MD` is the
+ * mean absolute deviation over the rolling length window.
+ *
+ * Flat-window semantics corrected against PineScript-exported reference
+ * vectors (see docs/ECOSYSTEM.md and tests/reference-pine-vectors.test.ts):
+ * when the mean deviation is 0 (within a 1e-10 tolerance), the built-in
+ * KEEPS THE PREVIOUS CCI rather than returning na; a flat FIRST window
+ * yields 0. Warm-up and na behavior follow the shared rolling-window
+ * model (na current value yields na; fewer than `length` non-na values
+ * yields na).
  */
 export const cci = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.cci", source, length), () => {
+    interface State {
+      /** The most recent CCI result; NaN before the first one. */
+      previous: number;
+    }
     const definition = {
       warmupBars: length - 1,
-      init: (): null => null,
-      evaluate: (): number => {
+      init: (): State => ({ previous: Number.NaN }),
+      evaluate: (state: Readonly<State>): number => {
         const current = source.at(0);
         if (current === undefined || isNa(current)) return Number.NaN;
         const window = collectNonNaWindow(source, length);
@@ -279,10 +332,21 @@ export const cci = (source: Series<number>, length: number): FloatSeries => {
         const values = window.map((entry) => entry.value);
         const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
         const md = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / values.length;
-        if (md === 0) return Number.NaN;
+        // Flat window (MD ~ 0): keep the previous CCI; 0 for a first window.
+        if (md <= 1e-10) return Number.isNaN(state.previous) ? 0 : state.previous;
         return (current - mean) / (0.015 * md);
       },
-      commit: (): void => undefined,
+      commit: (state: State): void => {
+        const current = source.at(0);
+        if (current === undefined || isNa(current)) return;
+        const window = collectNonNaWindow(source, length);
+        if (window === undefined) return;
+        const values = window.map((entry) => entry.value);
+        const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+        const md = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / values.length;
+        if (md <= 1e-10) return;
+        state.previous = (current - mean) / (0.015 * md);
+      },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;
@@ -291,18 +355,24 @@ export const cci = (source: Series<number>, length: number): FloatSeries => {
 /**
  * `ta.tsi(source, short_length, long_length)`. True Strength Index.
  *
- * Transcribed from the standard TSI formula documented in the v6 reference:
+ * Corrected against the Pine built-in semantics, confirmed by
+ * PineScript-exported reference vectors (see docs/ECOSYSTEM.md and
+ * tests/reference-pine-vectors.test.ts):
  *
  * ```
- * PC = source - source[long_length]
+ * PC = ta.change(source)              // 1-bar change, NOT source - source[long_length]
  * doubleSmoothedPC = ta.ema(ta.ema(PC, long_length), short_length)
  * doubleSmoothedAbsPC = ta.ema(ta.ema(math.abs(PC), long_length), short_length)
- * TSI = 100 * doubleSmoothedPC / doubleSmoothedAbsPC
+ * TSI = doubleSmoothedPC / doubleSmoothedAbsPC   // ratio in [-1, 1], NOT x100
  * ```
  *
- * A zero double-smoothed absolute change (e.g. constant source) yields na,
+ * The built-in returns a ratio, not a percentage-scaled value: the v6
+ * reference remark states the result lies in [-1, +1] when defined, so
+ * thresholds copied from x100 TSI charts must be rescaled by the caller.
+ * A zero double-smoothed absolute change (constant source) yields na,
  * matching Pine's division-by-zero semantics. Composed from `ta.ema` and
- * `ta.mom` so na/warm-up behavior is inherited.
+ * `ta.change` so warm-up and na behavior are inherited from the verified
+ * EMA model (SMA seed, na until the length-th valid value).
  */
 export const tsi = (
   source: Series<number>,
@@ -315,30 +385,25 @@ export const tsi = (
   return runtime.nodes.getOrCreate(
     nodeKey("ta.tsi", source, shortLength, longLength),
     () => {
-      // Build the change series, take its absolute value, then double-smooth
-      // both. The compositions are stateful nodes that share the source's
-      // runtime; each gets independent state through the NodeRegistry.
-      const change = mom(source, longLength);
-      // math.abs applied per bar to a Series<number>. Inline rather than pull
-      // in `math.*` to keep momentum.ts self-contained; math.abs is a pure
-      // node-side transform.
-      const absChange = runtime.nodes.getOrCreate(nodeKey("ta.tsi.absChange", change), () => {
+      // 1-bar price change: ta.change(source) = source - source[1].
+      const priceChange = change(source, 1);
+      // math.abs applied per bar to the change series.
+      const absChange = runtime.nodes.getOrCreate(nodeKey("ta.tsi.absChange", priceChange), () => {
         const definition = {
           init: (): null => null,
           evaluate: (): number => {
-            const v = change.at(0);
+            const v = priceChange.at(0);
             return v === undefined || isNa(v) ? Number.NaN : Math.abs(v);
           },
           commit: (): void => undefined,
         };
         return new FloatSeries(runtime, new IndicatorNode(definition));
       }) as FloatSeries;
-      const longSmoothed = ema(change, longLength);
+      const longSmoothed = ema(priceChange, longLength);
       const shortSmoothed = ema(longSmoothed, shortLength);
       const longAbsSmoothed = ema(absChange, longLength);
       const shortAbsSmoothed = ema(longAbsSmoothed, shortLength);
       const definition = {
-        warmupBars: longLength + 2 * (shortLength - 1),
         init: (): null => null,
         evaluate: (): number => {
           const numerator = shortSmoothed.at(0);
@@ -346,7 +411,8 @@ export const tsi = (
           if (numerator === undefined || isNa(numerator)) return Number.NaN;
           if (denominator === undefined || isNa(denominator)) return Number.NaN;
           if (denominator === 0) return Number.NaN;
-          return (100 * numerator) / denominator;
+          // Ratio in [-1, 1] — the built-in does NOT scale by 100.
+          return numerator / denominator;
         },
         commit: (): void => undefined,
       };

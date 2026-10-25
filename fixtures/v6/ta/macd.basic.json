@@ -8,13 +8,9 @@
     "signal_length": 2
   },
   "expected": {
-    "macdLine": [0, 0.2666666666666666, 0.5155555555555553, 0.6945185185185183, 0.8117728395061725],
-    "signalLine": [
-      0, 0.17777777777777773, 0.40296296296296275, 0.597333333333333, 0.740293004115226
-    ],
-    "histLine": [
-      0, 0.08888888888888888, 0.11259259259259258, 0.09718518518518526, 0.07147983539094649
-    ]
+    "macdLine": [null, null, null, 1, 1],
+    "signalLine": [null, null, null, null, 1],
+    "histLine": [null, null, null, null, 0]
   },
-  "notes": "macdLine = ema(fast) - ema(slow); signalLine = ema(macdLine, signal); histLine = macdLine - signalLine."
+  "notes": "macdLine = ema(fast) - ema(slow); signalLine = ema(macdLine, signal); histLine = macdLine - signalLine. Corrected ta.ema warm-up (SMA seed, na until the length-th valid bar; see docs/ECOSYSTEM.md): ema(close,2) seeds at bar 1, ema(close,4) at bar 3, so macdLine is defined from bar 3; the signal EMA needs two valid macd values and seeds at bar 4."
 }

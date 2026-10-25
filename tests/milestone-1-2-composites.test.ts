@@ -96,9 +96,9 @@ const runRealtime = async <T>(
 
 describe("Milestone 1.2 — composite built-ins", () => {
   it("calculates MACD line, signal line and histogram", async () => {
-    const macdLine: number[] = [];
-    const signalLine: number[] = [];
-    const histLine: number[] = [];
+    const macdLine: Array<number | undefined> = [];
+    const signalLine: Array<number | undefined> = [];
+    const histLine: Array<number | undefined> = [];
     await runHistorical(closesToBars([1, 2, 3, 4, 5]), (ctx) => {
       const result = ta.macd(ctx.close, 2, 4, 2);
       macdLine.push(result.macdLine.value);
@@ -106,23 +106,24 @@ describe("Milestone 1.2 — composite built-ins", () => {
       histLine.push(result.histLine.value);
     });
 
-    // EMA seeds make every MACD output defined from the first bar.
-    expect(macdLine[0]).toBe(0);
-    expect(signalLine[0]).toBe(0);
-    expect(histLine[0]).toBe(0);
-    expect(macdLine[1]).toBeCloseTo(0.26666666666666666, 10);
-    expect(macdLine[2]).toBeCloseTo(0.5155555555555553, 10);
-    expect(macdLine[3]).toBeCloseTo(0.6945185185185183, 10);
-    expect(macdLine[4]).toBeCloseTo(0.8117728395061725, 10);
-    expect(signalLine[1]).toBeCloseTo(0.17777777777777773, 10);
-    expect(signalLine[4]).toBeCloseTo(0.740293004115226, 10);
-    expect(histLine[1]).toBeCloseTo(0.08888888888888888, 10);
-    expect(histLine[4]).toBeCloseTo(0.07147983539094649, 10);
+    // Corrected ta.ema warm-up (SMA seed, na until the length-th valid bar)
+    // propagates into every MACD output: the fast/slow EMAs and their EMA
+    // all warm up before the lines are defined.
+    expect(macdLine.slice(0, 3).every((v) => Number.isNaN(v as number))).toBe(true);
+    expect(signalLine.slice(0, 4).every((v) => Number.isNaN(v as number))).toBe(true);
+    expect(histLine.slice(0, 4).every((v) => Number.isNaN(v as number))).toBe(true);
+    // ema(close,2) seeds at bar 1 (SMA(1,2)=1.5); ema(close,4) at bar 3
+    // (SMA(1..4)=2.5): macdLine = 3.5-2.5 = 1, then 4.5-3.5 = 1.
+    expect(macdLine[3]).toBe(1);
+    expect(macdLine[4]).toBe(1);
+    // signalLine = ema(macdLine, 2) seeds at the 2nd valid macd value: 1.
+    expect(signalLine[4]).toBe(1);
+    expect(histLine[4]).toBe(0);
   });
 
   it("exposes MACD history offsets per output", async () => {
     const history: Array<number | undefined> = [];
-    const values: number[] = [];
+    const values: Array<number | undefined> = [];
     await runHistorical(closesToBars([1, 2, 3, 4, 5]), (ctx) => {
       const { macdLine } = ta.macd(ctx.close, 2, 4, 2);
       // Materialize the current value first: lazy series only commit on reads.
@@ -130,16 +131,10 @@ describe("Milestone 1.2 — composite built-ins", () => {
       history.push(macdLine.at(1));
     });
 
-    expect(values).toEqual([
-      0, 0.2666666666666666, 0.5155555555555553, 0.6945185185185183, 0.8117728395061725,
-    ]);
-    expect(history).toEqual([
-      undefined,
-      0,
-      0.2666666666666666,
-      0.5155555555555553,
-      0.6945185185185183,
-    ]);
+    expect(values).toEqual([Number.NaN, Number.NaN, Number.NaN, 1, 1]);
+    // at(1) is undefined on bar 0 (no committed history) and na afterwards
+    // during warm-up.
+    expect(history).toEqual([undefined, Number.NaN, Number.NaN, Number.NaN, 1]);
   });
 
   it("preserves structural identity for repeated MACD nodes", async () => {
@@ -374,19 +369,20 @@ describe("Milestone 1.2 — composite built-ins", () => {
       { ...closesToBars([4])[0]!, time: 6, isClosed: false },
       { ...closesToBars([5])[0]!, time: 6, isClosed: true },
     ];
-    const histLine: number[] = [];
+    const histLine: Array<number | undefined> = [];
     await runRealtime(ticks, (ctx) => {
       histLine.push(ta.macd(ctx.close, 2, 4, 2).histLine.value);
     });
 
-    expect(histLine.slice(0, 5)).toEqual([
-      0, 0.08888888888888888, 0.11259259259259258, 0.09718518518518526, 0.07147983539094649,
-    ]);
+    // Corrected EMA warm-up: the histogram is na until the signal line
+    // seeds (the 2nd valid MACD value, bar 4); bar 4's hist is 0.
+    expect(histLine.slice(0, 4).every((v) => Number.isNaN(v as number))).toBe(true);
+    expect(histLine[4]).toBe(0);
 
     // Intrabar ticks re-evaluate against the working close without advancing
     // the EMA state, so the two ticks observe different live values.
     expect(histLine[5]).not.toBe(histLine[6]);
-    expect(Number.isFinite(histLine[5])).toBe(true);
+    expect(Number.isFinite(histLine[5] as number)).toBe(true);
 
     // The committed close matches a pure historical run over the same bars.
     const historical = await runHistorical(

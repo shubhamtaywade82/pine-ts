@@ -49,14 +49,19 @@ describe("ta core", () => {
     expect(values.slice(2)).toEqual([2, 3, 4]);
   });
 
-  it("calculates EMA seeded from the first source value", async () => {
-    const values: number[] = [];
+  it("calculates EMA with SMA seeding and a length-1 bar warm-up", async () => {
+    const values: Array<number | undefined> = [];
     await runOver(closesToBars([1, 2, 3, 4, 5]), (ctx) => {
       values.push(ta.ema(ctx.close, 3).value);
     });
 
-    expect(values[0]).toBe(1);
-    expect(values[4]).toBeCloseTo(4.0625, 10);
+    // Corrected seeding (see docs/ECOSYSTEM.md): na until the bar supplying
+    // the length-th valid value, seeded with ta.sma of the first length
+    // values, then (value - previous) * alpha + previous.
+    expect(values.slice(0, 2).every((v) => Number.isNaN(v as number))).toBe(true);
+    expect(values[2]).toBe(2); // SMA(1, 2, 3)
+    expect(values[3]).toBeCloseTo(3, 10); // (4 - 2) * 0.5 + 2
+    expect(values[4]).toBeCloseTo(4, 10); // (5 - 3) * 0.5 + 3
   });
 
   it("finds rolling highest and lowest values", async () => {
