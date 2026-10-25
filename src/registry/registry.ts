@@ -79,7 +79,7 @@ class IndicatorRegistryImpl implements IndicatorRegistry {
  * Returns the supplied bars as the historical series; symbol info is a
  * bare-minimum `SymbolInfo` sufficient for the runtime to start.
  */
-class StubIndicatorProvider implements MarketDataProvider {
+export class StubIndicatorProvider implements MarketDataProvider {
   public constructor(private readonly bars: readonly Bar[]) {}
 
   public getHistoricalBars = async (): Promise<readonly Bar[]> => Promise.resolve(this.bars);

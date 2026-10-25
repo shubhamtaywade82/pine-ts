@@ -723,6 +723,9 @@ export const setActiveStrategyEngine = (engine: StrategyEngine | undefined): voi
   activeEngine = engine;
 };
 
+/** Returns the active strategy engine, or `undefined` when none is installed. */
+export const getActiveStrategyEngine = (): StrategyEngine | undefined => activeEngine;
+
 /**
  * Returns the active strategy engine. Throws if no script is running or the
  * script did not declare a strategy.
