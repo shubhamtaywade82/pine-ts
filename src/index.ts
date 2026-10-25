@@ -96,10 +96,12 @@ export * as strategy from "./strategy/index.js";
 export {
   defineStrategy,
   indicator,
+  type BacktestOptions,
   type BacktestOutput,
   type CloseOptions,
   type Condition,
   type EntryOptions,
+  type ExitOptions,
   type FlagInputOptions,
   type IndicatorOptions,
   type IndicatorScript,

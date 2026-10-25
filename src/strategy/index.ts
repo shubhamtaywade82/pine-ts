@@ -9,9 +9,10 @@
  *   `cancel_all`, plus `risk.*` overrides.
  * - Broker emulator: orders fill on the next bar's open by default
  *   (`process_orders_on_close` moves fills to the close of the entry bar).
- *   Intrabar OHLC path assumption: stop/limit orders are checked against the
- *   bar's OHLC in the documented order (high-first for long stops, low-first
- *   for short stops).
+ *   Entry stop/limit orders are checked against the bar's high/low range.
+ *   `strategy.exit` brackets follow Pine's intrabar path (open→high→low→close
+ *   when the open is closer to the high, else open→low→high→close), fill a
+ *   gapped-through level at the open, and cancel their sibling leg on fill.
  * - Pyramiding: the strategy declaration's `pyramiding` limit caps the number
  *   of open entry orders per direction.
  * - OCA groups: a `oca_name` on `strategy.exit` cancels sibling orders when
@@ -125,6 +126,8 @@ export class StrategyEngine {
   };
 
   private pendingOrders: PendingOrder[] = [];
+  private pendingExits: ExitBracket[] = [];
+  private mintick: number | undefined;
   private openTrades: OpenTrade[] = [];
   private closedTrades: ClosedTrade[] = [];
   private cash = 1000;
@@ -226,15 +229,31 @@ export class StrategyEngine {
     this.pendingOrders.push(this.makeOrder(id, direction, qty, options, false, false, id));
   }
 
+  /** Sets `syminfo.mintick`, the tick size `strategy.exit` `profit`/`loss` are measured in. */
+  public setMintick(mintick: number): void {
+    if (!Number.isFinite(mintick) || mintick <= 0) {
+      throw new RangeError(`mintick must be a positive finite number; got ${mintick}`);
+    }
+    this.mintick = mintick;
+  }
+
   /**
-   * `strategy.exit(id, from_id, qty?, limit?, stop?, profit?, loss?)`. Places
-   * an exit order for the entry identified by `from_id`. When `profit`/`loss`
-   * are supplied, the exit is a stop/limit bracket.
+   * `strategy.exit(id, from_entry, qty?, limit?, stop?, profit?, loss?)`.
+   * Places a take-profit/stop-loss bracket for the entry `from_entry`:
+   *
+   * - `limit`/`stop` are prices; `profit`/`loss` are ticks from the entry
+   *   price (requires {@link setMintick}). When both forms are given for one
+   *   leg, the level reached first is used.
+   * - The two legs form an `oca.reduce` pair: the first fill cancels the other.
+   * - `qty` omitted (or na) exits the whole trade.
+   * - The bracket waits while the entry is pending, and is dropped once the
+   *   trade closes or the pending entry disappears.
+   * - Calling again with the same `id` and `from_entry` replaces the bracket.
    */
   public exit(
     id: string,
     fromId: string,
-    qty: number,
+    qty?: number,
     options: {
       limit?: number;
       stop?: number;
@@ -253,7 +272,7 @@ export class StrategyEngine {
         clientId: `${id}|${fromId}`,
         symbol: this.symbolForBroker(),
         direction: "short", // simplified; the broker applies against the position
-        qty,
+        qty: qty ?? 0,
         orderType: this.inferOrderType(options),
         limitPrice: options.limit,
         stopPrice: options.stop,
@@ -263,7 +282,48 @@ export class StrategyEngine {
       });
       return;
     }
-    this.pendingOrders.push(this.makeOrder(id, "long", qty, options, true, false, fromId));
+    const bracket = this.makeExitBracket(id, fromId, qty, options);
+    this.pendingExits = [
+      ...this.pendingExits.filter((e) => !(e.id === id && e.tradeId === fromId)),
+      bracket,
+    ];
+  }
+
+  private makeExitBracket(
+    id: string,
+    tradeId: string,
+    qty: number | undefined,
+    options: { limit?: number; stop?: number; profit?: number; loss?: number; ocaName?: string },
+  ): ExitBracket {
+    // na (NaN) arguments mean "not specified", as in Pine.
+    const given = (value: number | undefined): number | undefined =>
+      value === undefined || Number.isNaN(value) ? undefined : value;
+    const limit = given(options.limit);
+    const stop = given(options.stop);
+    const profitTicks = given(options.profit);
+    const lossTicks = given(options.loss);
+    const exitQty = given(qty);
+    if (exitQty !== undefined && (!Number.isFinite(exitQty) || exitQty <= 0)) {
+      throw new RangeError(`strategy.exit qty must be a positive number; got ${exitQty}`);
+    }
+    if ([limit, stop, profitTicks, lossTicks].every((v) => v === undefined)) {
+      throw new Error(`strategy.exit("${id}") needs at least one of limit, stop, profit or loss`);
+    }
+    if ((profitTicks !== undefined || lossTicks !== undefined) && this.mintick === undefined) {
+      throw new Error(
+        `strategy.exit("${id}") profit/loss are in ticks; call setMintick() with syminfo.mintick first`,
+      );
+    }
+    return {
+      id,
+      tradeId,
+      qty: exitQty,
+      limit,
+      stop,
+      profitTicks,
+      lossTicks,
+      ocaName: options.ocaName,
+    };
   }
 
   /**
@@ -343,6 +403,7 @@ export class StrategyEngine {
       return;
     }
     this.pendingOrders = this.pendingOrders.filter((o) => o.id !== id);
+    this.pendingExits = this.pendingExits.filter((e) => e.id !== id);
   }
 
   /** `strategy.cancel_all()`. Cancels every pending order. */
@@ -354,6 +415,7 @@ export class StrategyEngine {
       return;
     }
     this.pendingOrders = [];
+    this.pendingExits = [];
   }
 
   /** Returns the symbol the strategy is trading (from the runtime's options). */
@@ -416,22 +478,101 @@ export class StrategyEngine {
    * bar's close.
    */
   public processBar(bar: Bar): void {
-    if (this.pendingOrders.length === 0) {
-      this.lastBar = bar;
-      return;
-    }
-    const fillPrice = this.declaration.process_orders_on_close ? bar.close : bar.open;
+    const onClose = this.declaration.process_orders_on_close === true;
+    const fillPrice = onClose ? bar.close : bar.open;
     const remaining: PendingOrder[] = [];
+    // Raw fill price of each entry filled on this bar: its exits may only
+    // react to the part of the intrabar path after that fill.
+    const enteredAt = new Map<string, number>();
     for (const order of this.pendingOrders) {
       const fill = this.tryFill(order, bar, fillPrice);
       if (fill === undefined) {
         remaining.push(order);
       } else {
         this.applyFill(order, fill, bar.time);
+        if (!order.isExit) enteredAt.set(order.id, fill);
       }
     }
     this.pendingOrders = remaining;
+    this.processExits(bar, enteredAt, onClose);
     this.lastBar = bar;
+  }
+
+  /** Fills `strategy.exit` brackets against the bar's assumed intrabar path. */
+  private processExits(bar: Bar, enteredAt: ReadonlyMap<string, number>, onClose: boolean): void {
+    for (const bracket of [...this.pendingExits]) {
+      // An earlier fill this bar may already have cancelled it (oca / trade closed).
+      if (this.pendingExits.includes(bracket)) this.processExit(bracket, bar, enteredAt, onClose);
+    }
+  }
+
+  private processExit(
+    bracket: ExitBracket,
+    bar: Bar,
+    enteredAt: ReadonlyMap<string, number>,
+    onClose: boolean,
+  ): void {
+    const trade = this.openTrades.find((t) => t.id === bracket.tradeId);
+    if (trade === undefined) {
+      const entryPending = this.pendingOrders.some((o) => o.isEntry && o.id === bracket.tradeId);
+      if (!entryPending) this.removeExit(bracket);
+      return;
+    }
+    const entryFill = enteredAt.get(trade.id);
+    // Filled on this bar's close: no price path remains on this bar.
+    if (entryFill !== undefined && onClose) return;
+    const path = intrabarPath(bar, entryFill);
+    if (path === undefined) return;
+    const levels = this.bracketLevels(bracket, trade);
+    const fill = firstLevelHit(path, trade.direction, levels);
+    if (fill === undefined) return;
+    this.removeExit(bracket);
+    this.applyFill(
+      {
+        id: bracket.id,
+        direction: trade.direction === "long" ? "short" : "long",
+        qty: bracket.qty ?? trade.qty,
+        orderType: fill.leg === "take-profit" ? "limit" : "stop",
+        limitPrice: levels.takeProfit,
+        stopPrice: levels.stopLoss,
+        ocaName: bracket.ocaName,
+        tradeId: trade.id,
+        isExit: true,
+        isEntry: false,
+      },
+      fill.price,
+      bar.time,
+    );
+  }
+
+  /**
+   * Resolves a bracket's prices for `trade`. When a price and a tick distance
+   * are both given for one leg, the level closer to the entry is reached
+   * first, so it is the one used.
+   */
+  private bracketLevels(bracket: ExitBracket, trade: OpenTrade): BracketLevels {
+    const sign = trade.direction === "long" ? 1 : -1;
+    const tick = this.mintick ?? Number.NaN;
+    const fromTicks = (ticks: number | undefined, side: 1 | -1): number | undefined =>
+      ticks === undefined ? undefined : trade.entryPrice + side * sign * ticks * tick;
+    const closest = (a: number | undefined, b: number | undefined): number | undefined => {
+      if (a === undefined) return b;
+      if (b === undefined) return a;
+      return Math.abs(a - trade.entryPrice) <= Math.abs(b - trade.entryPrice) ? a : b;
+    };
+    return {
+      takeProfit: closest(bracket.limit, fromTicks(bracket.profitTicks, 1)),
+      stopLoss: closest(bracket.stop, fromTicks(bracket.lossTicks, -1)),
+    };
+  }
+
+  private removeExit(bracket: ExitBracket): void {
+    this.pendingExits = this.pendingExits.filter((e) => e !== bracket);
+  }
+
+  /** A fully closed trade takes its exits with it (`from_entry` binds to that trade). */
+  private dropExitsFor(tradeId: string): void {
+    this.pendingExits = this.pendingExits.filter((e) => e.tradeId !== tradeId);
   }
 
   /** Apply a commission and slippage to a fill price/qty. */
@@ -536,9 +677,11 @@ export class StrategyEngine {
     });
     if (order.ocaName !== undefined) {
       this.pendingOrders = this.pendingOrders.filter((o) => o.ocaName !== order.ocaName);
+      this.pendingExits = this.pendingExits.filter((e) => e.ocaName !== order.ocaName);
     }
     if (closedQty >= trade.qty) {
       this.openTrades.splice(tradeIndex, 1);
+      this.dropExitsFor(trade.id);
     } else {
       const updated: OpenTrade = { ...trade, qty: trade.qty - closedQty };
       this.openTrades.splice(tradeIndex, 1, updated);
@@ -575,6 +718,7 @@ export class StrategyEngine {
     const remainingQty = opposite.qty - closedQty;
     if (remainingQty <= 0) {
       this.openTrades = this.openTrades.filter((t) => t !== opposite);
+      this.dropExitsFor(opposite.id);
     }
     const residual = order.qty - closedQty;
     if (residual > 0) {
@@ -714,6 +858,82 @@ export class StrategyEngine {
   }
 }
 
+// ---------- strategy.exit bracket helpers ----------
+
+/** A pending `strategy.exit` bracket; its direction comes from the trade at fill time. */
+interface ExitBracket {
+  readonly id: string;
+  readonly tradeId: string;
+  /** `undefined` exits the whole trade. */
+  readonly qty: number | undefined;
+  readonly limit: number | undefined;
+  readonly stop: number | undefined;
+  readonly profitTicks: number | undefined;
+  readonly lossTicks: number | undefined;
+  readonly ocaName: string | undefined;
+}
+
+interface BracketLevels {
+  readonly takeProfit: number | undefined;
+  readonly stopLoss: number | undefined;
+}
+
+/**
+ * The broker emulator's assumed intrabar path: open→high→low→close when the
+ * open is closer to the high, otherwise open→low→high→close. When the entry
+ * filled on this bar at `entryFill`, the path starts at that fill.
+ */
+const intrabarPath = (bar: Bar, entryFill: number | undefined): number[] | undefined => {
+  const highFirst = bar.high - bar.open < bar.open - bar.low;
+  const path = highFirst
+    ? [bar.open, bar.high, bar.low, bar.close]
+    : [bar.open, bar.low, bar.high, bar.close];
+  if (entryFill === undefined) return path;
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const from = path[index]!;
+    const to = path[index + 1]!;
+    if (entryFill >= Math.min(from, to) && entryFill <= Math.max(from, to)) {
+      return [entryFill, ...path.slice(index + 1)];
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Walks the path and returns the first bracket level reached. A level the
+ * path already starts beyond (a gap at the open) fills at the starting price.
+ */
+const firstLevelHit = (
+  path: readonly number[],
+  direction: Direction,
+  { takeProfit, stopLoss }: BracketLevels,
+): { leg: "take-profit" | "stop-loss"; price: number } | undefined => {
+  const sign = direction === "long" ? 1 : -1;
+  const tpReached = (price: number): boolean =>
+    takeProfit !== undefined && sign * (price - takeProfit) >= 0;
+  const slReached = (price: number): boolean =>
+    stopLoss !== undefined && sign * (price - stopLoss) <= 0;
+
+  const start = path[0];
+  if (start === undefined) return undefined;
+  if (slReached(start)) return { leg: "stop-loss", price: start };
+  if (tpReached(start)) return { leg: "take-profit", price: start };
+
+  for (let index = 1; index < path.length; index += 1) {
+    const to = path[index]!;
+    const movingUp = to > path[index - 1]!;
+    // Moving toward profit can only reach the take-profit, and vice versa.
+    const towardProfit = direction === "long" ? movingUp : !movingUp;
+    if (towardProfit && takeProfit !== undefined && tpReached(to)) {
+      return { leg: "take-profit", price: takeProfit };
+    }
+    if (!towardProfit && stopLoss !== undefined && slReached(to)) {
+      return { leg: "stop-loss", price: stopLoss };
+    }
+  }
+  return undefined;
+};
+
 // ---------- module-level engine accessor ----------
 
 let activeEngine: StrategyEngine | undefined;
@@ -772,7 +992,7 @@ export const order = (
 export const exit = (
   id: string,
   fromId: string,
-  qty: number,
+  qty?: number,
   options: {
     limit?: number;
     stop?: number;

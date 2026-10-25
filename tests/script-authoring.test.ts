@@ -302,6 +302,33 @@ describe("defineStrategy()", () => {
     await expect(smaCross.backtest(open)).rejects.toThrow(/confirmed/);
   });
 
+  it("protects entries with an exit bracket identical to the engine", async () => {
+    const protectedBars = closesToBars(CLOSES);
+    const bracket = defineStrategy(
+      "Bracket",
+      { initial_capital: 10_000, default_qty_value: 1 },
+      ({ close, strategy }) => {
+        const sma = ta.sma(close, 5);
+        strategy.entry("Long", "long", { when: ta.crossover(close, sma) });
+        strategy.exit("Protect", { from_entry: "Long", profit: 4, loss: 2 });
+      },
+    );
+
+    const engine = new StrategyEngine();
+    engine.configure({ title: "Bracket", initial_capital: 10_000, default_qty_value: 1 });
+    engine.setMintick(0.5);
+    await runLowLevel(protectedBars, (ctx) => {
+      engine.processBar(ctx.bar);
+      if (ta.crossover(ctx.close, ta.sma(ctx.close, 5)).value) engine.entry("Long", "long", 1);
+      engine.exit("Protect", "Long", undefined, { profit: 4, loss: 2 });
+    });
+
+    const output = await bracket.backtest(protectedBars, { mintick: 0.5 });
+    expect(output.trades.length).toBeGreaterThan(0);
+    expect(output.trades).toEqual(engine.getClosedTrades());
+    await expect(bracket.backtest(protectedBars)).rejects.toThrow(/mintick/);
+  });
+
   it("restores the previously active strategy engine", async () => {
     const host = new StrategyEngine();
     setActiveStrategyEngine(host);

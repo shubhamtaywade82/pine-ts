@@ -76,6 +76,12 @@ Rules (all enforced, none silently coerced):
   Pass it as `when`, or use `.value` inside `if`.
 - `strategy.entry` without `qty` uses `default_qty_value` only for `"fixed"`
   sizing; other sizing types require an explicit `qty`.
+- `strategy.exit("SL/TP", { from_entry: "Long", stop, limit })` places a
+  bracket: `stop`/`limit` are prices, `profit`/`loss` are ticks (pass
+  `backtest(bars, { mintick })`). The first leg to fill cancels the other;
+  without `qty` the whole trade exits. Fills follow Pine's intrabar path
+  (open→high→low→close when the open is nearer the high) and a gapped-through
+  level fills at the open.
 - `backtest()` runs confirmed bars only; the strategy engine has no realtime
   rollback. Indicators support realtime via `bind()` + `PineRuntime.runRealtime`.
 - `ctx` (full `PineContext`) and `strategy.engine` remain available as escape

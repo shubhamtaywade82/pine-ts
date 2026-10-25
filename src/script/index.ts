@@ -98,6 +98,23 @@ export interface WhenOptions {
   readonly when?: Condition;
 }
 
+export interface ExitOptions {
+  /** Entry id the bracket protects. */
+  readonly from_entry: string;
+  /** Omitted exits the whole trade. */
+  readonly qty?: number;
+  /** Take-profit price. */
+  readonly limit?: number;
+  /** Stop-loss price. */
+  readonly stop?: number;
+  /** Take-profit distance in ticks from the entry price (needs `mintick`). */
+  readonly profit?: number;
+  /** Stop-loss distance in ticks from the entry price (needs `mintick`). */
+  readonly loss?: number;
+  readonly oca_name?: string;
+  readonly when?: Condition;
+}
+
 /** Order helpers. Each call delegates to the `StrategyEngine` method of the same name. */
 export interface StrategyOrders {
   readonly engine: StrategyEngine;
@@ -106,6 +123,8 @@ export interface StrategyOrders {
   close_all(options?: WhenOptions): void;
   cancel(id: string, options?: WhenOptions): void;
   cancel_all(options?: WhenOptions): void;
+  /** Take-profit / stop-loss bracket; see `StrategyEngine.exit`. */
+  exit(id: string, options: ExitOptions): void;
 }
 
 export interface StrategyApi extends ScriptApi {
@@ -122,6 +141,11 @@ export type StrategyOptions = Omit<StrategyDeclaration, "title">;
 export interface RunOptions {
   /** Input overrides keyed by input title. Unknown titles are rejected. */
   readonly inputs?: InputsBag;
+}
+
+export interface BacktestOptions extends RunOptions {
+  /** `syminfo.mintick`; required when `strategy.exit` uses `profit`/`loss` ticks. */
+  readonly mintick?: number;
 }
 
 /** A bound execution: feed `script` to any `PineRuntime` (historical or realtime). */
@@ -150,7 +174,7 @@ export interface StrategyScript {
   readonly kind: "strategy";
   readonly title: string;
   readonly options: StrategyOptions;
-  backtest(bars: readonly Bar[], options?: RunOptions): Promise<BacktestOutput>;
+  backtest(bars: readonly Bar[], options?: BacktestOptions): Promise<BacktestOutput>;
 }
 
 export function indicator(title: string, body: (api: ScriptApi) => void): IndicatorScript;
@@ -210,6 +234,7 @@ export function defineStrategy(
       }
       const engine = new StrategyEngine();
       engine.configure({ ...options, title });
+      if (runOptions.mintick !== undefined) engine.setMintick(runOptions.mintick);
       const orders = createOrders(engine);
       const recorder = new ScriptRecorder(
         runOptions.inputs ?? {},
@@ -329,6 +354,19 @@ const createOrders = (engine: StrategyEngine): StrategyOrders => ({
   },
   cancel: (id, { when } = {}) => {
     if (isTrue(when)) engine.cancel(id);
+  },
+  exit: (
+    id,
+    { from_entry: fromEntry, qty, limit, stop, profit, loss, oca_name: ocaName, when },
+  ) => {
+    if (!isTrue(when)) return;
+    engine.exit(id, fromEntry, qty, {
+      ...(limit === undefined ? {} : { limit }),
+      ...(stop === undefined ? {} : { stop }),
+      ...(profit === undefined ? {} : { profit }),
+      ...(loss === undefined ? {} : { loss }),
+      ...(ocaName === undefined ? {} : { ocaName }),
+    });
   },
   cancel_all: ({ when } = {}) => {
     if (isTrue(when)) engine.cancel_all();
