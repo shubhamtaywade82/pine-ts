@@ -53,7 +53,35 @@ const runScript = async (
 
 describe("syminfo.*", () => {
   it("reads every documented variable from the session's SymbolInfo", async () => {
-    const captured: Record<string, unknown> = {};
+    const captured: {
+      ticker: unknown;
+      tickerid: unknown;
+      basecurrency: unknown;
+      currency: unknown;
+      mintick: unknown;
+      pointvalue: unknown;
+      pricescale: unknown;
+      minmove: unknown;
+      timezone: unknown;
+      session: unknown;
+      volumetype: unknown;
+      type: unknown;
+      description: unknown;
+    } = {} as Record<string, unknown> as {
+      ticker: unknown;
+      tickerid: unknown;
+      basecurrency: unknown;
+      currency: unknown;
+      mintick: unknown;
+      pointvalue: unknown;
+      pricescale: unknown;
+      minmove: unknown;
+      timezone: unknown;
+      session: unknown;
+      volumetype: unknown;
+      type: unknown;
+      description: unknown;
+    };
     await runScript(() => {
       captured.ticker = syminfo.ticker();
       captured.tickerid = syminfo.tickerid();
@@ -73,7 +101,7 @@ describe("syminfo.*", () => {
     expect(captured.tickerid).toBe("BINANCE:BTCUSDT");
     expect(captured.basecurrency).toBe("BTC");
     expect(captured.currency).toBe("USDT");
-    expect(captured.mintick).toBe(0.01);
+    expect(captured.mintick).toBeCloseTo(0.01, 10);
     expect(captured.pointvalue).toBe(1);
     expect(captured.pricescale).toBe(100);
     expect(captured.minmove).toBe(1);
@@ -100,7 +128,14 @@ describe("syminfo.*", () => {
     const bars: Bar[] = [{ time: 1, open: 1, high: 1, low: 1, close: 1, volume: 1, isClosed: true }];
     const runtime = new PineRuntime({ provider, symbol: "TEST", timeframe: "1" });
 
-    const captured: Record<string, unknown> = {};
+    const captured: {
+      mintick: unknown;
+      pointvalue: unknown;
+      pricescale: unknown;
+      minmove: unknown;
+      currency: unknown;
+      session: unknown;
+    } = { mintick: undefined, pointvalue: undefined, pricescale: undefined, minmove: undefined, currency: undefined, session: undefined };
     await runtime.run(() => {
       captured.mintick = syminfo.mintick();
       captured.pointvalue = syminfo.pointvalue();

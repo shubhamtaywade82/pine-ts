@@ -80,6 +80,7 @@ export * as global from "./global/index.js";
 export * as request from "./request/index.js";
 export * as syminfo from "./syminfo/index.js";
 export * as constants from "./constants/index.js";
+export * as ticker from "./ticker/index.js";
 export {
   StrategyEngine,
   setActiveStrategyEngine,
