@@ -16,6 +16,7 @@ export interface PineContext {
   readonly time: Series<number>;
   readonly hl2: FloatSeries;
   readonly hlc3: FloatSeries;
+  readonly hlcc4: FloatSeries;
   readonly ohlc4: FloatSeries;
   readonly bar_index: Series<number>;
   /**
@@ -69,6 +70,7 @@ export const createContext = (
     time: session.sources.time,
     hl2: session.sources.hl2,
     hlc3: session.sources.hlc3,
+    hlcc4: session.sources.hlcc4,
     ohlc4: session.sources.ohlc4,
     bar_index: session.sources.bar_index,
     last_bar_index: session.lastBarIndex,

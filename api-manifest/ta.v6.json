@@ -160,7 +160,7 @@
       "islastconfirmedhistory"
     ],
     "syminfo": ["ticker", "timezone", "type"],
-    "sources": ["open", "high", "low", "close", "volume", "time", "hl2", "hlc3", "ohlc4"]
+    "sources": ["open", "high", "low", "close", "volume", "time", "hl2", "hlc3", "hlcc4", "ohlc4"]
   },
   "providerCapabilities": {
     "security": {

@@ -1,3 +1,4 @@
+import { order, type SortOrder } from "../constants/index.js";
 import type { PineArray } from "./pine-array.js";
 import { PineArray as PineArrayClass } from "./pine-array.js";
 
@@ -90,9 +91,9 @@ export const binary_search_rightmost = (id: PineArray<number>, val: number): num
 /** Sorts the array elements in place. */
 export const sort = <T extends number | string>(
   id: PineArray<T>,
-  order: "asc" | "desc" = "asc",
+  sortOrder: SortOrder = order.ascending,
 ): void => {
-  const isAsc = order === "asc";
+  const isAsc = sortOrder === order.ascending;
   id.raw().sort((a, b) => {
     if (typeof a === "number" && typeof b === "number") {
       return isAsc ? a - b : b - a;
@@ -104,11 +105,11 @@ export const sort = <T extends number | string>(
 /** Returns a new array containing indices sorted by array values. */
 export const sort_indices = <T extends number | string>(
   id: PineArray<T>,
-  order: "asc" | "desc" = "asc",
+  sortOrder: SortOrder = order.ascending,
 ): PineArray<number> => {
   const items = id.raw();
   const indices = items.map((_, i) => i);
-  const isAsc = order === "asc";
+  const isAsc = sortOrder === order.ascending;
   indices.sort((i, j) => {
     const a = items[i]!;
     const b = items[j]!;

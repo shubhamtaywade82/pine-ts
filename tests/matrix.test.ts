@@ -202,7 +202,7 @@ describe("matrix linear algebra and predicates", () => {
     matrix.set(m, 0, 0, 30);
     matrix.set(m, 1, 0, 10);
     matrix.set(m, 2, 0, 20);
-    matrix.sort(m, 0, "asc");
+    matrix.sort(m, 0, "ascending");
     expect(matrix.get(m, 0, 0)).toBe(10);
     expect(matrix.get(m, 1, 0)).toBe(20);
     expect(matrix.get(m, 2, 0)).toBe(30);

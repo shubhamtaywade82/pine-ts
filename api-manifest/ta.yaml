@@ -953,7 +953,7 @@ variables:
     members: [ticker, tickerid, basecurrency, currency, mintick, timezone, type]
   ohlcv:
     type: source-bundle
-    members: [open, high, low, close, volume, time, hl2, hlc3, ohlc4]
+    members: [open, high, low, close, volume, time, hl2, hlc3, hlcc4, ohlc4]
 
 providerCapabilities:
   ohlcv:

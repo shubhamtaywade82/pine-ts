@@ -194,9 +194,9 @@ describe("constants.*", () => {
     expect(constants.currency.BRL).toBe("BRL");
   });
 
-  it("order exposes long/short sentinels", () => {
-    expect(constants.order.LONG).toBe("long");
-    expect(constants.order.SHORT).toBe("short");
+  it("order exposes Pine sort-order sentinels", () => {
+    expect(constants.order.ascending).toBe("ascending");
+    expect(constants.order.descending).toBe("descending");
   });
 
   it("alert exposes the three frequency constants", () => {

@@ -9,7 +9,7 @@
  * - `session.*` — barstate-isfirstbar / islastbar / ismarket / etc.
  * - `adjustment.*` — backadjustment types for futures
  * - `currency.*` — ISO 4217 currency codes (56 entries)
- * - `order.*` — strategy.* order direction constants
+ * - `order.*` — sort-order constants for array/matrix sorting
  * - `alert.*` — alert frequency constants
  * - `display.*` — plot display mode constants
  * - `format.*` — str.tostring format specifiers
@@ -132,11 +132,14 @@ export const currency = {
   ZAR: "ZAR",
 } as const;
 
-/** Pine `order.*` — strategy.* order direction constants. */
+/** Pine `order.*` — sort-order constants used by `array.sort` and `matrix.sort`. */
 export const order = {
-  LONG: "long",
-  SHORT: "short",
+  ascending: "ascending",
+  descending: "descending",
 } as const;
+
+/** Valid values of Pine's `sort_order` qualifier. */
+export type SortOrder = (typeof order)[keyof typeof order];
 
 /** Pine `alert.*` — alert frequency constants. */
 export const alert = {

@@ -1,7 +1,7 @@
 /**
  * Simple Moving Average indicator.
  *
- * - Source: any of `open` / `high` / `low` / `close` / `hl2` / `hlc3` / `ohlc4` (default: `close`).
+ * - Source: any of `open` / `high` / `low` / `close` / `hl2` / `hlc3` / `hlcc4` / `ohlc4` (default: `close`).
  * - Length: integer ≥ 1 (default: 14).
  *
  * One plot: `main` (line, overlay on the price pane).

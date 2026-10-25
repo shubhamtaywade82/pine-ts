@@ -1,6 +1,6 @@
 /**
  * Indicator-runtime helpers — resolving the `"source"` input selector
- * (`"close"`, `"open"`, `"high"`, `"low"`, `"hl2"`, `"hlc3"`, `"ohlc4"`)
+ * (`"close"`, `"open"`, `"high"`, `"low"`, `"hl2"`, `"hlc3"`, `"hlcc4"`, `"ohlc4"`)
  * against the bar context, so an indicator author writes
  * `ta.rsi(resolveSource(ctx, inputs.source), inputs.length)` without
  * branching on the selector.
@@ -10,7 +10,7 @@ import type { FloatSeries } from "../core/series.js";
 import type { PineContext } from "../core/context.js";
 
 /** The Pine v6 source series selectable via the `"source"` input kind. */
-export type SourceSelector = "open" | "high" | "low" | "close" | "hl2" | "hlc3" | "ohlc4";
+export type SourceSelector = "open" | "high" | "low" | "close" | "hl2" | "hlc3" | "hlcc4" | "ohlc4";
 
 /** The list of valid source selectors (for `input.options` defaults). */
 export const SOURCE_SELECTORS: readonly SourceSelector[] = [
@@ -20,6 +20,7 @@ export const SOURCE_SELECTORS: readonly SourceSelector[] = [
   "close",
   "hl2",
   "hlc3",
+  "hlcc4",
   "ohlc4",
 ];
 
@@ -42,12 +43,14 @@ export const resolveSource = (ctx: PineContext, selector: string): FloatSeries =
       return ctx.hl2;
     case "hlc3":
       return ctx.hlc3;
+    case "hlcc4":
+      return ctx.hlcc4;
     case "ohlc4":
       return ctx.ohlc4;
     default:
       throw new RangeError(
         `Unknown source selector: ${JSON.stringify(selector)}. ` +
-          `Valid: open, high, low, close, hl2, hlc3, ohlc4.`,
+          `Valid: open, high, low, close, hl2, hlc3, hlcc4, ohlc4.`,
       );
   }
 };

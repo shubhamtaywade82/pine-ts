@@ -1,4 +1,5 @@
 import { PineArray } from "../array/pine-array.js";
+import { order, type SortOrder } from "../constants/index.js";
 
 /**
  * Pine Script v6 Matrix collection with realtime rollback support.
@@ -174,9 +175,9 @@ export class PineMatrix<T> {
     );
   }
 
-  public sort(column = 0, order: "asc" | "desc" = "asc"): void {
+  public sort(column = 0, sortOrder: SortOrder = order.ascending): void {
     this.assertCol(column);
-    const isAsc = order === "asc";
+    const isAsc = sortOrder === order.ascending;
     this.data.sort((rA, rB) => {
       const a = rA[column]!;
       const b = rB[column]!;

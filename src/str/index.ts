@@ -7,6 +7,9 @@
  * family. Mirrors the TradingView v6 Reference Manual signatures.
  */
 
+export { repeat, tonumber } from "./convert.js";
+export { format_time } from "./time.js";
+
 /**
  * `str.contains(source, str)`. True when `str` appears anywhere inside
  * `source`. Either argument na → na.

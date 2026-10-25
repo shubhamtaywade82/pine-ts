@@ -1,4 +1,5 @@
 import type { PineArray } from "../array/pine-array.js";
+import { order, type SortOrder } from "../constants/index.js";
 import { PineMatrix } from "./pine-matrix.js";
 
 export { PineMatrix } from "./pine-matrix.js";
@@ -99,6 +100,10 @@ export const reverse = <T>(id: PineMatrix<T>): void => {
 };
 
 /** Sorts the matrix rows according to the specified column and order. */
-export const sort = <T>(id: PineMatrix<T>, column = 0, order: "asc" | "desc" = "asc"): void => {
-  id.sort(column, order);
+export const sort = <T>(
+  id: PineMatrix<T>,
+  column = 0,
+  sortOrder: SortOrder = order.ascending,
+): void => {
+  id.sort(column, sortOrder);
 };

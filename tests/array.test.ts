@@ -119,7 +119,7 @@ describe("array search, sorting, and predicates", () => {
     expect(array.get(sortedIndicesAsc, 0)).toBe(1); // 10 is at index 1
     expect(array.get(sortedIndicesAsc, 3)).toBe(2); // 50 is at index 2
 
-    const sortedIndicesDesc = array.sort_indices(arr, "desc");
+    const sortedIndicesDesc = array.sort_indices(arr, "descending");
     expect(array.get(sortedIndicesDesc, 0)).toBe(2); // 50
     expect(array.get(sortedIndicesDesc, 3)).toBe(1); // 10
 
@@ -127,7 +127,7 @@ describe("array search, sorting, and predicates", () => {
     expect(array.get(arr, 0)).toBe(10);
     expect(array.get(arr, 3)).toBe(50);
 
-    array.sort(arr, "desc");
+    array.sort(arr, "descending");
     expect(array.get(arr, 0)).toBe(50);
     expect(array.get(arr, 3)).toBe(10);
 
