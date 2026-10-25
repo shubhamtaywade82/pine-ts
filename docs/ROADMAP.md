@@ -47,8 +47,8 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 - [x] `request.security_lower_tf()` (returns intrabar values within the caller bar's window)
 - [x] gaps/lookahead option validation
 - [x] `runtime.prepareSecurity(symbol, timeframe)` host API for pre-warming
-- [ ] gaps/lookahead semantics on `security_lower_tf` (deferred — returns all intrabars within window regardless of options for now)
-- [ ] `lookahead=on` repainting semantics on confirmed HTF contexts (engine reads the bar containing caller time; full repainting test coverage is draft)
+- [x] gaps/lookahead semantics on `security_lower_tf` (2026-10: `lookahead=off` excludes the still-forming intrabar; `gaps=on` returns an empty tuple when no intrabars match; `gaps=off` carries forward the last intrabar's value as a single-element tuple)
+- [x] `lookahead=on` repainting semantics on confirmed HTF contexts (engine reads the bar containing caller time; full repainting test coverage is now in `tests/wave8-request-security.test.ts`)
 - multi-symbol/timeframe caching (per `(symbol, timeframe)` pair, with per-expression result caching)
 - provider capability errors
 
@@ -61,6 +61,7 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 - label
 - table
 - chart.point
+- [x] `ChartAdapter` (2026-10): renderer-neutral adapter that consumes the `VisualEvent` stream and produces renderable `Primitive`s + an SVG string (`src/visual/adapter.ts`). Tested in `tests/wave10-visual-adapter.test.ts`.
 
 ## Phase 6 — Strategies
 
@@ -71,7 +72,8 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 - [x] position/trade state (`position_size`, `position_avg_price`, `equity`, `netprofit`, `grossprofit/loss`, `drawdown/max_drawdown`, `closedtrades_number`, `opentrades_number`)
 - [x] performance metrics
 - [x] `BrokerAdapter` boundary (`PaperBrokerAdapter` in-memory + `BinanceBrokerAdapter` scaffold)
-- [ ] paper/live broker adapters: Binance live adapter wired to `@nemesis-oss/binance-sdk`'s trading surface (scaffold in place; downstream integrator wires)
+- [x] `MockBinanceTradingSurface` reference implementation (2026-10): an in-memory Binance-shaped surface that simulates market/limit/stop/stop-limit fills against a bar OHLC + tracks positions and emits onOrderUpdate callbacks. Downstream integrators can wire a real Binance SDK against this contract surface; tests run end-to-end without real API credentials.
+- [ ] paper/live broker adapters: Binance live adapter wired to `@nemesis-oss/binance-sdk`'s trading surface (scaffold + mock in place; downstream integrator wires with real API credentials)
 - [ ] `strategy.*` v6 variables (49 total — partial completion; major variables shipped)
 
 ## Phase 7 — Pine source compatibility

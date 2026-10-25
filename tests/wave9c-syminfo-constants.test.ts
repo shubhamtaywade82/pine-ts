@@ -249,9 +249,167 @@ describe("constants.*", () => {
     expect(constants.label.STYLE_NONE).toBe("label.style_none");
   });
 
-  it("all exposes the consolidated constants record", () => {
-    expect(constants.all.currency.USD).toBe("USD");
-    expect(constants.all.dayofweek.MONDAY).toBe(2);
-    expect(constants.all.barmerge.lookahead_on).toBe("lookahead_on");
+  it("barstate exposes the bar-state flag sentinels", () => {
+    expect(constants.barstate.ISFIRSTBAR).toBe("barstate.isfirstbar");
+    expect(constants.barstate.ISLASTBAR).toBe("barstate.islastbar");
+    expect(constants.barstate.ISREALTIME).toBe("barstate.isrealtime");
+    expect(constants.barstate.ISHISTORY).toBe("barstate.ishistory");
+    expect(constants.barstate.ISNEW).toBe("barstate.isnew");
+    expect(constants.barstate.ISCLOSED).toBe("barstate.isclosed");
+    expect(constants.barstate.ISSESSION).toBe("barstate.issession");
+    expect(constants.barstate.ISMARKET).toBe("barstate.ismarket");
+    expect(constants.barstate.ISMONTHLY).toBe("barstate.ismonthly");
+    expect(constants.barstate.ISYEARLY).toBe("barstate.isyearly");
+  });
+
+  it("syminfo_type exposes the documented symbol type constants", () => {
+    expect(constants.syminfo_type.STOCK).toBe("stock");
+    expect(constants.syminfo_type.FUTURES).toBe("futures");
+    expect(constants.syminfo_type.INDEX).toBe("index");
+    expect(constants.syminfo_type.FOREX).toBe("forex");
+    expect(constants.syminfo_type.CRYPTO).toBe("crypto");
+    expect(constants.syminfo_type.FUND).toBe("fund");
+    expect(constants.syminfo_type.DR).toBe("dr");
+    expect(constants.syminfo_type.CFD).toBe("cfd");
+    expect(constants.syminfo_type.ECONOMY).toBe("economy");
+  });
+
+  it("months exposes the integer month constants", () => {
+    expect(constants.months.JANUARY).toBe(1);
+    expect(constants.months.DECEMBER).toBe(12);
+    expect(constants.months.JULY).toBe(7);
+  });
+
+  it("frequency exposes the request.financial frequency sentinels", () => {
+    expect(constants.frequency.F_QUARTERLY).toBe("FQ");
+    expect(constants.frequency.F_YEARLY).toBe("FY");
+    expect(constants.frequency.F_NONE).toBe("FN");
+  });
+
+  it("display_extended exposes the additional plot display attributes", () => {
+    expect(constants.display_extended.NONE).toBe("display.none");
+    expect(constants.display_extended.ALL).toBe("display.all");
+    expect(constants.display_extended.DATA_WINDOW).toBe("display.data_window");
+    expect(constants.display_extended.PRICE_SCALE).toBe("display.price_scale");
+    expect(constants.display_extended.LEGEND).toBe("display.legend");
+    expect(constants.display_extended.TOOLTIP).toBe("display.tooltip");
+  });
+
+  it("plot_freq exposes the plot timeframe frequency sentinels", () => {
+    expect(constants.plot_freq.FREQ_ALL).toBe("freq.all");
+    expect(constants.plot_freq.FREQ_DAILY).toBe("freq.daily");
+    expect(constants.plot_freq.FREQ_WEEKLY).toBe("freq.weekly");
+    expect(constants.plot_freq.FREQ_MONTHLY).toBe("freq.monthly");
+    expect(constants.plot_freq.FREQ_NONE).toBe("freq.none");
+  });
+
+  it("earnings exposes the BMO/AMC/Unset sentinels", () => {
+    expect(constants.earnings.BMO).toBe("BMO");
+    expect(constants.earnings.AMC).toBe("AMC");
+    expect(constants.earnings.UNSET).toBe("Unset");
+  });
+
+  it("quandl exposes the data-tier sentinels", () => {
+    expect(constants.quandl.TIER_FREE).toBe("free");
+    expect(constants.quandl.TIER_PREMIUM).toBe("premium");
+  });
+
+  it("economic exposes the release-source sentinels", () => {
+    expect(constants.economic.SOURCE_FED).toBe("federal_reserve");
+    expect(constants.economic.SOURCE_BEA).toBe("bea");
+    expect(constants.economic.SOURCE_ECB).toBe("ecb");
+  });
+
+  it("volumetype exposes the volume-type sentinels", () => {
+    expect(constants.volumetype.NONE).toBe("none");
+    expect(constants.volumetype.TICK).toBe("tick");
+    expect(constants.volumetype.SHARE).toBe("share");
+    expect(constants.volumetype.CONTRACT).toBe("contract");
+  });
+
+  it("barmerge_gaps exposes the gaps_on/gaps_off/gaps_na sentinels", () => {
+    expect(constants.barmerge_gaps.GAPS_ON).toBe("gaps_on");
+    expect(constants.barmerge_gaps.GAPS_OFF).toBe("gaps_off");
+    expect(constants.barmerge_gaps.GAPS_NA).toBe("gaps_na");
+  });
+
+  it("line_extended exposes the v6-only extended line styles", () => {
+    expect(constants.line_extended.STYLE_SOLID_CROSS).toBe("line.style_solid_cross");
+    expect(constants.line_extended.STYLE_DASHED_CROSS).toBe("line.style_dashed_cross");
+    expect(constants.line_extended.STYLE_DOTTED_CROSS).toBe("line.style_dotted_cross");
+  });
+
+  it("color_palette exposes the named palette sentinels", () => {
+    expect(constants.color_palette.BACKGROUND).toBe("background");
+    expect(constants.color_palette.FOREGROUND).toBe("foreground");
+    expect(constants.color_palette.UP).toBe("up");
+    expect(constants.color_palette.DOWN).toBe("down");
+  });
+
+  it("text_align exposes the text alignment sentinels", () => {
+    expect(constants.text_align.LEFT).toBe("text.align_left");
+    expect(constants.text_align.CENTER).toBe("text.align_center");
+    expect(constants.text_align.RIGHT).toBe("text.align_right");
+    expect(constants.text_align.TOP_LEFT).toBe("text.align_top_left");
+    expect(constants.text_align.BOTTOM_RIGHT).toBe("text.align_bottom_right");
+  });
+
+  it("text_wrap and text_font_family expose the wrap and font-family sentinels", () => {
+    expect(constants.text_wrap.NONE).toBe("text.wrap_none");
+    expect(constants.text_wrap.AUTO).toBe("text.wrap_auto");
+    expect(constants.text_font_family.DEFAULT).toBe("text.font_family_default");
+    expect(constants.text_font_family.MONOSPACE).toBe("text.font_family_monospace");
+    expect(constants.text_font_family.SERIF).toBe("text.font_family_serif");
+  });
+
+  it("cell_border exposes the table cell border sentinels", () => {
+    expect(constants.cell_border.TOP).toBe("cell.border_top");
+    expect(constants.cell_border.ALL).toBe("cell.border_all");
+    expect(constants.cell_border.NONE).toBe("cell.border_none");
+  });
+
+  it("tooltip exposes the tooltip position sentinels", () => {
+    expect(constants.tooltip.POSITION_TOP).toBe("tooltip.position_top");
+    expect(constants.tooltip.POSITION_AUTO).toBe("tooltip.position_auto");
+  });
+
+  it("event exposes the alert event sentinels", () => {
+    expect(constants.event.BAR_CLOSED).toBe("event.bar_closed");
+    expect(constants.event.PRICE_CROSS).toBe("event.price_cross");
+    expect(constants.event.ALERT_TRIGGERED).toBe("event.alert_triggered");
+  });
+
+  it("strategy_direction exposes the long/short/all direction sentinels", () => {
+    expect(constants.strategy_direction.LONG).toBe("strategy.direction.long");
+    expect(constants.strategy_direction.SHORT).toBe("strategy.direction.short");
+    expect(constants.strategy_direction.ALL).toBe("strategy.direction.all");
+  });
+
+  it("strategy_evaluations exposes the profit/loss/win sentinels", () => {
+    expect(constants.strategy_evaluations.PROFIT).toBe("strategy.evaluations.profit");
+    expect(constants.strategy_evaluations.LOSS).toBe("strategy.evaluations.loss");
+    expect(constants.strategy_evaluations.WIN).toBe("strategy.evaluations.win");
+  });
+
+  it("chart exposes the chart.point and chart color sentinels", () => {
+    expect(constants.chart.POINT_DEFAULT).toBe("chart.point_default");
+    expect(constants.chart.POINT_XLOC_BAR_TIME).toBe("chart.point_xloc_bar_time");
+    expect(constants.chart.BG_COLOR).toBe("chart.bg_color");
+  });
+
+  it("linefill exposes the linefill style sentinels", () => {
+    expect(constants.linefill.STYLE_SOLID).toBe("linefill.style_solid");
+    expect(constants.linefill.STYLE_GRADIENT_VERTICAL).toBe("linefill.style_gradient_vertical");
+    expect(constants.linefill.STYLE_GRADIENT_HORIZONTAL).toBe("linefill.style_gradient_horizontal");
+  });
+
+  it("all exposes the consolidated constants record (extended)", () => {
+    expect(constants.all.barstate.ISFIRSTBAR).toBe("barstate.isfirstbar");
+    expect(constants.all.syminfo_type.CRYPTO).toBe("crypto");
+    expect(constants.all.months.JULY).toBe(7);
+    expect(constants.all.frequency.F_QUARTERLY).toBe("FQ");
+    expect(constants.all.earnings.BMO).toBe("BMO");
+    expect(constants.all.cell_border.ALL).toBe("cell.border_all");
+    expect(constants.all.linefill.STYLE_SOLID).toBe("linefill.style_solid");
   });
 });

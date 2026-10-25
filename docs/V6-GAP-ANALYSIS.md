@@ -224,14 +224,14 @@ For a headless trading runtime, `plot` and `alertcondition` still matter because
 1. **Kernel corrections** (small, high leverage): fix `last_bar_index`; unify `na`; add `fixnan`; make calendar functions timezone-aware and bar-time-driven; bound history with a ring buffer; correct `ta.v6.json` against the reference index.
 2. **Call-site scoping and conditional-execution semantics** (3.1, 3.2). These define the TypeScript authoring model, so everything after this depends on them.
 3. **Series arithmetic helpers and a script declaration object** (3.6).
-4. **Remaining `ta.*`**: `alma cci cog correlation max min median mode range rci tsi pivot_point_levels`, the `iii`/`wad`/`wvad` variables, and variable-length support. Then promote the `draft` functions to `verified` with TradingView-exported vectors.
-5. **`str.*`, `color.*`, `input.*`, `log.*`**: pure and quick. They unblock `plot`/`alert` payloads.
-6. **Time and sessions**: `session.*`, `time()` with a session filter, `timeframe.*` on the context, and `timeframe.change`.
-7. **`request.security` / `security_lower_tf`**: secondary-context execution with non-repainting defaults.
-8. **Strategy engine and broker emulator**, then paper/live broker adapters.
-9. **Outputs**: `plot*`, `alertcondition`/`alert`, then the drawing object model with rollback.
-10. **Provider-limited surface**: typed capability errors for fundamentals, `footprint` and `volume_row`.
-11. **Optional**: a Pine source transpiler (Phase 7) that targets the scoped runtime from step 2.
+4. **Remaining `ta.*`**: `alma cci cog correlation max min median mode range rci tsi pivot_point_levels`, the `iii`/`wad`/`wvad` variables, and variable-length support. Then promote the `draft` functions to `verified` with TradingView-exported vectors. ✅ **Done** (2026-10): all 67 `ta.*` functions implemented; `sma`/`ema`/`stoch`/`cci`/`tsi`/`linreg`/`stdev`/`variance` promoted to `verified` against PineScript-exported vectors via the RunningSum Kahan kernel (`tests/reference-pine-vectors-running-sum.test.ts`).
+5. **`str.*`, `color.*`, `input.*`, `log.*`**: pure and quick. They unblock `plot`/`alert` payloads. ✅ **Done** (2026-10, Wave 3).
+6. **Time and sessions**: `session.*`, `time()` with a session filter, `timeframe.*` on the context, and `timeframe.change`. ✅ **Done** (2026-10, Waves 3–4).
+7. **`request.security` / `security_lower_tf`**: secondary-context execution with non-repainting defaults. ✅ **Done** (2026-10, Wave 8 + running-sum completion): multi-context engine ships; `gaps`/`lookahead` semantics on `security_lower_tf` now implemented (lookahead=off excludes the still-forming intrabar; gaps=on returns an empty tuple, gaps=off carries forward).
+8. **Strategy engine and broker emulator**, then paper/live broker adapters. ✅ **Done** (2026-10, Wave 6 + Wave 9): `strategy.*` engine + broker emulator shipped; `PaperBrokerAdapter` and `BinanceBrokerAdapter` ship; `MockBinanceTradingSurface` reference implementation now shipped so downstream integrators can wire a Binance SDK against a tested Binance-shaped surface without needing real API credentials.
+9. **Outputs**: `plot*`, `alertcondition`/`alert`, then the drawing object model with rollback. ✅ **Done** (2026-10, Wave 4 + Wave 7 + Wave 10): visual runtime emits renderer-neutral events; `ChartAdapter` shipped (Wave 10) consumes those events and produces renderable primitives + an SVG string for hosts that need a concrete renderer.
+10. **Provider-limited surface**: typed capability errors for fundamentals, `footprint` and `volume_row`. ✅ **Typed errors in place** (Wave 5 `request.*` raises `RequestNotImplemented`); concrete provider-limited data fetching still depends on a downstream integrator.
+11. **Optional**: a Pine source transpiler (Phase 7) that targets the scoped runtime from step 2. ❌ **Deferred**: still optional; not on the critical path for the analytical/strategy/visual surface.
 
 ## 7. Reproducing this audit
 

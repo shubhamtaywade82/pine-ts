@@ -22,7 +22,7 @@ functions:
     semantics: { warmup: length - 1, na: "na source propagates" }
     impl: { module: src/ta/core.ts, export: sma }
     status: verified
-    vectors: [fixtures/v6/ta/sma.basic.json]
+    vectors: [fixtures/v6/ta/sma.basic.json, tests/reference-pine-vectors-running-sum.test.ts]
 
   - name: ema
     signature:
@@ -30,10 +30,10 @@ functions:
         - { name: source, type: series<float> }
         - { name: length, type: int, constraints: { min: 1 } }
     returns: series<float>
-    semantics: { seed: "first non-na source value", alpha: "2 / (length + 1)" }
+    semantics: { warmup: length - 1, na: "na source propagates", seed: "SMA of first `length` valid values (Kahan order); recurrence (value - previous) * alpha + previous; na/Infinity source preserves previous EMA." }
     impl: { module: src/ta/core.ts, export: ema }
     status: verified
-    vectors: [fixtures/v6/ta/ema.basic.json]
+    vectors: [fixtures/v6/ta/ema.basic.json, tests/reference-pine-vectors-running-sum.test.ts]
 
   - name: rma
     signature:
@@ -263,8 +263,8 @@ functions:
       denominator: "length when biased, length - 1 otherwise"
       na: "v6 remark: na values are ignored; the window collects the last length non-na values"
     impl: { module: src/ta/statistics.ts, export: variance }
-    status: draft
-    vectors: [fixtures/v6/ta/variance.basic.json]
+    status: verified
+    vectors: [fixtures/v6/ta/variance.basic.json, tests/reference-pine-vectors-running-sum.test.ts]
 
   - name: stdev
     signature:
@@ -277,8 +277,8 @@ functions:
       core: "sqrt(ta.variance(source, length, biased))"
       na: "v6 remark: na values are ignored; the window collects the last length non-na values"
     impl: { module: src/ta/statistics.ts, export: stdev }
-    status: draft
-    vectors: [fixtures/v6/ta/stdev.basic.json, fixtures/v6/ta/stdev.na.json]
+    status: verified
+    vectors: [fixtures/v6/ta/stdev.basic.json, fixtures/v6/ta/stdev.na.json, tests/reference-pine-vectors-running-sum.test.ts]
 
   - name: dev
     signature:

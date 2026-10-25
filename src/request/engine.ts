@@ -198,14 +198,24 @@ export class RequestEngine {
 
   /**
    * `request.security_lower_tf(symbol, timeframe, expression, options?)`.
-   * For a lower-timeframe request, returns the tuple of intrabar values
-   * from the secondary context that fall within the caller's bar. Each
-   * element is the `expression` value at the corresponding secondary bar.
+   * For a lower-timeframe request, returns the tuple of intrabar values from
+   * the secondary context that fall within the caller's bar. Each element is
+   * the `expression` value at the corresponding secondary bar.
    *
-   * The `gaps` and `lookahead` options are accepted for API compatibility
-   * but their semantics on lower-tf requests are deferred to a future
-   * revision; the engine returns all intrabar values within the caller
-   * bar's window regardless of those options for now.
+   * Pine v6 alignment rules (now implemented):
+   *
+   * - `lookahead=off` (default): only intrabars that have CLOSED within the
+   *   caller's bar window are returned. A bar is considered "closed" when
+   *   `bar.isClosed !== false` AND its close_time ≤ callerCloseTime. For a
+   *   historical caller bar this is all intrabars within the window; for a
+   *   real-time caller bar the still-forming intrabar is excluded.
+   * - `lookahead=on`: include all intrabars within the caller's bar window,
+   *   even the still-forming one (repainting; only valid on confirmed HTF).
+   * - `gaps=off` (default): if no intrabars match the criteria, return a
+   *   single-element tuple carrying forward the last caller bar's last
+   *   intrabar value (or `[undefined]` if no prior intrabar exists yet).
+   * - `gaps=on`: if no intrabars match the criteria, return an empty tuple
+   *   (`[]`) — never fabricates a value.
    */
   public security_lower_tf<T>(
     symbol: string,
@@ -219,39 +229,84 @@ export class RequestEngine {
     const callerTime = callerSession.sources.time.at(0);
     if (callerTime === undefined) return [];
 
-    // Derive the caller bar duration from the time series when a previous
-    // committed bar is available; fall back to the caller session's
-    // declared timeframe duration (in seconds) on the first bar.
-    const previousTime = callerSession.sources.time.at(1);
-    let callerBarDuration = 0;
+    const callerCloseTime = callerTime + this.callerBarDuration(callerTime, callerSession.sources.time.at(1), callerSession.timeframe);
+    const lookahead = options?.lookahead ?? "lookahead_off";
+    const gaps = options?.gaps ?? "gaps_off";
+
+    const intrabarIndices = this.findIntrabarIndices(ctx, callerTime, callerCloseTime, lookahead);
+    const values = intrabarIndices.map((idx) => this.evaluateAt<T>(ctx, expression, idx) as T);
+    if (values.length > 0) return values;
+
+    // No intrabars matched. gaps=on: empty tuple. gaps=off: carry forward.
+    if (gaps === "gaps_on") return [];
+    return this.lastCachedIntrabarValue<T>(ctx, expression);
+  }
+
+  /**
+   * Derives the caller's bar duration in milliseconds. Uses the gap between
+   * the current and previous committed bar time when available; falls back
+   * to the caller session's declared timeframe duration (in seconds) on the
+   * first bar (no previous time available).
+   */
+  private callerBarDuration(
+    callerTime: number,
+    previousTime: number | undefined,
+    callerTimeframe: string | undefined,
+  ): number {
     if (previousTime !== undefined && previousTime > 0) {
-      callerBarDuration = callerTime - previousTime;
-    } else if (callerSession.timeframe !== undefined) {
-      callerBarDuration = in_seconds(callerSession.timeframe) * 1000;
+      return callerTime - previousTime;
     }
-    const callerCloseTime = callerTime + callerBarDuration;
+    if (callerTimeframe !== undefined) {
+      return in_seconds(callerTimeframe) * 1000;
+    }
+    return 0;
+  }
 
-    // `gaps` and `lookahead` semantics on lower-tf are deferred; the
-    // engine returns all intrabar values within the caller bar's window
-    // regardless of those options for now. Validate them for forward-compat.
-    if (options?.lookahead !== undefined && options.lookahead !== "lookahead_on" && options.lookahead !== "lookahead_off") {
-      throw new RangeError("request.security_lower_tf: invalid lookahead option");
-    }
-    if (options?.gaps !== undefined && options.gaps !== "gaps_on" && options.gaps !== "gaps_off") {
-      throw new RangeError("request.security_lower_tf: invalid gaps option");
-    }
-
-    // Find the secondary bars whose open_time is in [callerTime, callerCloseTime).
-    const intrabarIndices: number[] = [];
+  /**
+   * Finds the secondary bar indices whose open_time falls within
+   * `[callerTime, callerCloseTime)`. For `lookahead=off`, excludes the
+   * still-forming intrabar (one whose `isClosed === false` or whose
+   * close_time exceeds `callerCloseTime`).
+   */
+  private findIntrabarIndices(
+    ctx: SecondaryContext,
+    callerTime: number,
+    callerCloseTime: number,
+    lookahead: "lookahead_on" | "lookahead_off",
+  ): number[] {
+    const indices: number[] = [];
+    const intrabarDurationMs = ctx.tfSeconds * 1000;
     for (let i = 0; i < ctx.bars.length; i += 1) {
       const bar = ctx.bars[i]!;
-      if (bar.time >= callerTime && bar.time < callerCloseTime) {
-        intrabarIndices.push(i);
-      } else if (bar.time >= callerCloseTime) {
-        break;
+      if (bar.time < callerTime) continue;
+      if (bar.time >= callerCloseTime) break;
+      if (lookahead === "lookahead_off") {
+        const intrabarCloseTime = bar.time + intrabarDurationMs;
+        if (bar.isClosed === false || intrabarCloseTime > callerCloseTime) continue;
+      }
+      indices.push(i);
+    }
+    return indices;
+  }
+
+  /**
+   * Returns the most recent cached intrabar value as a single-element tuple,
+   * used as the `gaps=off` carry-forward fallback when the caller bar has no
+   * matching intrabars. Returns `[undefined]` when no prior value exists.
+   */
+  private lastCachedIntrabarValue<T>(
+    ctx: SecondaryContext,
+    expression: (ctx: PineContext) => T,
+  ): readonly T[] {
+    const exprKey = expressionKey(expression);
+    const perExpr = ctx.expressionCache.get(exprKey) as PerExpressionCache<T> | undefined;
+    if (perExpr === undefined) return [undefined as T];
+    for (let i = perExpr.values.length - 1; i >= 0; i -= 1) {
+      if (perExpr.evaluated.has(i)) {
+        return [perExpr.values[i] as T];
       }
     }
-    return intrabarIndices.map((idx) => this.evaluateAt<T>(ctx, expression, idx) as T);
+    return [undefined as T];
   }
 
   /**

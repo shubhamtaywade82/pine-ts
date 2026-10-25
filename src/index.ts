@@ -93,9 +93,11 @@ export {
 } from "./strategy/index.js";
 export * as strategy from "./strategy/index.js";
 export * as visual from "./visual/index.js";
+export * as visualAdapter from "./visual/adapter.js";
 export {
   PaperBrokerAdapter,
   BinanceBrokerAdapter,
+  MockBinanceTradingSurface,
   type BrokerAdapter,
   type OrderRequest,
   type OrderResult,

@@ -3,6 +3,7 @@ import { isNa } from "../core/na.js";
 import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
+import { RunningSum } from "./running-sum.js";
 import { requirePositiveLength } from "./validation.js";
 
 const requireCompatibleRuntime = (source: Series<number>) => {
@@ -146,10 +147,14 @@ export const nvi = (): FloatSeries => createVolumeIndex("ta.nvi", false);
  * - `lower = math.sum(volume * (ta.change(src) >= 0 ? 0 : src), length)`
  * - `mfi = 100 - 100 / (1 + upper / lower)`
  *
- * Pine v6 boolean semantics make comparisons against na false, so a na change
- * (the first bar) adds `volume * src` to BOTH sums. `math.sum` skips na terms
- * and computes on the last `length` non-na values. `upper / lower` is na when
- * `lower` is zero (no negative flow in the window), so the MFI is na then.
+ * Both `math.sum` windows use the compensated (Kahan) running-sum kernel (see
+ * {@link RunningSum}), so the result matches Pine bit-for-bit on
+ * cancellation-heavy windows. Pine v6 boolean semantics make comparisons
+ * against na false, so a na change (the first bar) adds `volume * src` to
+ * BOTH sums. `math.sum` skips na terms and computes on the last `length`
+ * non-na values; a na current bar keeps the previous MFI (the window does
+ * not advance). `upper / lower` is na when `lower` is zero (no negative flow
+ * in the window), so the MFI is na then.
  */
 export const mfi = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
@@ -157,62 +162,78 @@ export const mfi = (source: Series<number>, length: number): FloatSeries => {
   const { volume } = runtime.sources;
   return runtime.nodes.getOrCreate(nodeKey("ta.mfi", source, volume, length), () => {
     interface State {
-      upper: number[];
-      lower: number[];
+      upper: RunningSum;
+      lower: RunningSum;
     }
-    /** na flows (na volume or na src) never enter the windows. */
+    /** na flows (na volume or na src, including +/-Infinity) never enter the windows. */
     const flows = (offset = 0): { readonly upper: number; readonly lower: number } | undefined => {
       const src = source.at(offset);
       const volumeValue = volume.at(offset);
-      if (isNa(volumeValue) || isNa(src)) return undefined;
+      if (volumeValue === undefined || !Number.isFinite(volumeValue) || src === undefined || !Number.isFinite(src))
+        return undefined;
       const previous = source.at(offset + 1);
-      const change = previous === undefined || isNa(previous) ? undefined : src - previous;
+      const change = previous === undefined || !Number.isFinite(previous) ? undefined : src - previous;
       // na change comparisons are false in Pine v6, so both branches pick src.
       const upper = change !== undefined && change <= 0 ? 0 : volumeValue * src;
       const lower = change !== undefined && change >= 0 ? 0 : volumeValue * src;
       return { upper, lower };
     };
-    const windowSum = (values: readonly number[]): number | undefined => {
-      if (values.length < length) return undefined;
-      let sum = 0;
-      for (let index = 0; index < length; index += 1) sum += values[index] ?? 0;
-      return sum;
+    const seedHistory = (rs: RunningSum, picker: (flow: { upper: number; lower: number }) => number): void => {
+      // Walk back through committed history (newest first), collect `length`
+      // non-na flows (oldest first), step through them so the new node
+      // matches one that had been running all along.
+      const history: { upper: number; lower: number }[] = [];
+      let offset = 1;
+      while (history.length < length) {
+        if (source.at(offset) === undefined) break;
+        const flow = flows(offset);
+        if (flow !== undefined) history.push(flow);
+        offset += 1;
+      }
+      history.reverse();
+      for (const flow of history) {
+        rs.step(picker(flow), length);
+        rs.commit();
+      }
+    };
+    const step = (state: Readonly<State>): number | undefined => {
+      const flow = flows();
+      let upper: number;
+      let lower: number;
+      if (flow === undefined) {
+        upper = state.upper.stepNa(length);
+        lower = state.lower.stepNa(length);
+      } else {
+        upper = state.upper.step(flow.upper, length);
+        lower = state.lower.step(flow.lower, length);
+      }
+      if (Number.isNaN(upper) || Number.isNaN(lower) || lower === 0) return undefined;
+      return 100 - 100 / (1 + upper / lower);
     };
     const definition = {
       warmupBars: length,
-      // Seed from committed history (newest first) so a node created mid-run
-      // (a new `series int` length) matches one that had been running all along.
       init: (): State => {
-        const state: State = { upper: [], lower: [] };
-        let offset = 0;
-        while (state.upper.length < length) {
-          offset += 1;
-          if (source.at(offset) === undefined) break;
-          const flow = flows(offset);
-          if (flow === undefined) continue;
-          state.upper.push(flow.upper);
-          state.lower.push(flow.lower);
-        }
-        return state;
+        const upper = new RunningSum();
+        const lower = new RunningSum();
+        seedHistory(upper, (f) => f.upper);
+        seedHistory(lower, (f) => f.lower);
+        return { upper, lower };
       },
       evaluate: (state: Readonly<State>): number => {
-        const flow = flows();
-        const upperWindow = flow === undefined ? state.upper : [flow.upper, ...state.upper];
-        const lowerWindow = flow === undefined ? state.lower : [flow.lower, ...state.lower];
-        const upper = windowSum(upperWindow);
-        const lower = windowSum(lowerWindow);
-        if (upper === undefined || lower === undefined || lower === 0) return Number.NaN;
-        return 100 - 100 / (1 + upper / lower);
+        const result = step(state);
+        return result ?? Number.NaN;
       },
       commit: (state: State): void => {
         const flow = flows();
-        if (flow === undefined) return;
-        state.upper.unshift(flow.upper);
-        state.lower.unshift(flow.lower);
-        if (state.upper.length > length) {
-          state.upper.length = length;
-          state.lower.length = length;
+        if (flow === undefined) {
+          state.upper.stepNa(length);
+          state.lower.stepNa(length);
+        } else {
+          state.upper.step(flow.upper, length);
+          state.lower.step(flow.lower, length);
         }
+        state.upper.commit();
+        state.lower.commit();
       },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));

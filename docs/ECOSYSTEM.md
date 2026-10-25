@@ -44,18 +44,20 @@ OakScriptJS's MIT-licensed tests, attribution in the file header). The old
 "do not promote on mathematical plausibility" failure mode the coverage
 policy warns about, caught only because someone had exported real values.
 
-**Known remaining numerical gap (documented, deliberate):** Pine keeps a
-*compensated (Kahan) running sum* for `math.sum` / `ta.sma` / `ta.stdev` /
-`ta.variance` / `ta.mfi`, including a resync rule when the compensation
-would be absorbed. pine-ts's EMA/RMA **seeds** use the Kahan chain (so
-`ta.tsi` is bit-exact), but the rolling-window kernels still use plain
-incremental sums, so `ta.sma`-family outputs can differ from Pine in the
-last bits on cancellation-heavy windows (e.g. residues like
-`-7.105427357601002e-15` where Pine's compensated sum yields a slightly
-different tiny value). Porting OakScriptJS's `RunningSum` engine
-(`src/ta/running-sum.ts`, MIT) into pine-ts's node architecture is the
-follow-up; the reference vectors for it are in their
-`tests/ta/running-sum.test.ts`.
+**Known remaining numerical gap (now CLOSED):** ~~Pine keeps a *compensated
+(Kahan) running sum* for `math.sum` / `ta.sma` / `ta.stdev` / `ta.variance` /
+`ta.mfi`, including a resync rule when the compensation would be absorbed.
+pine-ts's EMA/RMA **seeds** use the Kahan chain (so `ta.tsi` is bit-exact),
+but the rolling-window kernels still use plain incremental sums, so
+`ta.sma`-family outputs can differ from Pine in the last bits on
+cancellation-heavy windows.~~ ✅ **Closed** (2026-10): OakScriptJS's
+`RunningSum` engine (`src/ta/running-sum.ts`, MIT, attribution in JSDoc)
+is now ported as a session-scoped state class and used as the kernel for
+`math.sum`, `ta.sma`, `ta.stdev`, `ta.variance`, `ta.mfi`. Outputs match
+Pine bit-for-bit on the reference vectors (cancellation residues on
+`[0, 0]` windows, resync just below a power of two, series-length
+changes, na/Infinity skipping) — see
+`tests/reference-pine-vectors-running-sum.test.ts`.
 
 **Boundary:** do not adopt their runtime (different model: batch arrays +
 lazy Series vs pine-ts's session-scoped committed-history nodes with

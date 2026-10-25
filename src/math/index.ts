@@ -4,7 +4,8 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
 import type { PineSession } from "../core/session.js";
-import { collectNonNaWindow } from "../ta/window.js";
+import { RunningSum } from "../ta/running-sum.js";
+import { collectCommittedNonNa } from "../ta/window.js";
 
 export const e: number = Math.E;
 export const pi: number = Math.PI;
@@ -286,14 +287,34 @@ export const sum = (source: Series<number>, length: number): FloatSeries => {
   const session = getSession(source);
   return session.nodes.getOrCreate(nodeKey("math.sum", source, length), () => {
     const def = {
-      init: (): null => null,
-      evaluate: (): number => {
-        if (isNa(source.at(0))) return Number.NaN;
-        const window = collectNonNaWindow(source, length);
-        if (window === undefined) return Number.NaN;
-        return window.reduce((acc, item) => acc + item.value, 0);
+      warmupBars: length - 1,
+      init: (): RunningSum => {
+        const rs = new RunningSum();
+        const history = collectCommittedNonNa(source, length);
+        for (const value of history) {
+          rs.step(value, length);
+          rs.commit();
+        }
+        return rs;
       },
-      commit: (): void => undefined,
+      evaluate: (rs: Readonly<RunningSum>): number => {
+        const value = source.at(0);
+        if (value === undefined || !Number.isFinite(value)) {
+          // Pine treats na and +/-Infinity as "no value" in window functions;
+          // the bar keeps the previous result, matching OakScriptJS's isNa.
+          return rs.stepNa(length);
+        }
+        return rs.step(value, length);
+      },
+      commit: (rs: RunningSum): void => {
+        const value = source.at(0);
+        if (value === undefined || !Number.isFinite(value)) {
+          rs.stepNa(length);
+        } else {
+          rs.step(value, length);
+        }
+        rs.commit();
+      },
     };
     return new FloatSeries(session, new IndicatorNode(def));
   }) as FloatSeries;

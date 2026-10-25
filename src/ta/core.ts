@@ -4,6 +4,7 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { BooleanSeries, FloatSeries, Series } from "../core/series.js";
 import { zipSeries } from "../core/series-operators.js";
+import { RunningSum } from "./running-sum.js";
 import { collectCommittedNonNa, collectNonNaWindow } from "./window.js";
 
 const requirePositiveLength = (length: number): void => {
@@ -19,32 +20,58 @@ const requireCompatibleRuntime = (source: Series<number>, other?: Series<number>
   return runtime;
 };
 
+/**
+ * `ta.sma(source, length)`. Simple moving average over the last `length`
+ * non-na values.
+ *
+ * Uses the compensated (Kahan) running-sum kernel that PineScript uses
+ * internally (see {@link RunningSum}), so the result matches Pine's output
+ * bit-for-bit on cancellation-heavy windows — including the residues Pine
+ * keeps on `[0, 0]` windows that a plain `sum / length` would zero out.
+ *
+ * Pine v6 windowing:
+ * - na values in the source series are ignored — the window collects the last
+ *   `length` non-na values (an na current bar keeps the previous result).
+ * - Fewer than `length` non-na values (warm-up) yields na.
+ *
+ * Seeding for mid-run node creation (a `series int` length change) replays
+ * the last `length` non-na committed values through the kernel so the new
+ * node matches one that had been running all along.
+ */
 export const sma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.sma", source, length), () => {
-    interface State {
-      buffer: number[];
-      sum: number;
-    }
     const definition = {
       warmupBars: length - 1,
-      init: (): State => {
-        const buffer = collectCommittedNonNa(source, length);
-        return { buffer, sum: buffer.reduce((total, value) => total + value, 0) };
+      init: (): RunningSum => {
+        const rs = new RunningSum();
+        const history = collectCommittedNonNa(source, length);
+        for (const value of history) {
+          rs.step(value, length);
+          rs.commit();
+        }
+        return rs;
       },
-      evaluate: (state: Readonly<State>): number => {
+      evaluate: (rs: Readonly<RunningSum>): number => {
         const value = source.at(0);
-        if (isNa(value) || state.buffer.length < length - 1) return Number.NaN;
-        const oldest = state.buffer.length === length ? state.buffer[0] : undefined;
-        return (state.sum - (oldest ?? 0) + value) / length;
+        if (value === undefined || !Number.isFinite(value)) {
+          // Pine treats na and +/-Infinity as "no value" in window functions;
+          // the bar keeps the previous result, matching OakScriptJS's isNa.
+          return rs.stepNa(length);
+        }
+        const sum = rs.step(value, length);
+        return Number.isNaN(sum) ? Number.NaN : sum / length;
       },
-      commit: (state: State): void => {
+      commit: (rs: RunningSum): void => {
         const value = source.at(0);
-        if (isNa(value)) return;
-        state.buffer.push(value);
-        state.sum += value;
-        if (state.buffer.length > length) state.sum -= state.buffer.shift() ?? 0;
+        if (value === undefined || !Number.isFinite(value)) {
+          // stepNa still applies the (possibly new) length to kept state.
+          rs.stepNa(length);
+        } else {
+          rs.step(value, length);
+        }
+        rs.commit();
       },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));

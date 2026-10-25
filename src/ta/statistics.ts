@@ -3,20 +3,14 @@ import { nodeKey } from "../core/node-registry.js";
 import { IndicatorNode } from "../core/series-node.js";
 import { FloatSeries, Series } from "../core/series.js";
 import { highest, lowest } from "./core.js";
+import { RunningSum, varianceFromSums } from "./running-sum.js";
 import { requirePositiveLength } from "./validation.js";
-import { collectNonNaWindow } from "./window.js";
+import { collectCommittedNonNa, collectNonNaWindow } from "./window.js";
 
 const requireCompatibleRuntime = (source: Series<number>) => {
   const runtime = source.runtime;
   if (runtime === undefined) throw new Error("TA series require a PineSession-owned source series");
   return runtime;
-};
-
-const calculateVariance = (values: readonly number[], biased: boolean): number => {
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const squaredDeviation = values.reduce((sum, value) => sum + (value - mean) ** 2, 0);
-  const denominator = biased ? values.length : values.length - 1;
-  return denominator > 0 ? squaredDeviation / denominator : Number.NaN;
 };
 
 /**
@@ -49,17 +43,112 @@ const createRollingStatistic = (
   }) as FloatSeries;
 };
 
+/**
+ * Builds a session-scoped variance/stdev node that mirrors Pine's two running
+ * sums (one of `x`, one of `x²`). Both sums use the compensated (Kahan)
+ * running-sum kernel (see {@link RunningSum}); the variance is then
+ * `sumSq / n - mean * mean` (biased) or `sumSq / (n - 1) - mean * sum / (n - 1)`
+ * (unbiased), as Pine computes it. na and +/-Infinity values in the source
+ * are skipped (the value never enters either window); a na current bar keeps
+ * the previous result; fewer than `length` non-na values (warm-up) yields na.
+ *
+ * For `stdev`, Pine clamps tiny negative residues (from Kahan rounding on
+ * constant windows) to 0 before sqrt — a window `[0, 0]` yields stdev 0, not
+ * NaN. This matches OakScriptJS's `ta.stdev` impl:
+ * `varianceOf(...).map(v => Number.isNaN(v) ? NaN : v > 0 ? Math.sqrt(v) : 0)`.
+ *
+ * Attribution: arithmetic transcribed from OakScriptJS's `runningVariance`
+ * (MIT, v0.12.3); see `docs/ECOSYSTEM.md` rule 4. The window-from-scratch
+ * fallback in {@link calculateVariance} is kept only for the cross-check.
+ */
+const createRunningVariance = (
+  source: Series<number>,
+  length: number,
+  key: string,
+  biased: boolean,
+  transform: (variance: number) => number,
+): FloatSeries => {
+  const runtime = requireCompatibleRuntime(source);
+  return runtime.nodes.getOrCreate(nodeKey(key, source, length), () => {
+    interface State {
+      /** Running sum of the last `length` non-na `x` values (Kahan). */
+      sumX: RunningSum;
+      /** Running sum of the last `length` non-na `x²` values (Kahan). */
+      sumX2: RunningSum;
+    }
+    const seedHistory = (rs: RunningSum, picker: (v: number) => number): void => {
+      const history = collectCommittedNonNa(source, length);
+      for (const v of history) {
+        rs.step(picker(v), length);
+        rs.commit();
+      }
+    };
+    const step = (state: Readonly<State>): number => {
+      const value = source.at(0);
+      let sumX: number;
+      let sumX2: number;
+      if (value === undefined || !Number.isFinite(value)) {
+        // Pine treats na and +/-Infinity as "no value" in window functions.
+        sumX = state.sumX.stepNa(length);
+        sumX2 = state.sumX2.stepNa(length);
+      } else {
+        sumX = state.sumX.step(value, length);
+        sumX2 = state.sumX2.step(value * value, length);
+      }
+      if (Number.isNaN(sumX) || Number.isNaN(sumX2)) return Number.NaN;
+      return varianceFromSums(sumX, sumX2, length, biased);
+    };
+    const definition = {
+      warmupBars: length - 1,
+      init: (): State => {
+        const sumX = new RunningSum();
+        const sumX2 = new RunningSum();
+        seedHistory(sumX, (v) => v);
+        seedHistory(sumX2, (v) => v * v);
+        return { sumX, sumX2 };
+      },
+      evaluate: (state: Readonly<State>): number => {
+        const variance = step(state);
+        return Number.isNaN(variance) ? Number.NaN : transform(variance);
+      },
+      commit: (state: State): void => {
+        const value = source.at(0);
+        if (value === undefined || !Number.isFinite(value)) {
+          state.sumX.stepNa(length);
+          state.sumX2.stepNa(length);
+        } else {
+          state.sumX.step(value, length);
+          state.sumX2.step(value * value, length);
+        }
+        state.sumX.commit();
+        state.sumX2.commit();
+      },
+    };
+    return new FloatSeries(runtime, new IndicatorNode(definition));
+  }) as FloatSeries;
+};
+
 export const variance = (source: Series<number>, length: number, biased = true): FloatSeries => {
   requirePositiveLength(length);
-  return createRollingStatistic(source, length, `ta.variance:${biased}`, (values) =>
-    calculateVariance(values, biased),
+  return createRunningVariance(
+    source,
+    length,
+    `ta.variance:${biased}`,
+    biased,
+    (v) => v,
   );
 };
 
 export const stdev = (source: Series<number>, length: number, biased = true): FloatSeries => {
   requirePositiveLength(length);
-  return createRollingStatistic(source, length, `ta.stdev:${biased}`, (values) =>
-    Math.sqrt(calculateVariance(values, biased)),
+  return createRunningVariance(
+    source,
+    length,
+    `ta.stdev:${biased}`,
+    biased,
+    // Pine: variance > 0 ? sqrt(variance) : 0 — clamps tiny negative Kahan
+    // residues (constant windows) to 0 instead of NaN.
+    (v) => (v > 0 ? Math.sqrt(v) : 0),
   );
 };
 

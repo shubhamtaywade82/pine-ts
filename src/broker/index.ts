@@ -467,7 +467,52 @@ export type BinanceOrderStatus =
   | "CANCELED"
   | "REJECTED";
 
-/** Typed scaffold for a Binance live-trading broker adapter. The actual
+/** Binance order-update event payload (REST or websocket). */
+export interface BinanceOrderUpdateEvent {
+  readonly orderId: string;
+  readonly clientOrderId: string;
+  readonly status: BinanceOrderStatus;
+  readonly executedQty: number;
+  readonly avgPrice: number | undefined;
+  readonly rejectReason: string | undefined;
+  readonly symbol: string;
+}
+
+/** Binance new-order REST response payload. */
+export interface BinanceOrderResponse {
+  readonly orderId: string;
+  readonly status: BinanceOrderStatus;
+  readonly executedQty: number;
+  readonly avgPrice: number | undefined;
+  readonly rejectReason: string | undefined;
+}
+
+/** Binance REST order type. */
+export type BinanceOrderType = "MARKET" | "LIMIT" | "STOP" | "STOP_LIMIT";
+
+/** Binance new-order REST request payload. */
+export interface BinanceNewOrderParams {
+  readonly symbol: string;
+  readonly side: "BUY" | "SELL";
+  readonly type: BinanceOrderType;
+  readonly quantity: number;
+  readonly price: number | undefined;
+  readonly stopPrice: number | undefined;
+  readonly timeInForce: "GTC" | "IOC" | "FOK";
+  readonly clientOrderId: string;
+}
+
+/** Binance position REST response payload. */
+export interface BinancePositionResponse {
+  readonly symbol: string;
+  readonly side: "LONG" | "SHORT";
+  readonly qty: number;
+  readonly avgEntryPrice: number;
+  readonly unrealisedPnl: number;
+}
+
+/**
+ * Typed scaffold for a Binance live-trading broker adapter. The actual
  * integration with `@nemesis-oss/binance-sdk`'s trading surface requires
  * real API credentials and is left to downstream integrators; this module
  * defines the contract surface so a downstream `BinanceBrokerAdapter`
@@ -491,46 +536,15 @@ export type BinanceOrderStatus =
  */
 export interface BinanceTradingSurface {
   /** Submits a new order. Returns the broker-assigned order id and status. */
-  newOrder(params: {
-    symbol: string;
-    side: "BUY" | "SELL";
-    type: "MARKET" | "LIMIT" | "STOP" | "STOP_LIMIT";
-    quantity: number;
-    price: number | undefined;
-    stopPrice: number | undefined;
-    timeInForce: "GTC" | "IOC" | "FOK";
-    clientOrderId: string;
-  }): Promise<{
-    orderId: string;
-    status: BinanceOrderStatus;
-    executedQty: number;
-    avgPrice: number | undefined;
-    rejectReason: string | undefined;
-  }>;
+  newOrder(params: BinanceNewOrderParams): Promise<BinanceOrderResponse>;
   /** Cancels an existing order. */
   cancelOrder(params: { symbol: string; orderId: string }): Promise<void>;
   /** Queries the current position for a symbol. */
-  getPosition(symbol: string): Promise<{
-    symbol: string;
-    side: "LONG" | "SHORT";
-    qty: number;
-    avgEntryPrice: number;
-    unrealisedPnl: number;
-  } | undefined>;
+  getPosition(symbol: string): Promise<BinancePositionResponse | undefined>;
   /** Queries the account's quote-currency balance. */
   getBalance(): Promise<number>;
   /** Subscribes to order-update events (websocket). */
-  onOrderUpdate(
-    callback: (event: {
-      orderId: string;
-      clientOrderId: string;
-      status: BinanceOrderStatus;
-      executedQty: number;
-      avgPrice: number | undefined;
-      rejectReason: string | undefined;
-      symbol: string;
-    }) => void,
-  ): () => void;
+  onOrderUpdate(callback: (event: BinanceOrderUpdateEvent) => void): () => void;
 }
 
 /**
@@ -634,3 +648,208 @@ const binanceStatusToBroker = (status: BinanceOrderStatus): OrderStatus => {
       return "new";
   }
 };
+
+// ---------- MockBinanceTradingSurface (reference implementation) ----------
+
+/**
+ * In-memory reference implementation of {@link BinanceTradingSurface}. Useful
+ * for:
+ *
+ * - **Downstream integrators** as a template to copy when wiring a real
+ *   Binance SDK (the structural typing means a real SDK's trading surface
+ *   extends this contract cleanly).
+ * - **End-to-end tests** of the strategy engine + broker adapter without
+ *   needing real Binance credentials.
+ * - **Local paper trading** with a Binance-shaped surface so strategy
+ *   code that uses `BinanceBrokerAdapter` runs unchanged in dry-run mode.
+ *
+ * The mock simulates fills against a bar OHLC reference (set via
+ * {@link MockBinanceTradingSurface.setBar}): a market order fills at the
+ * bar's close; a limit order fills if the bar's low ≤ limit price; a stop
+ * order triggers if the bar's high ≥ stop price (and a stop-limit then
+ * needs the low ≤ limit price to fill). Order-update callbacks fire on
+ * every fill, exactly like the websocket stream would.
+ */
+export class MockBinanceTradingSurface implements BinanceTradingSurface {
+  private readonly orders = new Map<string, MockOrder>();
+  private readonly positionBySymbol = new Map<string, MockPosition>();
+  private balanceValue: number;
+  private bar: { readonly high: number; readonly low: number; readonly close: number } | undefined;
+  private readonly orderUpdateCallbacks = new Set<(event: BinanceOrderUpdateEvent) => void>();
+  private nextId = 1;
+
+  public constructor(options: { readonly startingBalance: number }) {
+    this.balanceValue = options.startingBalance;
+  }
+
+  /** Sets the current bar OHLC used to simulate order fills. */
+  public setBar(bar: { readonly high: number; readonly low: number; readonly close: number }): void {
+    this.bar = bar;
+  }
+
+  /** Returns the mock order book (for inspection in tests). */
+  public getOpenOrders(): readonly MockOrder[] {
+    return [...this.orders.values()].filter((o) => o.status === "NEW");
+  }
+
+  public async newOrder(params: BinanceNewOrderParams): Promise<BinanceOrderResponse> {
+    const orderId = `mock_${this.nextId++}`;
+    const order: MockOrder = { ...params, orderId, status: "NEW", executedQty: 0, avgPrice: undefined, rejectReason: undefined };
+    this.orders.set(orderId, order);
+    await this.attemptFillAndUpdateSubscribers(order);
+    return {
+      orderId: order.orderId,
+      status: order.status,
+      executedQty: order.executedQty,
+      avgPrice: order.avgPrice,
+      rejectReason: order.rejectReason,
+    };
+  }
+
+  public async cancelOrder(params: { symbol: string; orderId: string }): Promise<void> {
+    const order = this.orders.get(params.orderId);
+    if (order?.status !== "NEW") return;
+    order.status = "CANCELED";
+    this.emitOrderUpdate(order);
+    await Promise.resolve();
+  }
+
+  public async getPosition(symbol: string): Promise<BinancePositionResponse | undefined> {
+    const p = this.positionBySymbol.get(symbol);
+    if (p === undefined || p.qty === 0) return undefined;
+    const mark = this.bar?.close ?? p.avgEntryPrice;
+    const unrealisedPnl = p.side === "LONG" ? (mark - p.avgEntryPrice) * p.qty : (p.avgEntryPrice - mark) * p.qty;
+    return Promise.resolve({ symbol: p.symbol, side: p.side, qty: p.qty, avgEntryPrice: p.avgEntryPrice, unrealisedPnl });
+  }
+
+  public async getBalance(): Promise<number> {
+    return Promise.resolve(this.balanceValue);
+  }
+
+  public onOrderUpdate(callback: (event: BinanceOrderUpdateEvent) => void): () => void {
+    this.orderUpdateCallbacks.add(callback);
+    return () => {
+      this.orderUpdateCallbacks.delete(callback);
+    };
+  }
+
+  /**
+   * Attempts to fill `order` against the current bar OHLC and notifies all
+   * order-update subscribers. No-op if the order is not fillable on this bar.
+   */
+  private async attemptFillAndUpdateSubscribers(order: MockOrder): Promise<void> {
+    const fill = this.computeFill(order);
+    if (fill !== undefined) {
+      order.status = fill.status;
+      order.executedQty = fill.executedQty;
+      order.avgPrice = fill.avgPrice;
+    }
+    this.emitOrderUpdate(order);
+    await Promise.resolve();
+  }
+
+  /** Emits the current state of `order` to all onOrderUpdate subscribers. */
+  private emitOrderUpdate(order: MockOrder): void {
+    for (const cb of this.orderUpdateCallbacks) {
+      cb({
+        orderId: order.orderId,
+        clientOrderId: order.clientOrderId,
+        status: order.status,
+        executedQty: order.executedQty,
+        avgPrice: order.avgPrice,
+        rejectReason: order.rejectReason,
+        symbol: order.symbol,
+      });
+    }
+  }
+
+  /**
+   * Returns the fill result for `order` against the current bar OHLC, or
+   * `undefined` if the order cannot fill on this bar.
+   */
+  private computeFill(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+    if (this.bar === undefined) return undefined;
+    if (order.type === "MARKET") return this.fillAt(order, this.bar.close);
+    if (order.type === "LIMIT") return this.fillLimit(order);
+    if (order.type === "STOP") return this.fillStop(order);
+    if (order.type === "STOP_LIMIT") return this.fillStopLimit(order);
+    return undefined;
+  }
+
+  /** Fills `order` at `price` and updates the position book. */
+  private fillAt(order: MockOrder, price: number): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } {
+    this.applyFillToPosition(order, order.quantity, price);
+    return { status: "FILLED", executedQty: order.quantity, avgPrice: price };
+  }
+
+  private fillLimit(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+    if (order.price === undefined) return undefined;
+    const bar = this.bar!;
+    const wouldFill = order.side === "BUY" ? bar.low <= order.price : bar.high >= order.price;
+    return wouldFill ? this.fillAt(order, order.price) : undefined;
+  }
+
+  private fillStop(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+    if (order.stopPrice === undefined) return undefined;
+    const bar = this.bar!;
+    const triggered = order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
+    return triggered ? this.fillAt(order, order.stopPrice) : undefined;
+  }
+
+  private fillStopLimit(order: MockOrder): { status: BinanceOrderStatus; executedQty: number; avgPrice: number | undefined } | undefined {
+    if (order.price === undefined || order.stopPrice === undefined) return undefined;
+    const bar = this.bar!;
+    const triggered = order.side === "BUY" ? bar.high >= order.stopPrice : bar.low <= order.stopPrice;
+    if (!triggered) return undefined;
+    const wouldFill = order.side === "BUY" ? bar.low <= order.price : bar.high >= order.price;
+    return wouldFill ? this.fillAt(order, order.price) : undefined;
+  }
+
+  /** Updates the in-memory position to reflect a fill. */
+  private applyFillToPosition(order: MockOrder, qty: number, price: number): void {
+    const existing = this.positionBySymbol.get(order.symbol);
+    const side = order.side === "BUY" ? "LONG" as const : "SHORT" as const;
+    if (existing === undefined) {
+      this.positionBySymbol.set(order.symbol, { symbol: order.symbol, side, qty, avgEntryPrice: price });
+      return;
+    }
+    if (existing.side === side) {
+      const newQty = existing.qty + qty;
+      const newAvg = (existing.avgEntryPrice * existing.qty + price * qty) / newQty;
+      existing.qty = newQty;
+      existing.avgEntryPrice = newAvg;
+      return;
+    }
+    if (qty < existing.qty) {
+      existing.qty -= qty;
+    } else {
+      const remaining = qty - existing.qty;
+      existing.side = side;
+      existing.qty = remaining;
+      existing.avgEntryPrice = price;
+    }
+  }
+}
+
+interface MockOrder {
+  orderId: string;
+  clientOrderId: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  type: "MARKET" | "LIMIT" | "STOP" | "STOP_LIMIT";
+  quantity: number;
+  price: number | undefined;
+  stopPrice: number | undefined;
+  timeInForce: "GTC" | "IOC" | "FOK";
+  status: BinanceOrderStatus;
+  executedQty: number;
+  avgPrice: number | undefined;
+  rejectReason: string | undefined;
+}
+
+interface MockPosition {
+  symbol: string;
+  side: "LONG" | "SHORT";
+  qty: number;
+  avgEntryPrice: number;
+}

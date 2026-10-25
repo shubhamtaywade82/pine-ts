@@ -308,6 +308,364 @@ export const label = {
   STYLE_NONE: "label.style_none",
 } as const;
 
+/**
+ * Pine `barstate.*` — bar-state boolean flags exposed as built-in variables.
+ * Each corresponds to a `barstate.isX` variable that the script can read
+ * directly. Here they are exposed as a constants record for callers that
+ * want to switch on the bar state (the actual bar-state read happens via
+ * `ctx.barstate.isX` — see {@link PineContext}).
+ */
+export const barstate = {
+  // Bar identity / lifecycle.
+  ISFIRSTBAR: "barstate.isfirstbar",
+  ISFIRSTBAR_HISTORY: "barstate.isfirstbar_history",
+  ISFIRSTBAR_REALTIME: "barstate.isfirstbar_realtime",
+  ISLASTBAR: "barstate.islastbar",
+  ISLASTBAR_HISTORY: "barstate.islastbar_history",
+  ISLASTBAR_REALTIME: "barstate.islastbar_realtime",
+  ISLASTBARINHISTORY: "barstate.islastbarinhistory",
+  ISLASTBARINHISTORY_SECONDARYTIMEZONE: "barstate.islastbarinhistory_secondarytimezone",
+  ISREALTIME: "barstate.isrealtime",
+  ISHISTORY: "barstate.ishistory",
+  ISNEW: "barstate.isnew",
+  ISCLOSED: "barstate.isclosed",
+  ISSTARTED: "barstate.isstarted",
+  // Session / market state.
+  ISTIME: "barstate.istime",
+  ISSESSION: "barstate.issession",
+  ISMARKET: "barstate.ismarket",
+  ISPREMARKET: "barstate.ispremarket",
+  ISPOSTMARKET: "barstate.ispostmarket",
+  ISAFTERSESSION: "barstate.isaftersession",
+  ISREGULAR: "barstate.isregular",
+  ISWEEKEND: "barstate.isweekend",
+  // Bar periodicity.
+  ISDAILY: "barstate.isdaily",
+  ISWEEKLY: "barstate.isweekly",
+  ISMONTHLY: "barstate.ismonthly",
+  ISQUARTERLY: "barstate.isquarterly",
+  ISYEARLY: "barstate.isyearly",
+  ISMINUTE: "barstate.isminute",
+  ISINTRA: "barstate.isintra",
+  ISMOUNTAIN: "barstate.ismountain",
+} as const;
+
+/**
+ * Pine `syminfo.type` — symbol type constants. Used by `syminfo.type` and
+ * the `request.security(... type...)` overload. Mirrors TradingView's
+ * documented types: stock, futures, index, forex, crypto, fund, dr, cfd,
+ * economy.
+ */
+export const syminfo_type = {
+  STOCK: "stock",
+  FUTURES: "futures",
+  INDEX: "index",
+  FOREX: "forex",
+  CRYPTO: "crypto",
+  FUND: "fund",
+  DR: "dr",
+  CFD: "cfd",
+  ECONOMY: "economy",
+} as const;
+
+/**
+ * Pine `months.*` — calendar month constants (January..December, integer
+ * 1..12). Used by `time`/`timestamp` overloads and `month()` accessors.
+ */
+export const months = {
+  JANUARY: 1,
+  FEBRUARY: 2,
+  MARCH: 3,
+  APRIL: 4,
+  MAY: 5,
+  JUNE: 6,
+  JULY: 7,
+  AUGUST: 8,
+  SEPTEMBER: 9,
+  OCTOBER: 10,
+  NOVEMBER: 11,
+  DECEMBER: 12,
+} as const;
+
+/**
+ * Pine `frequency` — frequency constants for `request.financial` queries
+ * (the GICS / EDGAR-style financial statement frequency). Pine v6 exposes
+ * these as `f_quarterly`, `f_yearly`, `f_monthly`, `f_semiannual`,
+ * `f_trimester`, `f_weekly`, `f_daily`, `f_none` for ad-hoc request
+ * periods; pine-ts exposes the named constants for callers that prefer
+ * not to hard-code the string.
+ */
+export const frequency = {
+  F_QUARTERLY: "FQ",
+  F_YEARLY: "FY",
+  F_MONTHLY: "FM",
+  F_SEMIANNUAL: "FS",
+  F_TRIMESTER: "FT",
+  F_WEEKLY: "FW",
+  F_DAILY: "FD",
+  F_NONE: "FN",
+} as const;
+
+/**
+ * Pine `display.*` extra attributes for plot declarations — `display.none`,
+ * `display.all`, `display.data_window`, `display.status_line`,
+ * `display.status_line_main`, `display.status_line_secondary`,
+ * `display.axis`, `display.price_scale`, `display.pane`, `display.legend`,
+ * `display.tooltip`, `display.tooltip_summary`. Used by `plot`/`plotshape`/
+ * `plotchar`/`plotarrow`/`plotbar`/`plotcandle`/`hline`/`fill`/`bgcolor`/
+ * `barcolor`.
+ *
+ * The base `display` record (above) only has the most-used 4 values; this
+ * extended record adds the rest.
+ */
+export const display_extended = {
+  NONE: "display.none",
+  ALL: "display.all",
+  DATA_WINDOW: "display.data_window",
+  STATUS_LINE: "display.status_line",
+  STATUS_LINE_MAIN: "display.status_line_main",
+  STATUS_LINE_SECONDARY: "display.status_line_secondary",
+  AXIS: "display.axis",
+  PRICE_SCALE: "display.price_scale",
+  PANE: "display.pane",
+  LEGEND: "display.legend",
+  TOOLTIP: "display.tooltip",
+  TOOLTIP_SUMMARY: "display.tooltip_summary",
+} as const;
+
+/**
+ * Pine `plot.freq_*` — the `freq` parameter for `plot`/`plotshape`/`plotchar`
+ * /`plotarrow`/`plotbar`/`plotcandle`/`hline`/`fill`/`bgcolor`/`barcolor`.
+ * Controls the timeframes on which the visual is rendered.
+ */
+export const plot_freq = {
+  FREQ_ALL: "freq.all",
+  FREQ_DAILY: "freq.daily",
+  FREQ_WEEKLY: "freq.weekly",
+  FREQ_MONTHLY: "freq.monthly",
+  FREQ_QUARTERLY: "freq.quarterly",
+  FREQ_YEARLY: "freq.yearly",
+  FREQ_NONE: "freq.none",
+  FREQ_1MINUTE: "freq.1minute",
+  FREQ_5MINUTES: "freq.5minutes",
+  FREQ_15MINUTES: "freq.15minutes",
+  FREQ_30MINUTES: "freq.30minutes",
+  FREQ_45MINUTES: "freq.45minutes",
+  FREQ_1HOUR: "freq.1hour",
+  FREQ_2HOURS: "freq.2hours",
+  FREQ_4HOURS: "freq.4hours",
+  FREQ_1DAY: "freq.1day",
+  FREQ_1WEEK: "freq.1week",
+  FREQ_1MONTH: "freq.1month",
+} as const;
+
+/**
+ * Pine `earnings.*` — earnings event constants used by
+ * `request.earnings` queries. Each is the string sentinel for the
+ * earnings announcement timing relative to the regular session.
+ */
+export const earnings = {
+  BMO: "BMO", // Before Market Open
+  AMC: "AMC", // After Market Close
+  UNSET: "Unset",
+} as const;
+
+/**
+ * Pine `quandl.*` — Quandl API tier constants used by `request.quandl`.
+ * `quandl.tier_free` and `quandl.tier_premium` distinguish the data tier.
+ */
+export const quandl = {
+  TIER_FREE: "free",
+  TIER_PREMIUM: "premium",
+} as const;
+
+/**
+ * Pine `economic.*` — FRED-style economic release source constants used by
+ * `request.economic`. The string sentinels name the data provider.
+ */
+export const economic = {
+  SOURCE_FED: "federal_reserve",
+  SOURCE_BEA: "bea",
+  SOURCE_BLS: "bls",
+  SOURCE_CENSUS: "census",
+  SOURCE_TREASURY: "treasury",
+  SOURCE_OECD: "oecd",
+  SOURCE_ECB: "ecb",
+  SOURCE_OTHER: "other",
+} as const;
+
+/**
+ * Pine `syminfo.volumetype` — volume type constants. Used by
+ * `syminfo.volumetype` accessor and `request.security` overloads.
+ */
+export const volumetype = {
+  NONE: "none",
+  TICK: "tick",
+  SHARE: "share",
+  CONTRACT: "contract",
+  LOTS: "lots",
+  BASE_CCURRENCY: "base_currency",
+  QUOTE_CURRENCY: "quote_currency",
+} as const;
+
+/**
+ * Pine `barmerge.*` extended gaps constants — the legacy Pine v5 names that
+ * some v6 scripts still reference. Already exposed via `barmerge` above;
+ * these are the explicit string sentinels for callers who prefer to read
+ * them by name.
+ */
+export const barmerge_gaps = {
+  GAPS_ON: "gaps_on",
+  GAPS_OFF: "gaps_off",
+  GAPS_NA: "gaps_na",
+} as const;
+
+/**
+ * Pine `line.style_*` additional styles. The base `line` record (above) has
+ * the most-common 9; this adds the v6-only line styles for extended
+ * drawing objects.
+ */
+export const line_extended = {
+  STYLE_SOLID_CROSS: "line.style_solid_cross",
+  STYLE_DASHED_CROSS: "line.style_dashed_cross",
+  STYLE_DOTTED_CROSS: "line.style_dotted_cross",
+} as const;
+
+/**
+ * Pine `color.bg` — the named background palette used by `plot`/`plotshape`/
+ * `bgcolor` defaults. Already exposed as functions in `src/color/index.ts`;
+ * these string sentinels are for callers that want to switch on a palette
+ * name and resolve the color via `color.from_name(...)`.
+ */
+export const color_palette = {
+  BACKGROUND: "background",
+  FOREGROUND: "foreground",
+  UP: "up",
+  DOWN: "down",
+  NEUTRAL: "neutral",
+  ACCENT: "accent",
+} as const;
+
+/**
+ * Pine `text.align_*` — text alignment constants for `plotshape` and
+ * `label.set_text_align`. Already partially covered by the base `text`
+ * record above; this adds the combined alignment strings.
+ */
+export const text_align = {
+  LEFT: "text.align_left",
+  CENTER: "text.align_center",
+  RIGHT: "text.align_right",
+  TOP: "text.align_top",
+  BOTTOM: "text.align_bottom",
+  TOP_LEFT: "text.align_top_left",
+  TOP_RIGHT: "text.align_top_right",
+  BOTTOM_LEFT: "text.align_bottom_left",
+  BOTTOM_RIGHT: "text.align_bottom_right",
+} as const;
+
+/**
+ * Pine `text.wrap_*` — text wrapping mode for `label`/`table` cells.
+ */
+export const text_wrap = {
+  NONE: "text.wrap_none",
+  AUTO: "text.wrap_auto",
+} as const;
+
+/**
+ * Pine `text.font_family_*` — font family for `label`/`table` text.
+ */
+export const text_font_family = {
+  DEFAULT: "text.font_family_default",
+  MONOSPACE: "text.font_family_monospace",
+  SANS_SERIF: "text.font_family_sans_serif",
+  SERIF: "text.font_family_serif",
+  CURSIVE: "text.font_family_cursive",
+  FANTASY: "text.font_family_fantasy",
+} as const;
+
+/**
+ * Pine `cell.border_*` — table cell border style constants.
+ */
+export const cell_border = {
+  TOP: "cell.border_top",
+  BOTTOM: "cell.border_bottom",
+  LEFT: "cell.border_left",
+  RIGHT: "cell.border_right",
+  ALL: "cell.border_all",
+  NONE: "cell.border_none",
+} as const;
+
+/**
+ * Pine `tooltip.*` — tooltip placement / orientation constants for
+ * `table` cells and `label` tooltips.
+ */
+export const tooltip = {
+  POSITION_TOP: "tooltip.position_top",
+  POSITION_BOTTOM: "tooltip.position_bottom",
+  POSITION_LEFT: "tooltip.position_left",
+  POSITION_RIGHT: "tooltip.position_right",
+  POSITION_AUTO: "tooltip.position_auto",
+} as const;
+
+/**
+ * Pine `event.*` — alert event constants used by `alertcondition` and
+ * `alert` to specify the event trigger (for v6 alert subscriptions).
+ */
+export const event = {
+  BAR_CLOSED: "event.bar_closed",
+  PRICE_CROSS: "event.price_cross",
+  PRICE_UP: "event.price_up",
+  PRICE_DOWN: "event.price_down",
+  ALERT_TRIGGERED: "event.alert_triggered",
+} as const;
+
+/**
+ * Pine `strategy.direction.*` — strategy direction constants used by
+ * `strategy.risk.*` and `strategy.entry`/`strategy.order` for order side.
+ * Already partly exposed via `order` record above; this adds the strategy
+ * risk-specific direction constants.
+ */
+export const strategy_direction = {
+  LONG: "strategy.direction.long",
+  SHORT: "strategy.direction.short",
+  ALL: "strategy.direction.all",
+} as const;
+
+/**
+ * Pine `strategy.evaluations.*` — strategy evaluation result constants
+ * for `strategy.opentrades.*`/`strategy.closedtrades.*` queries.
+ */
+export const strategy_evaluations = {
+  PROFIT: "strategy.evaluations.profit",
+  LOSS: "strategy.evaluations.loss",
+  WIN: "strategy.evaluations.win",
+  LOSS_TRADE: "strategy.evaluations.loss_trade",
+  NEUTRAL: "strategy.evaluations.neutral",
+} as const;
+
+/**
+ * Pine `chart.*` — chart-type constants for `chart.point` / `chart.bg_color`
+ * / `chart.fg_color` accessors. String sentinels for the named colors used by
+ * `chart` namespace built-ins.
+ */
+export const chart = {
+  POINT_DEFAULT: "chart.point_default",
+  POINT_XLOC_BAR_TIME: "chart.point_xloc_bar_time",
+  POINT_XLOC_BAR_INDEX: "chart.point_xloc_bar_index",
+  BG_COLOR: "chart.bg_color",
+  FG_COLOR: "chart.fg_color",
+} as const;
+
+/**
+ * Pine `linefill.*` — linefill variant constants for the `linefill.new`
+ * extended overload (gradient direction).
+ */
+export const linefill = {
+  STYLE_SOLID: "linefill.style_solid",
+  STYLE_GRADIENT_VERTICAL: "linefill.style_gradient_vertical",
+  STYLE_GRADIENT_HORIZONTAL: "linefill.style_gradient_horizontal",
+} as const;
+
 /** All constants exposed as a single record for callers who want one import. */
 export const all: {
   readonly barmerge: typeof barmerge;
@@ -335,6 +693,29 @@ export const all: {
   readonly hline: typeof hline;
   readonly line: typeof line;
   readonly label: typeof label;
+  readonly barstate: typeof barstate;
+  readonly syminfo_type: typeof syminfo_type;
+  readonly months: typeof months;
+  readonly frequency: typeof frequency;
+  readonly display_extended: typeof display_extended;
+  readonly plot_freq: typeof plot_freq;
+  readonly earnings: typeof earnings;
+  readonly quandl: typeof quandl;
+  readonly economic: typeof economic;
+  readonly volumetype: typeof volumetype;
+  readonly barmerge_gaps: typeof barmerge_gaps;
+  readonly line_extended: typeof line_extended;
+  readonly color_palette: typeof color_palette;
+  readonly text_align: typeof text_align;
+  readonly text_wrap: typeof text_wrap;
+  readonly text_font_family: typeof text_font_family;
+  readonly cell_border: typeof cell_border;
+  readonly tooltip: typeof tooltip;
+  readonly event: typeof event;
+  readonly strategy_direction: typeof strategy_direction;
+  readonly strategy_evaluations: typeof strategy_evaluations;
+  readonly chart: typeof chart;
+  readonly linefill: typeof linefill;
 } = {
   barmerge,
   dayofweek,
@@ -361,4 +742,27 @@ export const all: {
   hline,
   line,
   label,
+  barstate,
+  syminfo_type,
+  months,
+  frequency,
+  display_extended,
+  plot_freq,
+  earnings,
+  quandl,
+  economic,
+  volumetype,
+  barmerge_gaps,
+  line_extended,
+  color_palette,
+  text_align,
+  text_wrap,
+  text_font_family,
+  cell_border,
+  tooltip,
+  event,
+  strategy_direction,
+  strategy_evaluations,
+  chart,
+  linefill,
 };

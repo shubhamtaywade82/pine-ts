@@ -366,6 +366,77 @@ describe("request.security (multi-context execution engine)", () => {
       // Their closes: 15, 16, 17, 18, 19.
       expect(captured[1]).toEqual([15, 16, 17, 18, 19]);
     });
+
+    it("excludes the still-forming intrabar with lookahead=off", async () => {
+      // Caller 5-min bars, lower-tf 1-min bars — last intrabar is marked as
+      // not closed (still forming). lookahead=off excludes it.
+      const caller5MinBars: Bar[] = [bar(0, 0, 0, 0, 0)];
+      const ltf1MinBars: Bar[] = [
+        bar(0, 10, 11, 9, 10),
+        bar(60_000, 11, 12, 10, 11),
+        bar(120_000, 12, 13, 11, 12),
+        bar(180_000, 13, 14, 12, 13),
+        { time: 240_000, open: 14, high: 15, low: 13, close: 14, volume: 0, isClosed: false },
+      ];
+      const provider = new FixtureProvider();
+      provider.addBars("TEST", "5", caller5MinBars);
+      provider.addBars("TEST", "1", ltf1MinBars);
+      const runtime = new FixtureProviderAsRuntime(provider);
+      await runtime.prepareSecurity("TEST", "1");
+
+      const capturedOff: Array<readonly number[]> = [];
+      const capturedOn: Array<readonly number[]> = [];
+      await runtime.run(() => {
+        const off = request.security_lower_tf("TEST", "1", (sctx) => sctx.close.at(0) ?? 0, {
+          lookahead: "lookahead_off",
+        });
+        const on = request.security_lower_tf("TEST", "1", (sctx) => sctx.close.at(0) ?? 0, {
+          lookahead: "lookahead_on",
+        });
+        capturedOff.push(off.filter((v): v is number => v !== 0));
+        capturedOn.push(on.filter((v): v is number => v !== 0));
+      }, caller5MinBars);
+
+      // lookahead=off excludes the still-forming intrabar at 240_000.
+      expect(capturedOff[0]).toEqual([10, 11, 12, 13]);
+      // lookahead=on includes the still-forming intrabar.
+      expect(capturedOn[0]).toEqual([10, 11, 12, 13, 14]);
+    });
+
+    it("gaps=on returns empty tuple when caller bar has no intrabars", async () => {
+      // Caller 5-min bars (one bar), lower-tf 1-min bars that all fall in a
+      // DIFFERENT caller bar — the first caller bar covers [0..300_000) but
+      // the lower-tf bars are at [300_000..540_000].
+      const caller5MinBars: Bar[] = [bar(0, 0, 0, 0, 0)];
+      const ltf1MinBars: Bar[] = [
+        bar(300_000, 15, 16, 14, 15),
+        bar(360_000, 16, 17, 15, 16),
+      ];
+      const provider = new FixtureProvider();
+      provider.addBars("TEST", "5", caller5MinBars);
+      provider.addBars("TEST", "1", ltf1MinBars);
+      const runtime = new FixtureProviderAsRuntime(provider);
+      await runtime.prepareSecurity("TEST", "1");
+
+      const capturedOn: Array<readonly number[]> = [];
+      const capturedOff: Array<readonly number[]> = [];
+      await runtime.run(() => {
+        const on = request.security_lower_tf("TEST", "1", (sctx) => sctx.close.at(0) ?? 0, {
+          gaps: "gaps_on",
+        });
+        const off = request.security_lower_tf("TEST", "1", (sctx) => sctx.close.at(0) ?? 0, {
+          gaps: "gaps_off",
+        });
+        capturedOn.push(on.filter((v): v is number => typeof v === "number" && v !== 0));
+        capturedOff.push(off.filter((v): v is number => typeof v === "number" && v !== 0));
+      }, caller5MinBars);
+
+      // gaps=on returns empty tuple (no fabrication).
+      expect(capturedOn[0]).toEqual([]);
+      // gaps=off carries forward — no prior intrabar, so the placeholder
+      // [undefined] becomes [] after the filter.
+      expect(capturedOff[0]).toEqual([]);
+    });
   });
 });
 

@@ -6,7 +6,7 @@
 
 | Symbol                               | Implementation | Compatibility status | Notes                                                                                |
 | ------------------------------------ | -------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| `ta.sma`                             | yes            | verified             | incremental rolling state (Kahan-sum port for rolling kernels is a follow-up; see ECOSYSTEM.md) |
+| `ta.sma`                             | yes            | verified             | Kahan-sum running-sum kernel (`src/ta/running-sum.ts`) — bit-for-bit match against PineScript-exported vectors (`tests/reference-pine-vectors-running-sum.test.ts`); na/Infinity skipped; previous result carried forward on na bars |
 | `ta.ema`                             | yes            | verified             | SMA seed on the length-th valid bar, `na` warm-up, Kahan seed order, `(v - prev) * alpha + prev`; pinned via the Pine-exported `ta.tsi` vectors |
 | `ta.rma`                             | yes            | draft                | Wilder smoothing: SMA seed (Kahan order), `(v + (length-1) * prev) / length` |
 | `ta.highest`                         | yes            | verified             | rolling window                                                                       |
@@ -27,8 +27,8 @@
 | `ta.stoch`                           | yes            | verified             | zero range and na source keep the previous result; windows skip na — pinned bit-for-bit against Pine output |
 | `ta.wpr`                             | yes            | draft                | William %R over high/low windows                                                     |
 | `ta.cmo`                             | yes            | draft                | rolling gain/loss balance over the last length changes                               |
-| `ta.variance`                        | yes            | draft                | biased/unbiased rolling variance                                                     |
-| `ta.stdev`                           | yes            | draft                | square root of rolling variance                                                      |
+| `ta.variance`                        | yes            | verified             | biased/unbiased rolling variance via two Kahan running sums (`sum(x)` + `sum(x²)`); bit-for-bit match against PineScript-exported AAPL_CLOSE vectors (`tests/reference-pine-vectors-running-sum.test.ts`) |
+| `ta.stdev`                           | yes            | verified             | `sqrt(variance)` with Pine's clamp `v > 0 ? sqrt(v) : 0` for tiny negative Kahan residues; bit-for-bit match against PineScript-exported BUY_PROXY + AAPL_CLOSE vectors (`tests/reference-pine-vectors-running-sum.test.ts`) |
 | `ta.dev`                             | yes            | draft                | mean absolute deviation                                                              |
 | `ta.macd`                            | yes            | draft                | `MacdResult` from EMA nodes; outputs warm up with the corrected EMA seeding |
 | `ta.bb`                              | yes            | draft                | `BollingerBandsResult` from SMA/stdev nodes                                          |
@@ -43,7 +43,7 @@
 | `ta.pvt`                             | yes            | draft                | `cum((change(close) / close[1]) * volume)`                                           |
 | `ta.pvi`                             | yes            | draft                | seed 1.0; updates only when volume rises                                             |
 | `ta.nvi`                             | yes            | draft                | seed 1.0; updates only when volume falls                                             |
-| `ta.mfi`                             | yes            | draft                | `math.sum` windows, not Wilder smoothing; na change seeds both flows                 |
+| `ta.mfi`                             | yes            | draft                | `math.sum` Kahan running-sum windows (upper/lower), not Wilder smoothing; na change seeds both flows. Pending a direct PineScript reference vector pin to promote to `verified` (currently inferred-verified via the running-sum kernel). |
 | `ta.vwap`                            | yes            | draft                | anchored cumulative; default daily anchor in the symbol timezone                     |
 | `ta.accdist`                         | yes            | draft                | standard Chaikin A/D line (reference ships no re-implementation)                     |
 | `ta.barssince`                       | yes            | draft                | 0 on the condition bar; na when never true                                           |
@@ -110,8 +110,8 @@ state and carries its last value forward (see `docs/SEMANTICS.md`).
 
 The entire v6 `ta.*` namespace is now implemented in pine-ts. The `ta.*` manifest
 tracks 67 functions, of which:
-- 7 are `verified` (`sma`, `ema`, `highest`, `lowest`, `change`, `crossover`, `crossunder`).
-- 60 are `draft` (deterministic unit coverage; pending TradingView-exported reference vectors for promotion to `verified`).
+- 13 are `verified` (`sma`, `ema`, `highest`, `lowest`, `change`, `crossover`, `crossunder`, `stoch`, `cci`, `tsi`, `linreg`, `variance`, `stdev`).
+- 54 are `draft` (deterministic unit coverage; pending TradingView-exported reference vectors for promotion to `verified`).
 
 The 2026-10 waves shipped: `correlation`, `alma`, `cci`, `cog`, `max`, `min`,
 `median`, `mode`, `range`, `rci`, `tsi`, the variables `iii`, `wad`, `wvad`,

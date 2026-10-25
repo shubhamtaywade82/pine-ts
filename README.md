@@ -13,13 +13,33 @@ namespace (67/67 manifest symbols, 0 `planned`) are implemented, along with
 `log.*`, global built-ins (`alert`, `timestamp`, type casts), `syminfo.*`,
 `ticker.*` (Heikin-Ashi / Renko / Kagi / Line Break / Point & Figure
 builders), a multi-context `request.security` / `request.security_lower_tf`
-engine, a `strategy.*` engine with broker emulator plus a live/paper
-`BrokerAdapter` boundary, and a renderer-neutral visual event stream with
-drawing objects. Verification status per `ta.*` symbol is tracked in
+engine (with `gaps`/`lookahead` semantics), a `strategy.*` engine with
+broker emulator plus a live/paper `BrokerAdapter` boundary (incl. a
+`MockBinanceTradingSurface` reference implementation), a renderer-neutral
+visual event stream with drawing objects, and a `ChartAdapter` that
+serializes the visual event stream to SVG (or a list of typed primitives
+for a Canvas host). The v6 constants namespace ships 47 named-constant
+records (`barmerge`, `dayofweek`, `currency`, `barstate`, `syminfo_type`,
+`months`, `frequency`, `display_extended`, `plot_freq`, `earnings`,
+`quandl`, `economic`, `volumetype`, `text_align`, `text_wrap`,
+`text_font_family`, `cell_border`, `tooltip`, `event`,
+`strategy_direction`, `strategy_evaluations`, `chart`, `linefill`, etc.).
+
+The running-sum kernel (`src/ta/running-sum.ts`, ported from OakScriptJS's
+MIT `RunningSum`) backs `math.sum` / `ta.sma` / `ta.stdev` / `ta.variance`
+/ `ta.mfi` and matches PineScript bit-for-bit on the reference vectors
+(cancellation residues, resync just below a power of two, series-length
+changes, na/Infinity skipping) — see
+`tests/reference-pine-vectors-running-sum.test.ts`.
+
+Verification status per `ta.*` symbol is tracked in
 [`docs/TA-COVERAGE.md`](docs/TA-COVERAGE.md); functions with
 PineScript-exported reference vectors are marked `verified`
-(`tests/reference-pine-vectors.test.ts` pins several bit-for-bit — see
-[`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md) for the audit and provenance).
+(`tests/reference-pine-vectors.test.ts` and
+`tests/reference-pine-vectors-running-sum.test.ts` pin several
+bit-for-bit — see [`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md) for the audit
+and provenance).
+
 
 ## Goals
 
