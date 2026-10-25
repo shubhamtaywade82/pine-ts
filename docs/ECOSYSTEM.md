@@ -59,6 +59,17 @@ Pine bit-for-bit on the reference vectors (cancellation residues on
 changes, na/Infinity skipping) — see
 `tests/reference-pine-vectors-running-sum.test.ts`.
 
+**WMA partial-sum kernel also CLOSED (2026-10):** Pine's `ta.wma` uses a
+different cancellation rule from the running-sum kernel — a partial sum
+`s + t` with `|s + t| <= 1e-10 * max(1, |s| + |t|)` is `0`, not the
+residue. The `wmaAdd` helper is ported into `src/ta/core.ts` (MIT,
+attribution in JSDoc) and used as the kernel for `ta.wma`. Na values
+inside the window are filled with the previous non-na value (carry-forward
+fill); a bar whose own source is na returns na. Outputs match Pine
+bit-for-bit on the 21-bar cancellation-residue vector, the 1e-10
+threshold vectors, and the tiny-values vector — see
+`tests/reference-pine-vectors-wma.test.ts`.
+
 **Boundary:** do not adopt their runtime (different model: batch arrays +
 lazy Series vs pine-ts's session-scoped committed-history nodes with
 rollback). Use it as (a) a reference-vector mine, (b) a second

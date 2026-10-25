@@ -32,6 +32,11 @@ MIT `RunningSum`) backs `math.sum` / `ta.sma` / `ta.stdev` / `ta.variance`
 changes, na/Infinity skipping) — see
 `tests/reference-pine-vectors-running-sum.test.ts`.
 
+The `wmaAdd` partial-sum kernel (ported from OakScriptJS's MIT `wmaAdd`)
+backs `ta.wma` and matches PineScript bit-for-bit on the 21-bar
+cancellation-residue vector, the 1e-10 threshold vectors, and the
+tiny-values vector — see `tests/reference-pine-vectors-wma.test.ts`.
+
 Verification status per `ta.*` symbol is tracked in
 [`docs/TA-COVERAGE.md`](docs/TA-COVERAGE.md); functions with
 PineScript-exported reference vectors are marked `verified`

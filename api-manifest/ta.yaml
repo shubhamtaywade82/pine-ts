@@ -133,9 +133,13 @@ functions:
           ],
       }
     returns: series<float>
+    semantics:
+      weights: "1 for oldest, length for newest; sum / (length * (length + 1) / 2)"
+      sum: "oldest-first via wmaAdd (|s + t| <= 1e-10 * max(1, |s| + |t|) → 0)"
+      na: "current bar na → na; na inside window filled with previous non-na; warm-up until length non-na values seen"
     impl: { module: src/ta/core.ts, export: wma }
-    status: draft
-    vectors: [fixtures/v6/ta/wma.basic.json]
+    status: verified
+    vectors: [fixtures/v6/ta/wma.basic.json, tests/reference-pine-vectors-wma.test.ts]
 
   - name: vwma
     signature:

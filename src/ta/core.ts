@@ -275,26 +275,136 @@ export const atr = (length: number): FloatSeries => {
   return rma(tr(true), length);
 };
 
+/**
+ * One step of the PineScript `ta.wma` weighted sum: `a + b`, or `0` when
+ * `|a + b| <= 1e-10 * max(1, |a| + |b|)`. Measured bit-for-bit by
+ * OakScriptJS (#136; MIT): a partial sum that cancels to a tiny residue
+ * (relative to the operands, or below 1e-10) is 0 — not the residue.
+ *
+ * Attribution: arithmetic transcribed from OakScriptJS's `wmaAdd`
+ * (`src/ta/index.ts`, MIT, v0.12.3); see `docs/ECOSYSTEM.md` rule 4.
+ */
+const wmaAdd = (a: number, b: number): number => {
+  const sum = a + b;
+  return Math.abs(sum) <= 1e-10 * Math.max(1, Math.abs(a) + Math.abs(b)) ? 0 : sum;
+};
+
+/**
+ * `ta.wma(source, length)`. Weighted moving average with linearly
+ * decreasing weights (newest = `length`, oldest in window = `1`).
+ *
+ * PineScript v6 semantics (verified bit-for-bit against PineScript-exported
+ * reference vectors in `tests/reference-pine-vectors-wma.test.ts`):
+ *
+ * - The sum is computed OLDEST-FIRST (weight 1, 2, ..., `length`) using the
+ *   {@link wmaAdd} cancellation rule, so a partial sum that cancels to a
+ *   tiny residue is `0`, not the residue.
+ * - `na` and `±Infinity` source values are SKIPPED for warm-up counting,
+ *   but an `na` value INSIDE the window is replaced by the most recent
+ *   non-na value (carry-forward fill).
+ * - A bar whose OWN source is `na` returns `na` (even if the window has
+ *   enough non-na history). Warm-up returns `na` until `length` non-na
+ *   values have been received.
+ *
+ * Attribution: arithmetic transcribed from OakScriptJS's `wma`
+ * (`src/ta/index.ts`, MIT, v0.12.3); see `docs/ECOSYSTEM.md` rule 4.
+ */
 export const wma = (source: Series<number>, length: number): FloatSeries => {
   requirePositiveLength(length);
   const runtime = requireCompatibleRuntime(source);
   return runtime.nodes.getOrCreate(nodeKey("ta.wma", source, length), () => {
+    interface State {
+      /**
+       * The last `length` source values (including na-filled), OLDEST-FIRST.
+       * The current bar's value is NOT yet in `filled` at evaluate time;
+       * `evaluate` builds a virtual window by appending `source.at(0)`.
+       */
+      filled: number[];
+      /** The most recent non-na source value (carry-forward fill source). */
+      last: number;
+      /** Count of non-na values committed so far (excludes current bar). */
+      count: number;
+    }
+    /**
+     * Builds the window for the current bar: the last `length - 1` entries
+     * of `filled` plus the current value (or `last` if the current value
+     * is na — though evaluate returns na in that case, this is the
+     * hypothetical window used by callers that want to inspect).
+     */
+    const windowWith = (state: Readonly<State>, current: number): readonly number[] => {
+      const start = Math.max(0, state.filled.length - (length - 1));
+      return [...state.filled.slice(start), current];
+    };
+    /** Sums the window oldest-first using `wmaAdd`, matching Pine's order. */
+    const sumWindow = (window: readonly number[]): number => {
+      let sum = 0;
+      for (let i = 0; i < window.length; i += 1) {
+        const weight = i + 1; // 1 for oldest, length for newest
+        sum = wmaAdd(sum, window[i]! * weight);
+      }
+      return sum / ((length * (length + 1)) / 2);
+    };
     const definition = {
       warmupBars: length - 1,
-      init: (): null => null,
-      evaluate: (): number => {
-        let weightedSum = 0;
-        let weightSum = 0;
-        for (let offset = 0; offset < length; offset += 1) {
-          const value = source.at(offset);
-          if (isNa(value)) return Number.NaN;
-          const weight = length - offset;
-          weightedSum += value * weight;
-          weightSum += weight;
+      init: (): State => {
+        // Replay committed history (newest first → oldest), filling na
+        // values with the previous non-na. Seeds a node created mid-run
+        // to match one that had been running all along.
+        const filled: number[] = [];
+        let last = Number.NaN;
+        let count = 0;
+        let offset = 1;
+        while (filled.length < length) {
+          const v = source.at(offset);
+          if (v === undefined) break;
+          if (!Number.isFinite(v)) {
+            // na or Infinity bar — fill with last non-na (if any).
+            if (!Number.isNaN(last)) {
+              filled.unshift(last);
+            }
+            offset += 1;
+            continue;
+          }
+          last = v;
+          count += 1;
+          filled.unshift(v);
+          offset += 1;
         }
-        return weightedSum / weightSum;
+        return { filled, last, count };
       },
-      commit: (): void => undefined,
+      evaluate: (state: Readonly<State>): number => {
+        const value = source.at(0);
+        if (value === undefined || !Number.isFinite(value)) return Number.NaN;
+        // The current bar will increment count on commit; check the
+        // post-commit count here so warm-up matches Pine (which counts
+        // the current bar before deciding whether to compute).
+        if (state.count + 1 < length) return Number.NaN;
+        // Read the oldest bar in the window to trigger the maxBarsBack
+        // bounds check (matches the OLD wma's per-bar loop semantics).
+        // The result is unused — the actual window comes from `state.filled`
+        // (carry-forward fill for na bars) + the current bar's value.
+        // Use a typeof guard so eslint doesn't flag void-use; the read itself
+        // is what triggers the RangeError when offset > maxBarsBack.
+        const _oldest = source.at(length - 1);
+        if (_oldest === undefined) return Number.NaN;
+        return sumWindow(windowWith(state, value));
+      },
+      commit: (state: State): void => {
+        const value = source.at(0);
+        if (value === undefined || !Number.isFinite(value)) {
+          // na bar: don't increment count, but fill with the previous non-na
+          // value so the next bar's window can still see `length` values.
+          if (!Number.isNaN(state.last)) {
+            state.filled.push(state.last);
+            if (state.filled.length > length) state.filled.shift();
+          }
+          return;
+        }
+        state.last = value;
+        state.count += 1;
+        state.filled.push(value);
+        if (state.filled.length > length) state.filled.shift();
+      },
     };
     return new FloatSeries(runtime, new IndicatorNode(definition));
   }) as FloatSeries;

@@ -17,7 +17,7 @@
 | `ta.rma`                             | yes            | draft                | Wilder smoothing node                                                                |
 | `ta.tr`                              | yes            | draft                | implicit OHLC source node                                                            |
 | `ta.atr`                             | yes            | draft                | composed from `rma(tr(true), length)`                                                |
-| `ta.wma`                             | yes            | draft                | composable finite-window weighted average                                            |
+| `ta.wma`                             | yes            | verified             | oldest-first weighted sum via `wmaAdd` cancellation rule (Pine #136); na inside window filled with previous non-na; bit-for-bit match against PineScript-exported vectors (`tests/reference-pine-vectors-wma.test.ts`) |
 | `ta.vwma`                            | yes            | draft                | source/volume weighted window                                                        |
 | `ta.swma`                            | yes            | draft                | fixed four-bar 1:2:2:1 kernel                                                        |
 | `ta.hma`                             | yes            | draft                | composed from WMA nodes                                                              |
@@ -110,8 +110,8 @@ state and carries its last value forward (see `docs/SEMANTICS.md`).
 
 The entire v6 `ta.*` namespace is now implemented in pine-ts. The `ta.*` manifest
 tracks 67 functions, of which:
-- 13 are `verified` (`sma`, `ema`, `highest`, `lowest`, `change`, `crossover`, `crossunder`, `stoch`, `cci`, `tsi`, `linreg`, `variance`, `stdev`).
-- 54 are `draft` (deterministic unit coverage; pending TradingView-exported reference vectors for promotion to `verified`).
+- 14 are `verified` (`sma`, `ema`, `highest`, `lowest`, `change`, `crossover`, `crossunder`, `stoch`, `cci`, `tsi`, `linreg`, `variance`, `stdev`, `wma`).
+- 53 are `draft` (deterministic unit coverage; pending TradingView-exported reference vectors for promotion to `verified`).
 
 The 2026-10 waves shipped: `correlation`, `alma`, `cci`, `cog`, `max`, `min`,
 `median`, `mode`, `range`, `rci`, `tsi`, the variables `iii`, `wad`, `wvad`,
