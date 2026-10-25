@@ -80,6 +80,18 @@ Catalog the complete v6 `ta` namespace from TradingView's Reference Manual, then
 
 Only after runtime/API semantics stabilize: lexer, parser, AST, semantic analysis, and Pine-to-runtime compilation/execution.
 
+## Phase 8 — TradingView replacement surface (Wave 13+)
+
+The goal: replace TradingView + PineScript v6 for Binance + DhanHQ, in pine-ts's own TypeScript-first way. Authoring is TypeScript (Phase 7 Pine source transpiler stays deferred).
+
+- [x] **Wave 13 — Indicator registry** (2026-10): declarative metadata model (`InputConfig` / `PlotConfig` / `IndicatorMetadata` / `Indicator` / `IndicatorRegistry`) mirroring lightweight-charts-indicators' shape. `src/registry/` ships with 6 built-in indicators (`sma`, `ema`, `rsi`, `macd`, `bb`, `obv`) that self-register on import. `instantiate(id, inputs)` returns an `IndicatorInstance` whose `run(bars)` async-generator drives `calculate` bar-by-bar against the pine-ts runtime. Tested in `tests/wave13-indicator-registry.test.ts`.
+- [ ] **Wave 14 — Chart workbench**: Next.js app (`apps/workbench/`) with interactive chart (pan/zoom/crosshair), real-time bar streaming from BinanceProvider/DhanHQProvider, multi-pane (oscillators), multi-chart grid, indicator overlays. Reuses the ChartAdapter + a lightweight-charts v5 renderer (`ChartAdapter.toLightweightCharts()`).
+- [ ] **Wave 15 — Live Binance broker (mainnet behind a flag)**: wire `BinanceBrokerAdapter` to the real `@nemesis-oss/binance-sdk` trading surface. Every order-submission guarded behind an explicit `liveTradeEnabled` flag (default false). End-to-end: `strategy.entry` on a confirmed bar → real Binance order. `MockBinanceTradingSurface` reference impl ships for tests.
+- [ ] **Wave 16 — Alert delivery**: webhook (HTTP POST) + Telegram bot + email (SMTP) + Binance broker action sinks for the alert event stream (`alertcondition` / `alert` already emit `VisualEvent`s; this wires host-side delivery with rate-limiting + retry).
+- [ ] **Wave 17 — Pine editor (TypeScript-first)**: Monaco-based TypeScript editor with hot-reload + live preview against the chart workbench. Write an indicator in TS, see it render in real-time. No Pine source parser; TS-only.
+- [ ] **Wave 18-19 — Multi-pane + multi-chart + detachable panes**: full premium-TV layout system. Saved layouts per user, multi-monitor support (panes tear off into separate windows).
+- [ ] **Wave 20+ — Strategy backtest workbench UI**: select strategy → configure inputs → run against historical data → visualize trades on the chart. Reuses the `StrategyEngine` + `BrokerAdapter` boundary from Wave 6/9.
+
 ## Release gate
 
 A namespace is complete only when its API signatures are represented in the manifest, semantics are documented, reference fixtures pass, historical/realtime behavior is covered where applicable, provider limitations are explicit, and performance benchmarks remain within budget.

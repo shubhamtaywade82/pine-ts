@@ -109,3 +109,5 @@ export {
   type BinanceTradingSurface,
 } from "./broker/index.js";
 export * as broker from "./broker/index.js";
+export * as registry from "./registry/index.js";
+export * as indicators from "./registry/indicators/index.js";

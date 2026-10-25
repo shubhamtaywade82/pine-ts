@@ -37,6 +37,53 @@ backs `ta.wma` and matches PineScript bit-for-bit on the 21-bar
 cancellation-residue vector, the 1e-10 threshold vectors, and the
 tiny-values vector — see `tests/reference-pine-vectors-wma.test.ts`.
 
+## Indicator registry (Wave 13)
+
+A declarative metadata model for indicators and strategies, mirroring
+lightweight-charts-indicators' `inputConfig` / `plotConfig` / `metadata` /
+`calculate` shape so a chart workbench UI can list + configure + render
+any indicator generically.
+
+- `src/registry/types.ts` — `InputConfig` (int/float/bool/string/source/
+  color/timeframe/symbol/session/resolution), `PlotConfig` (line/histogram/
+  marker/hline/fill_band/bgcolor/barcolor/candle/bar/area), `Indicator`
+  interface, `IndicatorRegistry` interface.
+- `src/registry/define.ts` — `intInput`, `linePlot`, `defineIndicator`, ...
+  factories so an indicator definition reads like a declarative spec.
+- `src/registry/helpers.ts` — `resolveSource` (open/high/low/close/hl2/hlc3/
+  ohlc4), `readNumber` / `readBoolean` / `readString` type guards.
+- `src/registry/registry.ts` — `getIndicatorRegistry`,
+  `registerIndicator`, `resetIndicatorRegistry`. `instantiate(id, inputs)`
+  returns an `IndicatorInstance` whose `run(bars)` async-generator drives
+  the indicator's `calculate` bar-by-bar against the pine-ts runtime and
+  yields one `IndicatorResult` (plotId → value) per bar.
+- `src/registry/indicators/` — 6 built-in indicators self-register on
+  module import: `sma`, `ema`, `rsi`, `macd`, `bb`, `obv`. Each is a thin
+  TypeScript wrapper around the pine-ts runtime (`ta.sma`, `ta.ema`,
+  `ta.rsi`, `ta.macd`, `ta.bb`, `ta.obv`).
+
+Usage:
+
+```ts
+import { registry } from "pine-ts";
+import "pine-ts/registry/indicators"; // self-registers built-ins
+
+for (const meta of registry.list()) {
+  console.log(meta.id, meta.name, meta.category); // sma, ema, rsi, macd, bb, obv
+}
+
+const instance = registry.instantiate("rsi", { length: 14 })!;
+for await (const result of instance.run(bars)) {
+  console.log(result.main); // the RSI value at each bar
+}
+```
+
+Future waves (14+) build the chart workbench (Next.js + lightweight-charts
+v5), the live Binance broker wiring (mainnet behind a flag), the alert
+delivery sinks (webhook + Telegram + email + broker action), and the
+Pine editor (TypeScript-first, Monaco + hot-reload).
+
+
 Verification status per `ta.*` symbol is tracked in
 [`docs/TA-COVERAGE.md`](docs/TA-COVERAGE.md); functions with
 PineScript-exported reference vectors are marked `verified`
