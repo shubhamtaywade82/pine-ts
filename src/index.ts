@@ -86,6 +86,7 @@ export {
   setActiveStrategyEngine,
   requireStrategyEngine,
   getActiveStrategyEngine,
+  BrokerOperationError,
   type StrategyDeclaration,
   type Direction,
   type PendingOrder,

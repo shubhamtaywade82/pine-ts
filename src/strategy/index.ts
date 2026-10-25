@@ -28,6 +28,11 @@
 
 import { getCurrentSession } from "../core/execution-context.js";
 import type { Bar } from "../core/types.js";
+import type { BrokerAdapter, OrderRequest } from "../broker/index.js";
+import { resolveBracketLevels, type BracketLevels, type ExitBracket } from "./bracket.js";
+import { BrokerOrderRouter, BrokerOperationError } from "./broker-router.js";
+
+export { BrokerOperationError };
 
 /** Pine v6 trade direction. */
 export type Direction = "long" | "short";
@@ -138,7 +143,10 @@ export class StrategyEngine {
    * paper broker) and queries position/balance from the adapter. The
    * built-in broker emulator is bypassed.
    */
-  private brokerAdapter: import("../broker/index.js").BrokerAdapter | undefined;
+  private brokerAdapter: BrokerAdapter | undefined;
+  private brokerRouter: BrokerOrderRouter | undefined;
+  private readonly brokerErrorListeners = new Set<(error: BrokerOperationError) => void>();
+  private unreportedBrokerErrors: BrokerOperationError[] = [];
 
   /** Sets the strategy declaration; called by the runtime before run. */
   public configure(declaration: StrategyDeclaration): void {
@@ -148,17 +156,59 @@ export class StrategyEngine {
 
   /**
    * Installs (or removes) the live/paper broker adapter. When set, the
-   * engine's entry/exit/close/order calls forward to the adapter (which
-   * submits to a real or paper broker). The built-in broker emulator is
-   * bypassed while an adapter is installed.
+   * engine's order calls are routed to the adapter (see
+   * {@link BrokerOrderRouter}) and the built-in emulator is bypassed. Calls
+   * are queued and run in order; await {@link whenBrokerIdle} to observe
+   * their outcome. Replacing the adapter discards the previous adapter's
+   * order tracking.
    */
-  public setBrokerAdapter(adapter: import("../broker/index.js").BrokerAdapter | undefined): void {
+  public setBrokerAdapter(adapter: BrokerAdapter | undefined): void {
+    this.brokerRouter?.dispose();
     this.brokerAdapter = adapter;
+    this.brokerRouter =
+      adapter === undefined
+        ? undefined
+        : new BrokerOrderRouter(adapter, {
+            symbol: () => this.symbolForBroker(),
+            mintick: () => this.mintick,
+            onError: (error) => this.reportBrokerError(error),
+          });
   }
 
   /** Returns the currently-installed broker adapter (or undefined). */
-  public getBrokerAdapter(): import("../broker/index.js").BrokerAdapter | undefined {
+  public getBrokerAdapter(): BrokerAdapter | undefined {
     return this.brokerAdapter;
+  }
+
+  /**
+   * Subscribes to broker failures: rejected orders, failed submits/cancels,
+   * and exits refused because the broker position does not match the entry.
+   */
+  public onBrokerError(listener: (error: BrokerOperationError) => void): () => void {
+    this.brokerErrorListeners.add(listener);
+    return () => this.brokerErrorListeners.delete(listener);
+  }
+
+  /**
+   * Resolves once every queued broker call has settled. Rejects with the
+   * broker errors that occurred while no {@link onBrokerError} listener was
+   * installed, so failures are never silently dropped.
+   */
+  public async whenBrokerIdle(): Promise<void> {
+    await this.brokerRouter?.idle();
+    const errors = this.unreportedBrokerErrors;
+    this.unreportedBrokerErrors = [];
+    if (errors.length === 1) throw errors[0]!;
+    if (errors.length > 1)
+      throw new AggregateError(errors, `${errors.length} broker operations failed`);
+  }
+
+  private reportBrokerError(error: BrokerOperationError): void {
+    if (this.brokerErrorListeners.size === 0) {
+      this.unreportedBrokerErrors.push(error);
+      return;
+    }
+    for (const listener of this.brokerErrorListeners) listener(error);
   }
 
   /** Returns the strategy declaration. */
@@ -182,19 +232,8 @@ export class StrategyEngine {
     qty: number,
     options: { limit?: number; stop?: number; ocaName?: string } = {},
   ): void {
-    if (this.brokerAdapter !== undefined) {
-      void this.brokerAdapter.submitOrder({
-        clientId: id,
-        symbol: this.symbolForBroker(),
-        direction,
-        qty,
-        orderType: this.inferOrderType(options),
-        limitPrice: options.limit,
-        stopPrice: options.stop,
-        timeInForce: "GTC",
-        isExit: false,
-        ocaName: options.ocaName,
-      });
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.submitEntry(this.brokerEntryRequest(id, direction, qty, options));
       return;
     }
     this.pendingOrders.push(this.makeOrder(id, direction, qty, options, false, true, id));
@@ -211,19 +250,8 @@ export class StrategyEngine {
     qty: number,
     options: { limit?: number; stop?: number } = {},
   ): void {
-    if (this.brokerAdapter !== undefined) {
-      void this.brokerAdapter.submitOrder({
-        clientId: id,
-        symbol: this.symbolForBroker(),
-        direction,
-        qty,
-        orderType: this.inferOrderType(options),
-        limitPrice: options.limit,
-        stopPrice: options.stop,
-        timeInForce: "GTC",
-        isExit: false,
-        ocaName: undefined,
-      });
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.submitEntry(this.brokerEntryRequest(id, direction, qty, options));
       return;
     }
     this.pendingOrders.push(this.makeOrder(id, direction, qty, options, false, false, id));
@@ -262,27 +290,11 @@ export class StrategyEngine {
       ocaName?: string;
     } = {},
   ): void {
-    if (this.brokerAdapter !== undefined) {
-      // The exit's direction is opposite to the source trade; query the
-      // broker for the position to determine that. For simplicity in the
-      // adapter path, we issue a sell-side exit if no position is found.
-      // `fromId` is the broker-assigned order id of the original entry —
-      // forwarded as part of the clientId for broker-side reconciliation.
-      void this.brokerAdapter.submitOrder({
-        clientId: `${id}|${fromId}`,
-        symbol: this.symbolForBroker(),
-        direction: "short", // simplified; the broker applies against the position
-        qty: qty ?? 0,
-        orderType: this.inferOrderType(options),
-        limitPrice: options.limit,
-        stopPrice: options.stop,
-        timeInForce: "GTC",
-        isExit: true,
-        ocaName: options.ocaName,
-      });
+    const bracket = this.makeExitBracket(id, fromId, qty, options);
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.exit(bracket);
       return;
     }
-    const bracket = this.makeExitBracket(id, fromId, qty, options);
     this.pendingExits = [
       ...this.pendingExits.filter((e) => !(e.id === id && e.tradeId === fromId)),
       bracket,
@@ -331,20 +343,8 @@ export class StrategyEngine {
    * entry id) at the market on the next bar's open.
    */
   public close(id: string, qty?: number): void {
-    if (this.brokerAdapter !== undefined) {
-      // Adapter path: issue a market exit with the trade's clientId.
-      void this.brokerAdapter.submitOrder({
-        clientId: `close_${id}`,
-        symbol: this.symbolForBroker(),
-        direction: "short", // simplified; the broker applies against the position
-        qty: qty ?? 0,
-        orderType: "market",
-        limitPrice: undefined,
-        stopPrice: undefined,
-        timeInForce: "GTC",
-        isExit: true,
-        ocaName: undefined,
-      });
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.close(id, qty);
       return;
     }
     const trade = this.openTrades.find((t) => t.id === id);
@@ -364,27 +364,8 @@ export class StrategyEngine {
 
   /** `strategy.close_all()`. Closes every open trade at the next bar's open. */
   public close_all(): void {
-    if (this.brokerAdapter !== undefined) {
-      // Adapter path: query the broker for the position and submit a single
-      // market exit. The host is responsible for polling the broker.
-      void this.brokerAdapter
-        .getPosition(this.symbolForBroker())
-        .then((p) => {
-          if (p === undefined || p.qty === 0) return undefined;
-          return this.brokerAdapter!.submitOrder({
-            clientId: "close_all",
-            symbol: this.symbolForBroker(),
-            direction: p.direction === "long" ? "short" : "long",
-            qty: p.qty,
-            orderType: "market",
-            limitPrice: undefined,
-            stopPrice: undefined,
-            timeInForce: "GTC",
-            isExit: true,
-            ocaName: undefined,
-          });
-        })
-        .catch(() => undefined);
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.closeAll();
       return;
     }
     for (const trade of this.openTrades) {
@@ -394,12 +375,8 @@ export class StrategyEngine {
 
   /** `strategy.cancel(id)`. Cancels the order identified by `id`. */
   public cancel(id: string): void {
-    if (this.brokerAdapter !== undefined) {
-      // The adapter tracks orders by broker-assigned id; we forward the
-      // cancel for any broker order whose clientId matches `id`. The
-      // adapter's Promise is fire-and-forget — errors surface via
-      // `onOrderUpdate` (status: "rejected" or "expired").
-      void this.brokerAdapter.cancelOrder(id).catch(() => undefined);
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.cancel(id);
       return;
     }
     this.pendingOrders = this.pendingOrders.filter((o) => o.id !== id);
@@ -408,10 +385,8 @@ export class StrategyEngine {
 
   /** `strategy.cancel_all()`. Cancels every pending order. */
   public cancel_all(): void {
-    if (this.brokerAdapter !== undefined) {
-      // The adapter tracks pending orders itself; we can't enumerate them
-      // from here. The host is responsible for cancelling all broker-side
-      // orders. No-op here.
+    if (this.brokerRouter !== undefined) {
+      this.brokerRouter.cancelAll();
       return;
     }
     this.pendingOrders = [];
@@ -423,6 +398,26 @@ export class StrategyEngine {
     // The runtime injects the symbol via `configure({ symbol })`; fall back
     // to "UNKNOWN" when not set.
     return this.declaration.title ?? "UNKNOWN";
+  }
+
+  private brokerEntryRequest(
+    id: string,
+    direction: Direction,
+    qty: number,
+    options: { limit?: number; stop?: number; ocaName?: string },
+  ): OrderRequest {
+    return {
+      clientId: id,
+      symbol: this.symbolForBroker(),
+      direction,
+      qty,
+      orderType: this.inferOrderType(options),
+      limitPrice: options.limit,
+      stopPrice: options.stop,
+      timeInForce: "GTC",
+      isExit: false,
+      ocaName: options.ocaName,
+    };
   }
 
   /** Infers the broker order type from limit/stop presence. */
@@ -523,7 +518,7 @@ export class StrategyEngine {
     if (entryFill !== undefined && onClose) return;
     const path = intrabarPath(bar, entryFill);
     if (path === undefined) return;
-    const levels = this.bracketLevels(bracket, trade);
+    const levels = resolveBracketLevels(bracket, trade.direction, trade.entryPrice, this.mintick);
     const fill = firstLevelHit(path, trade.direction, levels);
     if (fill === undefined) return;
     this.removeExit(bracket);
@@ -543,27 +538,6 @@ export class StrategyEngine {
       fill.price,
       bar.time,
     );
-  }
-
-  /**
-   * Resolves a bracket's prices for `trade`. When a price and a tick distance
-   * are both given for one leg, the level closer to the entry is reached
-   * first, so it is the one used.
-   */
-  private bracketLevels(bracket: ExitBracket, trade: OpenTrade): BracketLevels {
-    const sign = trade.direction === "long" ? 1 : -1;
-    const tick = this.mintick ?? Number.NaN;
-    const fromTicks = (ticks: number | undefined, side: 1 | -1): number | undefined =>
-      ticks === undefined ? undefined : trade.entryPrice + side * sign * ticks * tick;
-    const closest = (a: number | undefined, b: number | undefined): number | undefined => {
-      if (a === undefined) return b;
-      if (b === undefined) return a;
-      return Math.abs(a - trade.entryPrice) <= Math.abs(b - trade.entryPrice) ? a : b;
-    };
-    return {
-      takeProfit: closest(bracket.limit, fromTicks(bracket.profitTicks, 1)),
-      stopLoss: closest(bracket.stop, fromTicks(bracket.lossTicks, -1)),
-    };
   }
 
   private removeExit(bracket: ExitBracket): void {
@@ -859,24 +833,6 @@ export class StrategyEngine {
 }
 
 // ---------- strategy.exit bracket helpers ----------
-
-/** A pending `strategy.exit` bracket; its direction comes from the trade at fill time. */
-interface ExitBracket {
-  readonly id: string;
-  readonly tradeId: string;
-  /** `undefined` exits the whole trade. */
-  readonly qty: number | undefined;
-  readonly limit: number | undefined;
-  readonly stop: number | undefined;
-  readonly profitTicks: number | undefined;
-  readonly lossTicks: number | undefined;
-  readonly ocaName: string | undefined;
-}
-
-interface BracketLevels {
-  readonly takeProfit: number | undefined;
-  readonly stopLoss: number | undefined;
-}
 
 /**
  * The broker emulator's assumed intrabar path: open→high→low→close when the

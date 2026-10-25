@@ -247,8 +247,9 @@ describe("StrategyEngine + BrokerAdapter wiring", () => {
     engine.setBrokerAdapter(broker);
   });
 
-  it("entry forwards to the broker adapter", () => {
+  it("entry forwards to the broker adapter", async () => {
     engine.entry("long1", "long", 10);
+    await engine.whenBrokerIdle();
     expect(submittedOrders).toHaveLength(1);
     expect(submittedOrders[0]?.clientId).toBe("long1");
     expect(submittedOrders[0]?.direction).toBe("long");
@@ -256,17 +257,26 @@ describe("StrategyEngine + BrokerAdapter wiring", () => {
     expect(submittedOrders[0]?.isExit).toBe(false);
   });
 
-  it("close forwards to the broker adapter as a market exit", () => {
+  it("close forwards to the broker adapter as an opposite-side market exit", async () => {
+    engine.entry("long1", "long", 10);
+    await engine.whenBrokerIdle();
+    broker.processBar(bar(1, 100, 101, 99, 100));
     engine.close("long1");
-    expect(submittedOrders).toHaveLength(1);
-    expect(submittedOrders[0]?.clientId).toBe("close_long1");
-    expect(submittedOrders[0]?.orderType).toBe("market");
-    expect(submittedOrders[0]?.isExit).toBe(true);
+    await engine.whenBrokerIdle();
+    expect(submittedOrders).toHaveLength(2);
+    expect(submittedOrders[1]).toMatchObject({
+      clientId: "close_long1",
+      orderType: "market",
+      direction: "short",
+      qty: 10,
+      isExit: true,
+    });
   });
 
-  it("setBrokerAdapter(undefined) restores the emulator path", () => {
+  it("setBrokerAdapter(undefined) restores the emulator path", async () => {
     engine.setBrokerAdapter(undefined);
     engine.entry("long1", "long", 10);
+    await engine.whenBrokerIdle();
     expect(submittedOrders).toHaveLength(0);
   });
 
