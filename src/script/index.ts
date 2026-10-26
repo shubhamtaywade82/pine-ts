@@ -33,6 +33,7 @@ import {
 } from "../strategy/index.js";
 import * as ta from "../ta/index.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
+import { SecurityResolver, type HtfEvaluator } from "./security.js";
 import {
   ScriptRecorder,
   type PlotValue,
@@ -50,6 +51,19 @@ export type {
   ScriptLine,
   StructureDrawOptions,
 } from "./draw.js";
+export type {
+  BarColor,
+  BoxShape,
+  LabelPosition,
+  LabelShape,
+  LineShape,
+  ScriptShape,
+  ScriptTable,
+  ShapeDraw,
+  ShapeLineStyle,
+  TableCell,
+  TablePosition,
+} from "./shapes.js";
 export type {
   FlagInputOptions,
   NumberInputOptions,
@@ -83,6 +97,13 @@ export interface ScriptApi {
   readonly plot: (value: PlotValue, title?: string, options?: ScriptPlotOptions) => void;
   /** Pine `hline()`: a constant level. */
   readonly hline: (price: number, title?: string, options?: ScriptHlineOptions) => void;
+  /**
+   * Higher-timeframe value of `expression` from the previous closed bar of
+   * `timeframe` ("15", "60", "240", "D"), like `request.security(..., expr[1],
+   * lookahead_on)`; undefined before the first closed bar. Available in
+   * `indicator().run()`; a bound (realtime) execution returns undefined.
+   */
+  readonly security: <T>(timeframe: string, expression: (api: ScriptApi) => T) => T | undefined;
   /** Rollback-safe drawings of `smc.*` results (BOS/CHoCH lines, order-block boxes). */
   readonly draw: ScriptDraw;
 }
@@ -208,9 +229,18 @@ export function indicator(
   maybeBody?: (api: ScriptApi) => void,
 ): IndicatorScript {
   const [options, body] = splitArgs(optionsOrBody, maybeBody);
-  const record = (runOptions: RunOptions): [ScriptRecorder, PineScript] => {
+  const record = (
+    runOptions: RunOptions,
+    security?: SecurityResolver,
+  ): [ScriptRecorder, PineScript] => {
     const recorder = new ScriptRecorder(runOptions.inputs ?? {}, options.overlay ? "main" : "sub");
-    return [recorder, createScript(recorder, (ctx) => body(createApi(ctx, recorder)))];
+    return [
+      recorder,
+      createScript(recorder, (ctx) => {
+        security?.beginBar();
+        body(createApi(ctx, recorder, security));
+      }),
+    ];
   };
   return {
     kind: "indicator",
@@ -221,8 +251,15 @@ export function indicator(
       return { script, output: () => recorder.output() };
     },
     run: async (bars, runOptions = {}) => {
-      const [recorder, script] = record(runOptions);
+      const security = new SecurityResolver(bars);
+      let [recorder, script] = record(runOptions, security);
       await runHistorical(script, bars);
+      // security() calls return undefined until their timeframes are computed; then run again.
+      if (security.hasPending) {
+        await security.resolve(evaluateOnBars);
+        [recorder, script] = record(runOptions, security);
+        await runHistorical(script, bars);
+      }
       recorder.assertOverridesDeclared();
       return recorder.output();
     },
@@ -305,7 +342,11 @@ const createScript =
     }
   };
 
-const createApi = (ctx: PineContext, recorder: ScriptRecorder): ScriptApi => ({
+const createApi = (
+  ctx: PineContext,
+  recorder: ScriptRecorder,
+  security?: SecurityResolver,
+): ScriptApi => ({
   ctx,
   ta,
   math,
@@ -323,11 +364,26 @@ const createApi = (ctx: PineContext, recorder: ScriptRecorder): ScriptApi => ({
   input: recorder.inputs(() => ctx),
   plot: (value, title, options) => recorder.plot(value, title, options),
   hline: (price, title, options) => recorder.hline(price, title, options),
+  security: (timeframe, expression) => security?.request(timeframe, expression, ctx.bar.time),
   draw: createDraw(
     (drawing) => recorder.recordDrawing(drawing),
     () => ctx.bar_index.at(0) ?? 0,
   ),
 });
+
+/** Evaluates a security() expression once per higher-timeframe bar, on its own runtime. */
+const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
+  const evaluate = expression as (api: ScriptApi) => unknown;
+  const values: unknown[] = [];
+  const recorder = new ScriptRecorder({}, "sub");
+  await runHistorical(
+    createScript(recorder, (ctx) => {
+      values[ctx.bar_index.at(0) ?? 0] = evaluate(createApi(ctx, recorder));
+    }),
+    bars,
+  );
+  return values;
+};
 
 const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<void> => {
   const runtime = new PineRuntime({

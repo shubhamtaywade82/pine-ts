@@ -1,5 +1,5 @@
 import { smc } from "../../index.js";
-import { defineIndicator, intInput, linePlot } from "../define.js";
+import { defineIndicator, intInput } from "../define.js";
 import { type Indicator } from "../types.js";
 import { readNumber } from "../helpers.js";
 
@@ -11,26 +11,11 @@ export const smcStructure: Indicator = defineIndicator({
   version: "1.0.0",
   tags: ["smc", "structure", "overlay"],
   inputs: [intInput("swingLength", "Swing Length", 5, { min: 2, max: 100 })],
-  plots: [
-    linePlot("swingHigh", "Swing High", {
-      color: "#2962ff",
-      linewidth: 1,
-      style: "dashed",
-      pane: "main",
-    }),
-    linePlot("swingLow", "Swing Low", {
-      color: "#ff9800",
-      linewidth: 1,
-      style: "dashed",
-      pane: "main",
-    }),
-  ],
-  calculate: ({ ctx, inputs }) => {
+  plots: [],
+  calculate: ({ ctx, inputs, draw }) => {
     const swingLength = readNumber(inputs, "swingLength");
     const res = ctx.scope("smcStructure", () => smc.structure({ swingLength }));
-    return {
-      swingHigh: res.swingHigh.at(0),
-      swingLow: res.swingLow.at(0),
-    };
+    draw?.structure(res, { showBOS: true, showCHoCH: true });
+    return {};
   },
 });

@@ -10,6 +10,7 @@
 
 import type { Bar, MarketDataProvider, SymbolInfo } from "../core/types.js";
 import { PineRuntime } from "../core/runtime.js";
+import { createDraw, collectDrawings, type RecordedDrawing } from "../script/draw.js";
 import {
   resolveDefaults,
   type Indicator,
@@ -51,12 +52,11 @@ class IndicatorRegistryImpl implements IndicatorRegistry {
     const indicator = this.indicators.get(id);
     if (indicator === undefined) return undefined;
     const resolved = resolveDefaults(indicator.metadata.inputs, inputs);
-    return {
+    const instance: IndicatorInstance = {
       indicator,
       inputs: resolved,
+      drawings: undefined,
       run: async function* (bars: readonly Bar[]): AsyncGenerator<IndicatorResult> {
-        // Build a stub provider + runtime, run the indicator's calculate
-        // function bar-by-bar, and yield the result per bar.
         const provider = new StubIndicatorProvider(bars);
         const runtime = new PineRuntime({
           provider,
@@ -64,13 +64,23 @@ class IndicatorRegistryImpl implements IndicatorRegistry {
           timeframe: "1",
         });
         const out: IndicatorResult[] = [];
+        const records: RecordedDrawing[] = [];
+        let currentBar = 0;
+        const draw = createDraw(
+          (d) => records.push(d),
+          () => currentBar,
+        );
         await runtime.run((ctx) => {
-          const result = indicator.calculate({ ctx, inputs: resolved });
+          currentBar = ctx.bar_index.at(0) ?? currentBar;
+          const result = indicator.calculate({ ctx, inputs: resolved, draw });
           out.push(result);
+          currentBar++;
         }, bars);
+        instance.drawings = collectDrawings(records);
         for (const r of out) yield r;
       },
     };
+    return instance;
   }
 }
 

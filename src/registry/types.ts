@@ -48,6 +48,7 @@
 
 import type { PineContext } from "../core/context.js";
 import type { Bar } from "../core/types.js";
+import type { ScriptDraw, ScriptDrawings } from "../script/draw.js";
 
 // ---------- input config ----------
 
@@ -185,6 +186,7 @@ export interface IndicatorMetadata {
 export interface IndicatorContext {
   readonly ctx: PineContext;
   readonly inputs: InputsBag;
+  readonly draw?: ScriptDraw;
 }
 
 /**
@@ -214,6 +216,7 @@ export interface Indicator {
 export interface IndicatorInstance {
   readonly indicator: Indicator;
   readonly inputs: InputsBag;
+  drawings?: ScriptDrawings | undefined;
   /** Returns a generator that yields one result per bar (in order). */
   run(bars: readonly Bar[]): AsyncGenerator<IndicatorResult>;
 }

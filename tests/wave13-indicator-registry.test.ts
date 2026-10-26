@@ -464,21 +464,23 @@ describe("Built-in indicators", () => {
   });
 
   describe("smc indicators", () => {
-    it("runs structure, fvg, ob, and liquidity end-to-end", async () => {
-      const struct = await runIndicatorAcrossBars("smc_structure", closes, { swingLength: 3 });
-      expect(struct["swingHigh"]).toHaveLength(closes.length);
-      expect(struct["swingLow"]).toHaveLength(closes.length);
+    it("runs structure, fvg, ob, and liquidity end-to-end and produces drawings", async () => {
+      const bars = closesToBars(closes);
+      const structInst = getIndicatorRegistry().instantiate("smc_structure", { swingLength: 3 })!;
+      for await (const _ of structInst.run(bars)) {}
+      expect(structInst.drawings).toBeDefined();
 
-      const fvg = await runIndicatorAcrossBars("smc_fvg", closes);
-      expect(fvg["bullishTop"]).toHaveLength(closes.length);
-      expect(fvg["bearishTop"]).toHaveLength(closes.length);
+      const fvgInst = getIndicatorRegistry().instantiate("smc_fvg")!;
+      for await (const _ of fvgInst.run(bars)) {}
+      expect(fvgInst.drawings).toBeDefined();
 
-      const ob = await runIndicatorAcrossBars("smc_ob", closes);
-      expect(ob["bullishTop"]).toHaveLength(closes.length);
-      expect(ob["bearishTop"]).toHaveLength(closes.length);
+      const obInst = getIndicatorRegistry().instantiate("smc_ob")!;
+      for await (const _ of obInst.run(bars)) {}
+      expect(obInst.drawings).toBeDefined();
 
-      const liq = await runIndicatorAcrossBars("smc_liquidity", closes);
-      expect(liq["sweptLevel"]).toHaveLength(closes.length);
+      const liqInst = getIndicatorRegistry().instantiate("smc_liquidity")!;
+      for await (const _ of liqInst.run(bars)) {}
+      expect(liqInst.drawings).toBeDefined();
     });
   });
 

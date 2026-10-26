@@ -1,5 +1,5 @@
 import { smc } from "../../index.js";
-import { defineIndicator, floatInput, linePlot } from "../define.js";
+import { defineIndicator, floatInput } from "../define.js";
 import { type Indicator } from "../types.js";
 import { readNumber } from "../helpers.js";
 
@@ -13,22 +13,12 @@ export const smcLiquidity: Indicator = defineIndicator({
   inputs: [
     floatInput("tolerancePercent", "Equal High/Low %", 0.1, { min: 0.01, max: 2, step: 0.05 }),
   ],
-  plots: [
-    linePlot("sweptLevel", "Swept Level", {
-      color: "#d500f9",
-      linewidth: 2,
-      style: "dotted",
-      pane: "main",
-    }),
-  ],
-  calculate: ({ ctx, inputs }) => {
+  plots: [],
+  calculate: ({ ctx, inputs, draw }) => {
     const tolerancePercent = readNumber(inputs, "tolerancePercent");
-    const res = ctx.scope("smcLiquidity", () => {
-      const struct = smc.structure({ swingLength: 5 });
-      return smc.liquidity(struct, { tolerancePercent });
-    });
-    return {
-      sweptLevel: res.sweptLevel.at(0),
-    };
+    const struct = ctx.scope("smcStructure", () => smc.structure({ swingLength: 5 }));
+    const res = ctx.scope("smcLiquidity", () => smc.liquidity(struct, { tolerancePercent }));
+    draw?.liquidity(res, struct);
+    return {};
   },
 });
