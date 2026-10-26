@@ -7,7 +7,8 @@
  * that bar's record, so a recalculated bar never duplicates a drawing.
  */
 
-import type { OrderBlockResult, OrderBlockZone } from "../smc/order-blocks.js";
+import type { FairValueGapResult } from "../smc/fair-value-gaps.js";
+import type { OrderBlockResult } from "../smc/order-blocks.js";
 import type { StructureResult } from "../smc/structure.js";
 
 export type DrawDirection = "bullish" | "bearish";
@@ -54,6 +55,8 @@ export interface ScriptDraw {
   structure(structure: StructureResult, options?: StructureDrawOptions): void;
   /** Order-block boxes, extended while the zone stays valid. */
   orderBlocks(blocks: OrderBlockResult): void;
+  /** Fair Value Gap boxes, extended while the gap remains unmitigated and valid. */
+  fvg(gaps: FairValueGapResult): void;
 }
 
 const isNa = (value: number): boolean => Number.isNaN(value);
@@ -74,7 +77,7 @@ export const createDraw = (
     record({ kind: "line", fromBar, toBar: barIndex(), price, text, direction });
   };
 
-  const zone = (side: OrderBlockZone, direction: DrawDirection): void => {
+  const zone = (side: { valid: { value: boolean }; top: { value: number }; bottom: { value: number }; bar: { value: number } }, direction: DrawDirection): void => {
     if (side.valid.value !== true) return;
     const { top, bottom, bar: fromBar } = side;
     record({
@@ -98,6 +101,10 @@ export const createDraw = (
     orderBlocks: (blocks) => {
       zone(blocks.bullish, "bullish");
       zone(blocks.bearish, "bearish");
+    },
+    fvg: (gaps) => {
+      zone(gaps.bullish, "bullish");
+      zone(gaps.bearish, "bearish");
     },
   };
 };

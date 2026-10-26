@@ -94,6 +94,10 @@ export interface OpenTrade {
   readonly entryTime: number;
   /** Commission paid at entry. Deducted from closed.profit on exit. */
   readonly entryCommission: number;
+  /** Maximum favorable excursion (run-up) during the trade in account currency. */
+  readonly runUp: number;
+  /** Maximum adverse excursion (drawdown) during the trade in account currency. */
+  readonly drawDown: number;
 }
 
 /** A trade that has been closed. */
@@ -107,6 +111,10 @@ export interface ClosedTrade {
   readonly exitTime: number;
   /** Signed profit/loss in account currency. */
   readonly profit: number;
+  /** Maximum favorable excursion (run-up) during the trade in account currency. */
+  readonly runUp: number;
+  /** Maximum adverse excursion (drawdown) during the trade in account currency. */
+  readonly drawDown: number;
 }
 
 /**
@@ -490,7 +498,22 @@ export class StrategyEngine {
     }
     this.pendingOrders = remaining;
     this.processExits(bar, enteredAt, onClose);
+    this.updateTradeExcursions(bar);
     this.lastBar = bar;
+  }
+
+  /** Updates maximum favorable and adverse excursions for all currently open trades. */
+  private updateTradeExcursions(bar: Bar): void {
+    for (let i = 0; i < this.openTrades.length; i++) {
+      const trade = this.openTrades[i]!;
+      const favPrice = trade.direction === "long" ? bar.high : bar.low;
+      const advPrice = trade.direction === "long" ? bar.low : bar.high;
+      const favDiff = trade.direction === "long" ? favPrice - trade.entryPrice : trade.entryPrice - favPrice;
+      const advDiff = trade.direction === "long" ? trade.entryPrice - advPrice : advPrice - trade.entryPrice;
+      const runUp = Math.max(trade.runUp, favDiff * trade.qty, 0);
+      const drawDown = Math.max(trade.drawDown, advDiff * trade.qty, 0);
+      this.openTrades[i] = { ...trade, runUp, drawDown };
+    }
   }
 
   /** Fills `strategy.exit` brackets against the bar's assumed intrabar path. */
@@ -639,6 +662,10 @@ export class StrategyEngine {
     );
     // Cash flow: only the realised P&L (gross - commission) hits cash.
     this.cash += profit;
+    const favDiff = trade.direction === "long" ? fillPrice - trade.entryPrice : trade.entryPrice - fillPrice;
+    const advDiff = trade.direction === "long" ? trade.entryPrice - fillPrice : fillPrice - trade.entryPrice;
+    const exitRunUp = Math.max((trade.runUp * closedQty) / trade.qty, favDiff * closedQty, 0);
+    const exitDrawDown = Math.max((trade.drawDown * closedQty) / trade.qty, advDiff * closedQty, 0);
     this.closedTrades.push({
       id: trade.id,
       direction: trade.direction,
@@ -648,6 +675,8 @@ export class StrategyEngine {
       exitPrice: fillPrice,
       exitTime: fillTime,
       profit,
+      runUp: exitRunUp,
+      drawDown: exitDrawDown,
     });
     if (order.ocaName !== undefined) {
       this.pendingOrders = this.pendingOrders.filter((o) => o.ocaName !== order.ocaName);
@@ -657,7 +686,13 @@ export class StrategyEngine {
       this.openTrades.splice(tradeIndex, 1);
       this.dropExitsFor(trade.id);
     } else {
-      const updated: OpenTrade = { ...trade, qty: trade.qty - closedQty };
+      const remainingQty = trade.qty - closedQty;
+      const updated: OpenTrade = {
+        ...trade,
+        qty: remainingQty,
+        runUp: (trade.runUp * remainingQty) / trade.qty,
+        drawDown: (trade.drawDown * remainingQty) / trade.qty,
+      };
       this.openTrades.splice(tradeIndex, 1, updated);
     }
   }
@@ -679,6 +714,10 @@ export class StrategyEngine {
       commission + opposite.entryCommission,
     );
     this.cash += profit;
+    const favDiff = opposite.direction === "long" ? fillPrice - opposite.entryPrice : opposite.entryPrice - fillPrice;
+    const advDiff = opposite.direction === "long" ? opposite.entryPrice - fillPrice : fillPrice - opposite.entryPrice;
+    const exitRunUp = Math.max((opposite.runUp * closedQty) / opposite.qty, favDiff * closedQty, 0);
+    const exitDrawDown = Math.max((opposite.drawDown * closedQty) / opposite.qty, advDiff * closedQty, 0);
     this.closedTrades.push({
       id: opposite.id,
       direction: opposite.direction,
@@ -688,6 +727,8 @@ export class StrategyEngine {
       exitPrice: fillPrice,
       exitTime: fillTime,
       profit,
+      runUp: exitRunUp,
+      drawDown: exitDrawDown,
     });
     const remainingQty = opposite.qty - closedQty;
     if (remainingQty <= 0) {
@@ -705,6 +746,8 @@ export class StrategyEngine {
         entryPrice: fillPrice,
         entryTime: fillTime,
         entryCommission: residualEntryCommission,
+        runUp: 0,
+        drawDown: 0,
       });
     }
   }
@@ -726,6 +769,8 @@ export class StrategyEngine {
       entryPrice: fillPrice,
       entryTime: fillTime,
       entryCommission: commission,
+      runUp: 0,
+      drawDown: 0,
     });
   }
 
@@ -819,6 +864,18 @@ export class StrategyEngine {
   /** `strategy.opentrades`. Number of currently-open trades. */
   public get opentrades_number(): number {
     return this.openTrades.length;
+  }
+
+  /** Current margin used by all open positions in account currency. */
+  public get margin_used(): number {
+    if (this.lastBar === undefined) return 0;
+    const price = this.lastBar.close;
+    const marginLong = (this.declaration.margin_long ?? 100) / 100;
+    const marginShort = (this.declaration.margin_short ?? 100) / 100;
+    return this.openTrades.reduce((sum, t) => {
+      const rate = t.direction === "long" ? marginLong : marginShort;
+      return sum + t.qty * price * rate;
+    }, 0);
   }
 
   /** All closed trades (for `closedtrades.*` accessor functions). */
@@ -1076,6 +1133,20 @@ export const closedtrades = {
     requireStrategyEngine().getClosedTrades()[tradeIndex]?.profit,
   size: (tradeIndex: number): number | undefined =>
     requireStrategyEngine().getClosedTrades()[tradeIndex]?.qty,
+  max_runup: (tradeIndex: number): number | undefined =>
+    requireStrategyEngine().getClosedTrades()[tradeIndex]?.runUp,
+  max_drawdown: (tradeIndex: number): number | undefined =>
+    requireStrategyEngine().getClosedTrades()[tradeIndex]?.drawDown,
+  max_runup_percent: (tradeIndex: number): number | undefined => {
+    const trade = requireStrategyEngine().getClosedTrades()[tradeIndex];
+    if (trade === undefined || trade.entryPrice === 0 || trade.qty === 0) return undefined;
+    return (trade.runUp / (trade.entryPrice * trade.qty)) * 100;
+  },
+  max_drawdown_percent: (tradeIndex: number): number | undefined => {
+    const trade = requireStrategyEngine().getClosedTrades()[tradeIndex];
+    if (trade === undefined || trade.entryPrice === 0 || trade.qty === 0) return undefined;
+    return (trade.drawDown / (trade.entryPrice * trade.qty)) * 100;
+  },
 };
 
 /** `opentrades.*` accessor functions (subset of v6). */
@@ -1086,6 +1157,20 @@ export const opentrades = {
     requireStrategyEngine().getOpenTrades()[tradeIndex]?.entryPrice,
   size: (tradeIndex: number): number | undefined =>
     requireStrategyEngine().getOpenTrades()[tradeIndex]?.qty,
+  max_runup: (tradeIndex: number): number | undefined =>
+    requireStrategyEngine().getOpenTrades()[tradeIndex]?.runUp,
+  max_drawdown: (tradeIndex: number): number | undefined =>
+    requireStrategyEngine().getOpenTrades()[tradeIndex]?.drawDown,
+  max_runup_percent: (tradeIndex: number): number | undefined => {
+    const trade = requireStrategyEngine().getOpenTrades()[tradeIndex];
+    if (trade === undefined || trade.entryPrice === 0 || trade.qty === 0) return undefined;
+    return (trade.runUp / (trade.entryPrice * trade.qty)) * 100;
+  },
+  max_drawdown_percent: (tradeIndex: number): number | undefined => {
+    const trade = requireStrategyEngine().getOpenTrades()[tradeIndex];
+    if (trade === undefined || trade.entryPrice === 0 || trade.qty === 0) return undefined;
+    return (trade.drawDown / (trade.entryPrice * trade.qty)) * 100;
+  },
 };
 
 export { getCurrentSession };

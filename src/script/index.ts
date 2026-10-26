@@ -157,6 +157,12 @@ export interface RunOptions {
 export interface BacktestOptions extends RunOptions {
   /** `syminfo.mintick`; required when `strategy.exit` uses `profit`/`loss` ticks. */
   readonly mintick?: number;
+  /**
+   * Overrides of the `defineStrategy()` declaration for this run (capital,
+   * sizing, commission, ...), as TradingView's Properties tab overrides
+   * `strategy()` arguments. The script's own `options` are left unchanged.
+   */
+  readonly properties?: StrategyOptions;
 }
 
 /** A bound execution: feed `script` to any `PineRuntime` (historical or realtime). */
@@ -179,6 +185,8 @@ export interface BacktestOutput extends ScriptOutput {
   readonly trades: readonly ClosedTrade[];
   /** Engine equity after each bar's script execution. */
   readonly equity: readonly number[];
+  /** Margin used in account currency after each bar's script execution. */
+  readonly margin: readonly number[];
 }
 
 export interface StrategyScript {
@@ -244,7 +252,7 @@ export function defineStrategy(
         throw new Error("backtest() requires confirmed bars only; drop the open bar first");
       }
       const engine = new StrategyEngine();
-      engine.configure({ ...options, title });
+      engine.configure({ ...options, ...runOptions.properties, title });
       if (runOptions.mintick !== undefined) engine.setMintick(runOptions.mintick);
       const orders = createOrders(engine);
       const recorder = new ScriptRecorder(
@@ -252,11 +260,13 @@ export function defineStrategy(
         options.overlay ? "main" : "sub",
       );
       const equity: number[] = [];
+      const margin: number[] = [];
       const script = createScript(recorder, (ctx) => {
         // Orders queued on the previous bar fill against this bar first.
         engine.processBar(ctx.bar);
         body({ ...createApi(ctx, recorder), strategy: orders });
         equity.push(engine.equity);
+        margin.push(engine.margin_used);
       });
 
       const previous = getActiveStrategyEngine();
@@ -267,7 +277,7 @@ export function defineStrategy(
         setActiveStrategyEngine(previous);
       }
       recorder.assertOverridesDeclared();
-      return { ...recorder.output(), engine, trades: engine.getClosedTrades(), equity };
+      return { ...recorder.output(), engine, trades: engine.getClosedTrades(), equity, margin };
     },
   };
 }

@@ -82,6 +82,9 @@ Rules (all enforced, none silently coerced):
   without `qty` the whole trade exits. Fills follow Pine's intrabar path
   (open→high→low→close when the open is nearer the high) and a gapped-through
   level fills at the open.
+- `backtest(bars, { inputs, properties })` overrides input values by title and
+  `defineStrategy()` options (capital, sizing, commission, ...) for one run,
+  like TradingView's Inputs and Properties tabs.
 - `backtest()` runs confirmed bars only; the strategy engine has no realtime
   rollback. Indicators support realtime via `bind()` + `PineRuntime.runRealtime`.
 - `ctx` (full `PineContext`) and `strategy.engine` remain available as escape
