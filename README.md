@@ -37,6 +37,57 @@ backs `ta.wma` and matches PineScript bit-for-bit on the 21-bar
 cancellation-residue vector, the 1e-10 threshold vectors, and the
 tiny-values vector — see `tests/reference-pine-vectors-wma.test.ts`.
 
+## Writing indicators and strategies
+
+`indicator()` and `defineStrategy()` take a Pine-shaped body that runs once
+per bar. Price series, `ta`, `math`, `input`, `plot`, and `hline` arrive as
+arguments — no context types, input bags, result objects, or `.at(0)`.
+
+```ts
+import { defineStrategy, indicator, ta } from "@nemesis-oss/pine-ts";
+
+export const rsi = indicator("RSI", ({ close, input, plot, hline }) => {
+  plot(ta.rsi(close, input.int(14, "Length", { min: 1 })), "RSI");
+  hline(70);
+  hline(30);
+});
+
+export const smaCross = defineStrategy(
+  "SMA Cross",
+  { initial_capital: 10_000, default_qty_value: 1 },
+  ({ close, input, strategy }) => {
+    const sma = ta.sma(close, input.int(20, "Length"));
+    strategy.entry("Long", "long", { when: ta.crossover(close, sma) });
+    strategy.close("Long", { when: ta.crossunder(close, sma) });
+  },
+);
+
+const { values, plots, inputs } = await rsi.run(bars, { inputs: { Length: 21 } });
+const { trades, equity, engine } = await smaCross.backtest(bars);
+```
+
+Rules (all enforced, none silently coerced):
+
+- Inputs are keyed by title. Overrides are validated (integer, `min`/`max`,
+  `options`, source selector); unknown override titles throw.
+- `plot()`/`hline()` must run unconditionally on every bar, as in Pine.
+  Plot ids come from titles (`plot_<n>` when untitled). `na`/NaN → `undefined`.
+- `ta.crossover(...)` returns a `BooleanSeries` (an object, always truthy).
+  Pass it as `when`, or use `.value` inside `if`.
+- `strategy.entry` without `qty` uses `default_qty_value` only for `"fixed"`
+  sizing; other sizing types require an explicit `qty`.
+- `strategy.exit("SL/TP", { from_entry: "Long", stop, limit })` places a
+  bracket: `stop`/`limit` are prices, `profit`/`loss` are ticks (pass
+  `backtest(bars, { mintick })`). The first leg to fill cancels the other;
+  without `qty` the whole trade exits. Fills follow Pine's intrabar path
+  (open→high→low→close when the open is nearer the high) and a gapped-through
+  level fills at the open.
+- `backtest()` runs confirmed bars only; the strategy engine has no realtime
+  rollback. Indicators support realtime via `bind()` + `PineRuntime.runRealtime`.
+- `ctx` (full `PineContext`) and `strategy.engine` remain available as escape
+  hatches. Semantics are identical to the low-level runtime (parity-tested in
+  `tests/script-authoring.test.ts`).
+
 ## Indicator registry (Wave 13)
 
 A declarative metadata model for indicators and strategies, mirroring

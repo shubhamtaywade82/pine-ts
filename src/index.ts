@@ -85,6 +85,8 @@ export {
   StrategyEngine,
   setActiveStrategyEngine,
   requireStrategyEngine,
+  getActiveStrategyEngine,
+  BrokerOperationError,
   type StrategyDeclaration,
   type Direction,
   type PendingOrder,
@@ -92,6 +94,34 @@ export {
   type ClosedTrade,
 } from "./strategy/index.js";
 export * as strategy from "./strategy/index.js";
+export {
+  defineStrategy,
+  indicator,
+  type BacktestOptions,
+  type BacktestOutput,
+  type CloseOptions,
+  type Condition,
+  type EntryOptions,
+  type ExitOptions,
+  type FlagInputOptions,
+  type IndicatorOptions,
+  type IndicatorScript,
+  type NumberInputOptions,
+  type PlotValue,
+  type RunOptions,
+  type ScriptApi,
+  type ScriptExecution,
+  type ScriptHlineOptions,
+  type ScriptInputs,
+  type ScriptOutput,
+  type ScriptPlotOptions,
+  type StrategyApi,
+  type StrategyOptions,
+  type StrategyOrders,
+  type StrategyScript,
+  type StringInputOptions,
+  type WhenOptions,
+} from "./script/index.js";
 export * as visual from "./visual/index.js";
 export * as visualAdapter from "./visual/adapter.js";
 export {
