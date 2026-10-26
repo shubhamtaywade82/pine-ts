@@ -67,6 +67,7 @@ export { NSE_SESSION, type ExchangeSession } from "./data/exchange-session.js";
 
 export * as ta from "./ta/index.js";
 export * as community from "./community/index.js";
+export * as smc from "./smc/index.js";
 export * as math from "./math/index.js";
 export * as array from "./array/index.js";
 export * as map from "./map/index.js";
@@ -101,6 +102,7 @@ export {
   type BacktestOutput,
   type CloseOptions,
   type Condition,
+  type DrawDirection,
   type EntryOptions,
   type ExitOptions,
   type FlagInputOptions,
@@ -110,9 +112,13 @@ export {
   type PlotValue,
   type RunOptions,
   type ScriptApi,
+  type ScriptBox,
+  type ScriptDraw,
+  type ScriptDrawings,
   type ScriptExecution,
   type ScriptHlineOptions,
   type ScriptInputs,
+  type ScriptLine,
   type ScriptOutput,
   type ScriptPlotOptions,
   type StrategyApi,
@@ -120,6 +126,7 @@ export {
   type StrategyOrders,
   type StrategyScript,
   type StringInputOptions,
+  type StructureDrawOptions,
   type WhenOptions,
 } from "./script/index.js";
 export * as visual from "./visual/index.js";

@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,16 +12,45 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22 is the `engines` floor; 24 is current LTS.
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
         with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # build, format, lint, typecheck, manifest, tests, spellcheck, knip,
+      # publint and attw — see AGENTS.md "Quality gate".
+      - run: pnpm check
+
+  package:
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
         with:
           run_install: false
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
       - run: pnpm build
+      # Catches a broken `exports` map or missing `files` entry before a
+      # release rather than after: install the packed tarball and import it.
+      - name: Verify the tarball installs and imports
+        run: |
+          pnpm pack --pack-destination /tmp/pack
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          echo '{"name":"consumer","version":"1.0.0","type":"module"}' > package.json
+          npm install /tmp/pack/*.tgz
+          node --input-type=module -e "import { PineRuntime, indicator, smc, ta } from '@nemesis-oss/pine-ts'; for (const [n, v] of Object.entries({ PineRuntime, indicator, smc, ta })) if (!v) throw new Error(n + ' missing from ESM entry');"

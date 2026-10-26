@@ -253,6 +253,53 @@ const script: PineScript = (ctx) => {
 `direction` follows Pine's SuperTrend convention: -1 is an uptrend, 1 a
 downtrend.
 
+### Smart Money Concepts
+
+`smc.*` holds market-structure primitives that return structured events, not
+drawings, so one detection feeds plots, alerts, and strategies alike.
+
+```ts
+import { defineStrategy, smc } from "@nemesis-oss/pine-ts";
+
+export default defineStrategy("Structure", { default_qty_value: 1 }, ({ strategy }) => {
+  const s = smc.structure({ swingLength: 10 });
+  strategy.entry("Long", "long", { when: s.bullishCHoCH });
+  strategy.close("Long", { when: s.bearishCHoCH });
+});
+```
+
+`smc.structure` swings are `ta.pivothigh`/`ta.pivotlow` pivots, confirmed only
+after `swingLength` right-side bars. A break is a close crossing the last swing
+level (`close > level and close[1] <= level`); a wick through it does not count.
+A break against the current bias is a CHoCH, any other break a BOS.
+`swingExpiry` stops old swings from being broken.
+
+`smc.orderBlocks(structure, { minBodyPercent })` turns breaks into zones: when
+a break candle's body is at least `minBodyPercent` of its close, the previous
+candle becomes the zone if it is opposite-coloured (bearish before a bullish
+break). Each side keeps only its latest zone. `valid` is re-evaluated every bar
+(not expired, close not beyond the far edge less `tolerancePercent`, default
+0.2), and `touched` means a valid zone overlaps the bar's range.
+
+```ts
+const blocks = smc.orderBlocks(smc.structure({ swingLength: 10 }), { minBodyPercent: 0.3 });
+strategy.entry("Long", "long", { when: blocks.bullish.touched });
+```
+
+Inside `indicator()`, `draw` turns these results into chart drawings that
+hosts read from `output.drawings`: BOS/CHoCH `lines` (from the swing's pivot
+bar to the breaking bar, with their label text) and order-block `boxes`
+(extended to the zone's last valid bar). Drawings are recorded per bar like
+plot values, so realtime recalculation of the open bar never duplicates them.
+
+```ts
+export default indicator("SMC", { overlay: true }, ({ draw }) => {
+  const structure = smc.structure({ swingLength: 10 });
+  draw.structure(structure, { showBOS: true, showCHoCH: true });
+  draw.orderBlocks(smc.orderBlocks(structure, { minBodyPercent: 0.3 }));
+});
+```
+
 ## Development
 
 Requires Node.js 22+.

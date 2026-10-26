@@ -21,6 +21,7 @@ import {
   markerPlot,
 } from "../registry/define.js";
 import type { InputConfig, InputsBag, PlotConfig, PlotPane } from "../registry/types.js";
+import { collectDrawings, type RecordedDrawing, type ScriptDrawings } from "./draw.js";
 
 export interface NumberInputOptions {
   readonly min?: number;
@@ -71,6 +72,7 @@ export interface ScriptOutput {
   readonly plots: readonly PlotConfig[];
   /** Plot id → value per bar, aligned with `bar_index`; `undefined` is `na`. */
   readonly values: Readonly<Record<string, readonly (number | undefined)[]>>;
+  readonly drawings: ScriptDrawings;
 }
 
 interface PlotSlot {
@@ -82,6 +84,7 @@ export class ScriptRecorder {
   private readonly declaredInputs = new Map<string, { config: InputConfig; value: unknown }>();
   private readonly slots: PlotSlot[] = [];
   private readonly values = new Map<string, (number | undefined)[]>();
+  private readonly drawingsByBar = new Map<number, RecordedDrawing[]>();
   private layoutFrozen = false;
   private callIndex = 0;
   private barIndex = 0;
@@ -94,6 +97,14 @@ export class ScriptRecorder {
   public beginBar(barIndex: number): void {
     this.barIndex = barIndex;
     this.callIndex = 0;
+    // A realtime tick re-executes the open bar: its drawings start over.
+    this.drawingsByBar.delete(barIndex);
+  }
+
+  public recordDrawing(drawing: RecordedDrawing): void {
+    const recorded = this.drawingsByBar.get(this.barIndex) ?? [];
+    recorded.push(drawing);
+    this.drawingsByBar.set(this.barIndex, recorded);
   }
 
   /**
@@ -174,6 +185,9 @@ export class ScriptRecorder {
       inputs: [...this.declaredInputs.values()].map((entry) => entry.config),
       plots: this.slots.map((slot) => slot.config),
       values: Object.fromEntries(this.values),
+      drawings: collectDrawings(
+        [...this.drawingsByBar.entries()].sort(([a], [b]) => a - b).flatMap(([, d]) => d),
+      ),
     };
   }
 

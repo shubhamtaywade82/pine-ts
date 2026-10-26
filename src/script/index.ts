@@ -32,6 +32,7 @@ import {
   type StrategyDeclaration,
 } from "../strategy/index.js";
 import * as ta from "../ta/index.js";
+import { createDraw, type ScriptDraw } from "./draw.js";
 import {
   ScriptRecorder,
   type PlotValue,
@@ -41,6 +42,14 @@ import {
   type ScriptPlotOptions,
 } from "./recorder.js";
 
+export type {
+  DrawDirection,
+  ScriptBox,
+  ScriptDraw,
+  ScriptDrawings,
+  ScriptLine,
+  StructureDrawOptions,
+} from "./draw.js";
 export type {
   FlagInputOptions,
   NumberInputOptions,
@@ -74,6 +83,8 @@ export interface ScriptApi {
   readonly plot: (value: PlotValue, title?: string, options?: ScriptPlotOptions) => void;
   /** Pine `hline()`: a constant level. */
   readonly hline: (price: number, title?: string, options?: ScriptHlineOptions) => void;
+  /** Rollback-safe drawings of `smc.*` results (BOS/CHoCH lines, order-block boxes). */
+  readonly draw: ScriptDraw;
 }
 
 /** A condition: a plain boolean or a boolean series (its current bar is read). */
@@ -302,6 +313,10 @@ const createApi = (ctx: PineContext, recorder: ScriptRecorder): ScriptApi => ({
   input: recorder.inputs(() => ctx),
   plot: (value, title, options) => recorder.plot(value, title, options),
   hline: (price, title, options) => recorder.hline(price, title, options),
+  draw: createDraw(
+    (drawing) => recorder.recordDrawing(drawing),
+    () => ctx.bar_index.at(0) ?? 0,
+  ),
 });
 
 const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<void> => {

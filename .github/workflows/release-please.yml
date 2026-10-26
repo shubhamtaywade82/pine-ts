@@ -1,0 +1,50 @@
+# Automated versioning.
+#
+# On every push to main, release-please reads the Conventional Commit
+# subjects since the last release and keeps one release PR open with the
+# next version in package.json and CHANGELOG.md:
+#   fix: → patch · feat: → minor · feat!: or a BREAKING CHANGE footer → major
+#   (pre-1.0, `bump-minor-pre-major` makes breaking changes bump the minor)
+#   (chore/docs/test/ci/refactor commits do not trigger a release)
+# A `Release-As: x.y.z` commit footer overrides the computed version.
+# bootstrap-sha is the commit the release automation was added on top of,
+# so release-please does not scan the whole history for the first release.
+#
+# Merging the release PR tags vX.Y.Z, creates the GitHub release and calls
+# publish.yml directly — a release created with GITHUB_TOKEN does not
+# trigger publish.yml's own `release` event.
+#
+# Repository setting required: Settings → Actions → General → "Allow GitHub
+# Actions to create and approve pull requests".
+
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write
