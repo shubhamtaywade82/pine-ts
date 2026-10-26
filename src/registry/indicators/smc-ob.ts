@@ -18,7 +18,7 @@ export const smcOb: Indicator = defineIndicator({
       const struct = smc.structure({ swingLength: 5 });
       return smc.orderBlocks(struct, { minBodyPercent });
     });
-    draw?.orderBlocks(res);
+    draw?.orderBlocks(res, { text: "OB" });
     return {};
   },
 });

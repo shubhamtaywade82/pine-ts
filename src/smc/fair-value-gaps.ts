@@ -49,7 +49,7 @@ const detectBullishGap = (
   minSizePercent: number,
   index: number,
 ): FvgZone | undefined => {
-  if (lowNow <= highPrior2) return undefined;
+  if (Number.isNaN(lowNow) || Number.isNaN(highPrior2) || lowNow <= highPrior2) return undefined;
   const size = lowNow - highPrior2;
   if (minSizePercent > 0 && size < (highPrior2 * minSizePercent) / 100) return undefined;
   return { top: lowNow, bottom: highPrior2, bar: index - 1 };
@@ -61,7 +61,7 @@ const detectBearishGap = (
   minSizePercent: number,
   index: number,
 ): FvgZone | undefined => {
-  if (highNow >= lowPrior2) return undefined;
+  if (Number.isNaN(highNow) || Number.isNaN(lowPrior2) || highNow >= lowPrior2) return undefined;
   const size = lowPrior2 - highNow;
   if (minSizePercent > 0 && size < (highNow * minSizePercent) / 100) return undefined;
   return { top: lowPrior2, bottom: highNow, bar: index - 1 };
@@ -74,6 +74,7 @@ const evaluateFvg = (
   sources: ReturnType<typeof requireCurrentSession>["sources"],
 ): FvgState => {
   const index = sources.bar_index.at(0) ?? 0;
+  if (index < 2) return { zone: undefined, createdBar: 0, valid: false, touched: false, mitigated: false };
   const high0 = sources.high.at(0) ?? Number.NaN;
   const low0 = sources.low.at(0) ?? Number.NaN;
   const high2 = sources.high.at(2) ?? Number.NaN;

@@ -15,7 +15,7 @@ export const smcFvg: Indicator = defineIndicator({
   calculate: ({ ctx, inputs, draw }) => {
     const minSizePercent = readNumber(inputs, "minSizePercent");
     const res = ctx.scope("smcFvg", () => smc.fairValueGaps({ minSizePercent }));
-    draw?.fvg(res);
+    draw?.fvg(res, { text: "FVG" });
     return {};
   },
 });

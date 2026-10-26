@@ -65,9 +65,9 @@ export interface ScriptDraw extends ShapeDraw {
   /** BOS/CHoCH lines with their label text, drawn on the bar the break happens. */
   structure(structure: StructureResult, options?: StructureDrawOptions): void;
   /** Order-block boxes, extended while the zone stays valid. */
-  orderBlocks(blocks: OrderBlockResult): void;
+  orderBlocks(blocks: OrderBlockResult, options?: { text?: string }): void;
   /** Fair Value Gap boxes, extended while the gap remains unmitigated and valid. */
-  fvg(gaps: FairValueGapResult): void;
+  fvg(gaps: FairValueGapResult, options?: { text?: string }): void;
   /** Liquidity sweep levels, drawn from the swept swing to the break bar. */
   liquidity(liquidity: LiquidityResult, structure: StructureResult): void;
 }
@@ -102,6 +102,7 @@ export const createDraw = (
   ): void => {
     if (side.valid.value !== true) return;
     const { top, bottom, bar: fromBar } = side;
+    if (isNa(top.value) || isNa(bottom.value) || isNa(fromBar.value) || fromBar.value < 0) return;
     record({
       kind: "zone",
       bar: barIndex(),
@@ -127,13 +128,13 @@ export const createDraw = (
         breakLine(structure, "bearish", "CHoCH");
       }
     },
-    orderBlocks: (blocks) => {
-      zone(blocks.bullish, "bullish");
-      zone(blocks.bearish, "bearish");
+    orderBlocks: (blocks, { text } = {}) => {
+      zone(blocks.bullish, "bullish", text);
+      zone(blocks.bearish, "bearish", text);
     },
-    fvg: (gaps) => {
-      zone(gaps.bullish, "bullish");
-      zone(gaps.bearish, "bearish");
+    fvg: (gaps, { text } = {}) => {
+      zone(gaps.bullish, "bullish", text);
+      zone(gaps.bearish, "bearish", text);
     },
     liquidity: (liq, struct) => {
       if (liq.sweptHigh.value === true) {
