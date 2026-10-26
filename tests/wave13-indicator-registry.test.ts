@@ -52,6 +52,12 @@ class StubProvider implements MarketDataProvider {
   public getSymbolInfo = async (): Promise<SymbolInfo> => testInfo;
 }
 
+/** Runs an indicator instance to completion; only its side effects (drawings) matter. */
+const drain = async (steps: AsyncIterable<unknown>): Promise<void> => {
+  const iterator = steps[Symbol.asyncIterator]();
+  while (!(await iterator.next()).done);
+};
+
 const closesToBars = (closes: readonly number[]): Bar[] =>
   closes.map((close, index) => ({
     time: index + 1,
@@ -467,19 +473,19 @@ describe("Built-in indicators", () => {
     it("runs structure, fvg, ob, and liquidity end-to-end and produces drawings", async () => {
       const bars = closesToBars(closes);
       const structInst = getIndicatorRegistry().instantiate("smc_structure", { swingLength: 3 })!;
-      for await (const _ of structInst.run(bars)) {}
+      await drain(structInst.run(bars));
       expect(structInst.drawings).toBeDefined();
 
       const fvgInst = getIndicatorRegistry().instantiate("smc_fvg")!;
-      for await (const _ of fvgInst.run(bars)) {}
+      await drain(fvgInst.run(bars));
       expect(fvgInst.drawings).toBeDefined();
 
       const obInst = getIndicatorRegistry().instantiate("smc_ob")!;
-      for await (const _ of obInst.run(bars)) {}
+      await drain(obInst.run(bars));
       expect(obInst.drawings).toBeDefined();
 
       const liqInst = getIndicatorRegistry().instantiate("smc_liquidity")!;
-      for await (const _ of liqInst.run(bars)) {}
+      await drain(liqInst.run(bars));
       expect(liqInst.drawings).toBeDefined();
     });
   });
