@@ -339,4 +339,159 @@ describe("Built-in indicators", () => {
       expect(firstNonZero).toBeDefined();
     });
   });
+
+  describe("vwap", () => {
+    it("computes volume weighted average price", async () => {
+      const results = await runIndicatorAcrossBars("vwap", closes);
+      const main = results["main"]!;
+      expect(main).toHaveLength(closes.length);
+      expect(Number.isNaN(main[0])).toBe(false);
+    });
+  });
+
+  describe("supertrend", () => {
+    it("computes supertrend trailing stop line with upTrend and downTrend breaks", async () => {
+      const results = await runIndicatorAcrossBars("supertrend", closes, {
+        factor: 3,
+        atrPeriod: 5,
+      });
+      const up = results["upTrend"]!;
+      const down = results["downTrend"]!;
+      expect(up).toHaveLength(closes.length);
+      expect(down).toHaveLength(closes.length);
+      const hasUpOrDown =
+        up.some((v) => v !== undefined && !Number.isNaN(v)) ||
+        down.some((v) => v !== undefined && !Number.isNaN(v));
+      expect(hasUpOrDown).toBe(true);
+    });
+  });
+
+  describe("stoch", () => {
+    it("computes %K, %D, and bands", async () => {
+      const results = await runIndicatorAcrossBars("stoch", closes, {
+        kLength: 5,
+        kSmoothing: 3,
+        dSmoothing: 3,
+      });
+      expect(results["k"]).toHaveLength(closes.length);
+      expect(results["d"]).toHaveLength(closes.length);
+      expect(results["upper"]?.every((v) => v === 80)).toBe(true);
+      expect(results["lower"]?.every((v) => v === 20)).toBe(true);
+    });
+  });
+
+  describe("atr", () => {
+    it("computes Average True Range", async () => {
+      const results = await runIndicatorAcrossBars("atr", closes, { length: 5 });
+      const main = results["main"]!;
+      expect(main).toHaveLength(closes.length);
+      const valid = main.find((v) => v !== undefined && !Number.isNaN(v));
+      expect(valid).toBeDefined();
+    });
+  });
+
+  describe("kc", () => {
+    it("computes Keltner Channels middle, upper, and lower", async () => {
+      const results = await runIndicatorAcrossBars("kc", closes, { length: 5, mult: 1.5 });
+      const middle = results["middle"]!;
+      const upper = results["upper"]!;
+      const lower = results["lower"]!;
+      expect(middle).toHaveLength(closes.length);
+      expect(upper).toHaveLength(closes.length);
+      expect(lower).toHaveLength(closes.length);
+    });
+  });
+
+  describe("sar", () => {
+    it("computes Parabolic SAR", async () => {
+      const results = await runIndicatorAcrossBars("sar", closes);
+      const main = results["main"]!;
+      expect(main).toHaveLength(closes.length);
+      const valid = main.find((v) => v !== undefined && !Number.isNaN(v));
+      expect(valid).toBeDefined();
+    });
+  });
+
+  describe("mfi", () => {
+    it("computes Money Flow Index with bands", async () => {
+      const results = await runIndicatorAcrossBars("mfi", closes, { length: 5 });
+      expect(results["main"]).toHaveLength(closes.length);
+      expect(results["upper"]?.every((v) => v === 80)).toBe(true);
+      expect(results["lower"]?.every((v) => v === 20)).toBe(true);
+    });
+  });
+
+  describe("wma and hma", () => {
+    it("computes WMA and HMA overlays", async () => {
+      const wmaRes = await runIndicatorAcrossBars("wma", closes, { length: 5 });
+      const hmaRes = await runIndicatorAcrossBars("hma", closes, { length: 5 });
+      expect(wmaRes["main"]).toHaveLength(closes.length);
+      expect(hmaRes["main"]).toHaveLength(closes.length);
+    });
+  });
+
+  describe("cci and wpr", () => {
+    it("computes CCI and Williams %R oscillators", async () => {
+      const cciRes = await runIndicatorAcrossBars("cci", closes, { length: 5 });
+      const wprRes = await runIndicatorAcrossBars("wpr", closes, { length: 5 });
+      expect(cciRes["main"]).toHaveLength(closes.length);
+      expect(cciRes["upper"]?.every((v) => v === 100)).toBe(true);
+      expect(wprRes["main"]).toHaveLength(closes.length);
+      expect(wprRes["upper"]?.every((v) => v === -20)).toBe(true);
+    });
+  });
+
+  describe("dmi", () => {
+    it("computes DMI with ADX, +DI, and -DI", async () => {
+      const results = await runIndicatorAcrossBars("dmi", closes, { diLength: 5, adxSmoothing: 5 });
+      expect(results["adx"]).toHaveLength(closes.length);
+      expect(results["plusDI"]).toHaveLength(closes.length);
+      expect(results["minusDI"]).toHaveLength(closes.length);
+      expect(results["keyLevel"]?.every((v) => v === 20)).toBe(true);
+    });
+  });
+
+  describe("ml_supertrend", () => {
+    it("computes Machine Learning Adaptive Supertrend", async () => {
+      const results = await runIndicatorAcrossBars("ml_supertrend", closes, {
+        factor: 3,
+        atrLength: 5,
+        trainingPeriod: 20,
+      });
+      expect(results["upTrend"]).toHaveLength(closes.length);
+      expect(results["downTrend"]).toHaveLength(closes.length);
+    });
+  });
+
+  describe("smc indicators", () => {
+    it("runs structure, fvg, ob, and liquidity end-to-end", async () => {
+      const struct = await runIndicatorAcrossBars("smc_structure", closes, { swingLength: 3 });
+      expect(struct["swingHigh"]).toHaveLength(closes.length);
+      expect(struct["swingLow"]).toHaveLength(closes.length);
+
+      const fvg = await runIndicatorAcrossBars("smc_fvg", closes);
+      expect(fvg["bullishTop"]).toHaveLength(closes.length);
+      expect(fvg["bearishTop"]).toHaveLength(closes.length);
+
+      const ob = await runIndicatorAcrossBars("smc_ob", closes);
+      expect(ob["bullishTop"]).toHaveLength(closes.length);
+      expect(ob["bearishTop"]).toHaveLength(closes.length);
+
+      const liq = await runIndicatorAcrossBars("smc_liquidity", closes);
+      expect(liq["sweptLevel"]).toHaveLength(closes.length);
+    });
+  });
+
+  describe("mtf_trend", () => {
+    it("computes multi-timeframe trend ribbon EMAs", async () => {
+      const results = await runIndicatorAcrossBars("mtf_trend", closes, {
+        fastLength: 3,
+        mediumLength: 5,
+        slowLength: 10,
+      });
+      expect(results["fast"]).toHaveLength(closes.length);
+      expect(results["medium"]).toHaveLength(closes.length);
+      expect(results["slow"]).toHaveLength(closes.length);
+    });
+  });
 });
