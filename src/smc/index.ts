@@ -1,4 +1,11 @@
 export {
+  fairValueGaps,
+  type FairValueGapOptions,
+  type FairValueGapResult,
+  type FairValueGapZone,
+} from "./fair-value-gaps.js";
+export { liquidity, type LiquidityOptions, type LiquidityResult } from "./liquidity.js";
+export {
   orderBlocks,
   type OrderBlockOptions,
   type OrderBlockResult,

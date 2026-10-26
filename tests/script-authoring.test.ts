@@ -264,6 +264,34 @@ describe("defineStrategy()", () => {
     expect(output.equity.at(-1)).toBe(engine.equity);
   });
 
+  it("applies property overrides over the declaration, like TradingView's Properties tab", async () => {
+    const properties = {
+      initial_capital: 5000,
+      default_qty_value: 1,
+      commission_value: 0.1,
+    } as const;
+    const engine = new StrategyEngine();
+    // The declaration's values (10_000 capital, qty 2) are what `properties` overrides.
+    engine.configure({ title: "SMA Cross", ...properties });
+    setActiveStrategyEngine(engine);
+    try {
+      await runLowLevel(bars, (ctx) => {
+        engine.processBar(ctx.bar);
+        const sma = ta.sma(ctx.close, 5);
+        if (ta.crossover(ctx.close, sma).value) engine.entry("Long", "long", 1);
+        if (ta.crossunder(ctx.close, sma).value) engine.close("Long");
+      });
+    } finally {
+      setActiveStrategyEngine(undefined);
+    }
+    const output = await smaCross.backtest(bars, { properties });
+
+    expect(output.trades).toEqual(engine.getClosedTrades());
+    expect(output.engine.config.initial_capital).toBe(5000);
+    expect(output.equity.at(-1)).toBe(engine.equity);
+    expect(smaCross.options.initial_capital).toBe(10_000);
+  });
+
   it("accepts plain booleans as conditions and plots alongside orders", async () => {
     const script = defineStrategy(
       "Bool",
