@@ -508,8 +508,10 @@ export class StrategyEngine {
       const trade = this.openTrades[i]!;
       const favPrice = trade.direction === "long" ? bar.high : bar.low;
       const advPrice = trade.direction === "long" ? bar.low : bar.high;
-      const favDiff = trade.direction === "long" ? favPrice - trade.entryPrice : trade.entryPrice - favPrice;
-      const advDiff = trade.direction === "long" ? trade.entryPrice - advPrice : advPrice - trade.entryPrice;
+      const favDiff =
+        trade.direction === "long" ? favPrice - trade.entryPrice : trade.entryPrice - favPrice;
+      const advDiff =
+        trade.direction === "long" ? trade.entryPrice - advPrice : advPrice - trade.entryPrice;
       const runUp = Math.max(trade.runUp, favDiff * trade.qty, 0);
       const drawDown = Math.max(trade.drawDown, advDiff * trade.qty, 0);
       this.openTrades[i] = { ...trade, runUp, drawDown };
@@ -662,8 +664,10 @@ export class StrategyEngine {
     );
     // Cash flow: only the realised P&L (gross - commission) hits cash.
     this.cash += profit;
-    const favDiff = trade.direction === "long" ? fillPrice - trade.entryPrice : trade.entryPrice - fillPrice;
-    const advDiff = trade.direction === "long" ? trade.entryPrice - fillPrice : fillPrice - trade.entryPrice;
+    const favDiff =
+      trade.direction === "long" ? fillPrice - trade.entryPrice : trade.entryPrice - fillPrice;
+    const advDiff =
+      trade.direction === "long" ? trade.entryPrice - fillPrice : fillPrice - trade.entryPrice;
     const exitRunUp = Math.max((trade.runUp * closedQty) / trade.qty, favDiff * closedQty, 0);
     const exitDrawDown = Math.max((trade.drawDown * closedQty) / trade.qty, advDiff * closedQty, 0);
     this.closedTrades.push({
@@ -714,10 +718,20 @@ export class StrategyEngine {
       commission + opposite.entryCommission,
     );
     this.cash += profit;
-    const favDiff = opposite.direction === "long" ? fillPrice - opposite.entryPrice : opposite.entryPrice - fillPrice;
-    const advDiff = opposite.direction === "long" ? opposite.entryPrice - fillPrice : fillPrice - opposite.entryPrice;
+    const favDiff =
+      opposite.direction === "long"
+        ? fillPrice - opposite.entryPrice
+        : opposite.entryPrice - fillPrice;
+    const advDiff =
+      opposite.direction === "long"
+        ? opposite.entryPrice - fillPrice
+        : fillPrice - opposite.entryPrice;
     const exitRunUp = Math.max((opposite.runUp * closedQty) / opposite.qty, favDiff * closedQty, 0);
-    const exitDrawDown = Math.max((opposite.drawDown * closedQty) / opposite.qty, advDiff * closedQty, 0);
+    const exitDrawDown = Math.max(
+      (opposite.drawDown * closedQty) / opposite.qty,
+      advDiff * closedQty,
+      0,
+    );
     this.closedTrades.push({
       id: opposite.id,
       direction: opposite.direction,

@@ -77,7 +77,15 @@ export const createDraw = (
     record({ kind: "line", fromBar, toBar: barIndex(), price, text, direction });
   };
 
-  const zone = (side: { valid: { value: boolean }; top: { value: number }; bottom: { value: number }; bar: { value: number } }, direction: DrawDirection): void => {
+  const zone = (
+    side: {
+      valid: { value: boolean };
+      top: { value: number };
+      bottom: { value: number };
+      bar: { value: number };
+    },
+    direction: DrawDirection,
+  ): void => {
     if (side.valid.value !== true) return;
     const { top, bottom, bar: fromBar } = side;
     record({

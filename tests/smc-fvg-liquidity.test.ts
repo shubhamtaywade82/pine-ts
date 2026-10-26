@@ -3,18 +3,19 @@ import { PineRuntime, smc } from "../src/index.js";
 import type { Bar, PineContext } from "../src/index.js";
 import { Provider } from "./smc-reference.js";
 
-const bar = (
-  time: number,
-  open: number,
-  high: number,
-  low: number,
-  close: number,
-): Bar => ({ time, open, high, low, close, volume: 100 });
+const bar = (time: number, open: number, high: number, low: number, close: number): Bar => ({
+  time,
+  open,
+  high,
+  low,
+  close,
+  volume: 100,
+});
 
 describe("SMC Fair Value Gaps and Liquidity", () => {
   it("detects bullish FVG and handles mitigation", async () => {
     const bars: Bar[] = [
-      bar(1000, 100, 105, 95, 102),  // bar 0: high is 105
+      bar(1000, 100, 105, 95, 102), // bar 0: high is 105
       bar(2000, 103, 120, 103, 118), // bar 1: large displacement candle
       bar(3000, 118, 125, 110, 122), // bar 2: low is 110 (> 105) -> gap [105, 110]
       bar(4000, 122, 124, 108, 112), // bar 3: low 108 touches gap, but stays above 105 (not mitigated)
@@ -42,7 +43,10 @@ describe("SMC Fair Value Gaps and Liquidity", () => {
       });
     };
 
-    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(script, bars);
+    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(
+      script,
+      bars,
+    );
 
     expect(rows[2]?.top).toBe(110);
     expect(rows[2]?.bottom).toBe(105);
@@ -76,7 +80,10 @@ describe("SMC Fair Value Gaps and Liquidity", () => {
       isValid = gaps.bearish.valid.value;
     };
 
-    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(script, bars);
+    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(
+      script,
+      bars,
+    );
 
     expect(lastTop).toBe(145);
     expect(lastBottom).toBe(135);
@@ -87,7 +94,7 @@ describe("SMC Fair Value Gaps and Liquidity", () => {
     const bars: Bar[] = [
       bar(1000, 100, 110, 95, 102),
       bar(2000, 102, 120, 100, 105), // swing high at 120
-      bar(3000, 105, 110, 90, 100),  // swing low at 90
+      bar(3000, 105, 110, 90, 100), // swing low at 90
       bar(4000, 100, 115, 98, 105),
       bar(5000, 105, 112, 102, 108),
       bar(6000, 108, 122, 105, 115), // wick hits 122 (> 120), closes at 115 (< 120) -> sweep of highs!
@@ -102,7 +109,10 @@ describe("SMC Fair Value Gaps and Liquidity", () => {
       sweptHighs.push(liq.sweptHigh.value);
     };
 
-    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(script, bars);
+    await new PineRuntime({ provider: new Provider(), symbol: "TEST", timeframe: "1" }).run(
+      script,
+      bars,
+    );
     expect(sweptHighs[5]).toBe(true);
   });
 });

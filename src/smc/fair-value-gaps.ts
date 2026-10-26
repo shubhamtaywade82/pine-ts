@@ -109,13 +109,14 @@ const createZoneSeries = (
   const { high, low, bar_index: barIndex } = sources;
   const key = `${name}.${side}`;
 
-  const bars = carriedSeries<FvgState>(
-    nodeKey(key, high, low, barIndex),
-    (previous) => evaluateFvg(previous, side, options, sources),
+  const bars = carriedSeries<FvgState>(nodeKey(key, high, low, barIndex), (previous) =>
+    evaluateFvg(previous, side, options, sources),
   );
 
   const field = (label: string, pick: (z: FvgZone) => number): FloatSeries =>
-    floatField(bars, `${key}.${label}`, (bar) => (bar.zone === undefined ? Number.NaN : pick(bar.zone)));
+    floatField(bars, `${key}.${label}`, (bar) =>
+      bar.zone === undefined ? Number.NaN : pick(bar.zone),
+    );
 
   return {
     top: field("top", (z) => z.top),

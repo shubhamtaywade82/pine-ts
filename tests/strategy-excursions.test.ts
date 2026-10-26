@@ -3,13 +3,14 @@ import { defineStrategy } from "../src/script/index.js";
 import { StrategyEngine } from "../src/strategy/index.js";
 import type { Bar } from "../src/index.js";
 
-const bar = (
-  time: number,
-  open: number,
-  high: number,
-  low: number,
-  close: number,
-): Bar => ({ time, open, high, low, close, volume: 100 });
+const bar = (time: number, open: number, high: number, low: number, close: number): Bar => ({
+  time,
+  open,
+  high,
+  low,
+  close,
+  volume: 100,
+});
 
 describe("trade excursions (MFE / MAE) and margin", () => {
   it("tracks max runup and max drawdown on a long trade", () => {
@@ -66,7 +67,7 @@ describe("trade excursions (MFE / MAE) and margin", () => {
   });
 
   it("records margin usage across bars in backtest()", async () => {
-    const strat = defineStrategy("Margin Strat", { margin_long: 50 }, (api) => {
+    const marginStrategy = defineStrategy("Margin Strategy", { margin_long: 50 }, (api) => {
       if (api.bar_index.value === 1) api.strategy.entry("long", "long", { qty: 2 });
       if (api.bar_index.value === 3) api.strategy.close("long");
     });
@@ -79,7 +80,7 @@ describe("trade excursions (MFE / MAE) and margin", () => {
       bar(5000, 110, 115, 105, 110),
     ];
 
-    const result = await strat.backtest(bars);
+    const result = await marginStrategy.backtest(bars);
     expect(result.margin[2]).toBe(105);
     expect(result.margin[4]).toBe(0);
   });
