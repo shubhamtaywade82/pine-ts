@@ -103,6 +103,12 @@ export class PineRuntime {
     }
   }
 
+  /** One realtime update pushed by the host (forming-bar tick, its close, or the next bar) instead of streamed. */
+  public async feed(script: PineScript, bar: Bar): Promise<void> {
+    await this.initialize();
+    withActiveRequestEngine(this.requestEngine, () => this.feedRealtime(script, bar));
+  }
+
   public get sources(): SourceBundle {
     return this.session.sources;
   }

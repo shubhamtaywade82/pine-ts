@@ -99,6 +99,13 @@ export class SecurityResolver {
     return resolved.values[index - 1] as T;
   }
 
+  /** Whether moving from `fromTime` to `toTime` opens a new bar on any requested timeframe. */
+  public opensNewBucket(fromTime: number, toTime: number): boolean {
+    return [...this.resolved.values()].some(
+      ({ ms }) => bucketStart(fromTime, ms) !== bucketStart(toTime, ms),
+    );
+  }
+
   public async resolve(evaluate: HtfEvaluator): Promise<void> {
     for (const [key, { timeframe, expression }] of this.requested) {
       if (this.resolved.has(key)) continue;

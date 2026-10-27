@@ -33,6 +33,7 @@ import {
 } from "../strategy/index.js";
 import * as ta from "../ta/index.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
+import { startLive, type LiveIndicator, type LiveRun } from "./live.js";
 import { SecurityResolver, type HtfEvaluator } from "./security.js";
 import {
   ScriptRecorder,
@@ -64,6 +65,7 @@ export type {
   TableCell,
   TablePosition,
 } from "./shapes.js";
+export type { LiveIndicator } from "./live.js";
 export type {
   FlagInputOptions,
   NumberInputOptions,
@@ -199,6 +201,8 @@ export interface IndicatorScript {
   /** Runs over confirmed (or one trailing open) bars and returns all plot values. */
   run(bars: readonly Bar[], options?: RunOptions): Promise<ScriptOutput>;
   bind(options?: RunOptions): ScriptExecution;
+  /** `run()` once, then `update(bars)` re-executes only what changed on a live chart. */
+  live(bars: readonly Bar[], options?: RunOptions): Promise<LiveIndicator<ScriptOutput>>;
 }
 
 export interface BacktestOutput extends ScriptOutput {
@@ -242,6 +246,22 @@ export function indicator(
       }),
     ];
   };
+  const runAll = async (
+    bars: readonly Bar[],
+    runOptions: RunOptions,
+  ): Promise<LiveRun<ScriptOutput>> => {
+    const security = new SecurityResolver(bars);
+    let [recorder, script] = record(runOptions, security);
+    let runtime = await runHistorical(script, bars);
+    // security() calls return undefined until their timeframes are computed; then run again.
+    if (security.hasPending) {
+      await security.resolve(evaluateOnBars);
+      [recorder, script] = record(runOptions, security);
+      runtime = await runHistorical(script, bars);
+    }
+    recorder.assertOverridesDeclared();
+    return { output: () => recorder.output(), script, runtime, security };
+  };
   return {
     kind: "indicator",
     title,
@@ -250,19 +270,8 @@ export function indicator(
       const [recorder, script] = record(runOptions);
       return { script, output: () => recorder.output() };
     },
-    run: async (bars, runOptions = {}) => {
-      const security = new SecurityResolver(bars);
-      let [recorder, script] = record(runOptions, security);
-      await runHistorical(script, bars);
-      // security() calls return undefined until their timeframes are computed; then run again.
-      if (security.hasPending) {
-        await security.resolve(evaluateOnBars);
-        [recorder, script] = record(runOptions, security);
-        await runHistorical(script, bars);
-      }
-      recorder.assertOverridesDeclared();
-      return recorder.output();
-    },
+    run: async (bars, runOptions = {}) => (await runAll(bars, runOptions)).output(),
+    live: (bars, runOptions = {}) => startLive(bars, (next) => runAll(next, runOptions)),
   };
 }
 
@@ -385,13 +394,14 @@ const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
   return values;
 };
 
-const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<void> => {
+const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<PineRuntime> => {
   const runtime = new PineRuntime({
     provider: new StubIndicatorProvider(bars),
     symbol: "SCRIPT",
     timeframe: "1",
   });
   await runtime.run(script, bars);
+  return runtime;
 };
 
 const isTrue = (condition: Condition | undefined): boolean => {
