@@ -32,6 +32,7 @@ import {
   type StrategyDeclaration,
 } from "../strategy/index.js";
 import * as ta from "../ta/index.js";
+import { alert, alertcondition, resetGlobalState, type AlertFrequency } from "../global/index.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
 import { startLive, type LiveIndicator, type LiveRun } from "./live.js";
 import { SecurityResolver, type HtfEvaluator, type HtfBarLoader } from "./security.js";
@@ -109,6 +110,10 @@ export interface ScriptApi {
   readonly security: <T>(timeframe: string, expression: (api: ScriptApi) => T) => T | undefined;
   /** Rollback-safe drawings of `smc.*` results (BOS/CHoCH lines, order-block boxes). */
   readonly draw: ScriptDraw;
+  /** Pine `alert()`: emits an alert event with message and frequency. */
+  readonly alert: (message: string, freq?: AlertFrequency) => void;
+  /** Pine `alertcondition()`: registers or evaluates a named alert condition. */
+  readonly alertcondition: (condition: boolean, title?: string, message?: string) => void;
 }
 
 /** A condition: a plain boolean or a boolean series (its current bar is read). */
@@ -253,6 +258,7 @@ export function indicator(
     bars: readonly Bar[],
     runOptions: RunOptions,
   ): Promise<LiveRun<ScriptOutput>> => {
+    resetGlobalState();
     const security = new SecurityResolver(bars, runOptions.getHtfBars);
     let [recorder, script] = record(runOptions, security);
     let runtime = await runHistorical(script, bars);
@@ -300,6 +306,7 @@ export function defineStrategy(
       if (bars.some((bar) => bar.isClosed === false)) {
         throw new Error("backtest() requires confirmed bars only; drop the open bar first");
       }
+      resetGlobalState();
       const engine = new StrategyEngine();
       engine.configure({ ...options, ...runOptions.properties, title });
       if (runOptions.mintick !== undefined) engine.setMintick(runOptions.mintick);
@@ -381,6 +388,9 @@ const createApi = (
     (drawing) => recorder.recordDrawing(drawing),
     () => ctx.bar_index.at(0) ?? 0,
   ),
+  alert: (message: string, freq?: AlertFrequency) => alert(message, freq),
+  alertcondition: (condition: boolean, title?: string, message?: string) =>
+    alertcondition(condition, title, message),
 });
 
 /** Evaluates a security() expression once per higher-timeframe bar, on its own runtime. */

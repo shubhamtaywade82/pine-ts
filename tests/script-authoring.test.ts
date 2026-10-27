@@ -367,4 +367,18 @@ describe("defineStrategy()", () => {
       setActiveStrategyEngine(undefined);
     }
   });
+
+  it("captures alert() calls and returns them in ScriptOutput", async () => {
+    const alertScript = indicator("AlertTester", ({ close, ta, alert }) => {
+      const sma = ta.sma(close, 5);
+      if (ta.crossover(close, sma).value) {
+        alert("Crossed above SMA");
+      }
+    });
+
+    const output = await alertScript.run(bars);
+    expect(output.alerts).toBeDefined();
+    expect(output.alerts!.length).toBeGreaterThan(0);
+    expect(output.alerts![0]!.message).toBe("Crossed above SMA");
+  });
 });

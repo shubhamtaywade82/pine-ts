@@ -21,6 +21,7 @@ import {
   markerPlot,
 } from "../registry/define.js";
 import type { InputConfig, InputsBag, PlotConfig, PlotPane } from "../registry/types.js";
+import { getAlertEvents, type AlertEvent } from "../global/index.js";
 import { collectDrawings, type RecordedDrawing, type ScriptDrawings } from "./draw.js";
 
 export interface NumberInputOptions {
@@ -73,6 +74,7 @@ export interface ScriptOutput {
   /** Plot id → value per bar, aligned with `bar_index`; `undefined` is `na`. */
   readonly values: Readonly<Record<string, readonly (number | undefined)[]>>;
   readonly drawings: ScriptDrawings;
+  readonly alerts?: readonly AlertEvent[];
 }
 
 interface PlotSlot {
@@ -188,6 +190,7 @@ export class ScriptRecorder {
       drawings: collectDrawings(
         [...this.drawingsByBar.entries()].sort(([a], [b]) => a - b).flatMap(([, d]) => d),
       ),
+      alerts: getAlertEvents(),
     };
   }
 

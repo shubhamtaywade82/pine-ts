@@ -142,6 +142,13 @@ export {
   type StructureDrawOptions,
   type WhenOptions,
 } from "./script/index.js";
+export {
+  getAlertEvents,
+  getAlertConditions,
+  type AlertEvent,
+  type AlertCondition,
+  type AlertFrequency,
+} from "./global/index.js";
 export * as visual from "./visual/index.js";
 export * as visualAdapter from "./visual/adapter.js";
 export {
