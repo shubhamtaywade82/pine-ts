@@ -108,6 +108,7 @@ export {
   type FlagInputOptions,
   type IndicatorOptions,
   type IndicatorScript,
+  type HtfBarLoader,
   type LiveIndicator,
   type NumberInputOptions,
   type PlotValue,

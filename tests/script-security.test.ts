@@ -87,4 +87,32 @@ describe("security()", () => {
     expect(values["H1"]![20]).toBe(119);
     expect(values["H2"]![20]).toBe(115);
   });
+
+  it("pre-warms higher-timeframe indicators when getHtfBars is provided", async () => {
+    // 8 quarter-hour bars = 2 hours. Only 2 resampled hourly bars, not enough for SMA(5).
+    const chartBars = quarterHours(8);
+    const htfHistory: Bar[] = Array.from({ length: 10 }, (_, i) => ({
+      time: (i - 10) * 60 * MINUTE,
+      open: 50 + i,
+      high: 51 + i,
+      low: 49 + i,
+      close: 50 + i,
+      volume: 1,
+      isClosed: true,
+    }));
+    const script = indicator("HTF SMA with history", ({ security, plot }) => {
+      plot(
+        security("60", ({ ta, close }) => ta.sma(close, 5).value),
+        "H1 SMA5",
+      );
+    });
+    const withoutHistory = await script.run(chartBars);
+    expect(withoutHistory.values["H1 SMA5"]![4]).toBeUndefined();
+
+    const withHistory = await script.run(chartBars, {
+      getHtfBars: (tf) => (tf === "60" ? htfHistory : undefined),
+    });
+    expect(withHistory.values["H1 SMA5"]![4]).toBeDefined();
+    expect(withHistory.values["H1 SMA5"]![4]).toBeGreaterThan(0);
+  });
 });

@@ -34,7 +34,7 @@ import {
 import * as ta from "../ta/index.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
 import { startLive, type LiveIndicator, type LiveRun } from "./live.js";
-import { SecurityResolver, type HtfEvaluator } from "./security.js";
+import { SecurityResolver, type HtfEvaluator, type HtfBarLoader } from "./security.js";
 import {
   ScriptRecorder,
   type PlotValue,
@@ -66,6 +66,7 @@ export type {
   TablePosition,
 } from "./shapes.js";
 export type { LiveIndicator } from "./live.js";
+export type { HtfBarLoader } from "./security.js";
 export type {
   FlagInputOptions,
   NumberInputOptions,
@@ -175,6 +176,8 @@ export type StrategyOptions = Omit<StrategyDeclaration, "title">;
 export interface RunOptions {
   /** Input overrides keyed by input title. Unknown titles are rejected. */
   readonly inputs?: InputsBag;
+  /** Custom loader for higher-timeframe bars (e.g. from exchange REST API). Falls back to resampling chart bars. */
+  readonly getHtfBars?: HtfBarLoader;
 }
 
 export interface BacktestOptions extends RunOptions {
@@ -250,7 +253,7 @@ export function indicator(
     bars: readonly Bar[],
     runOptions: RunOptions,
   ): Promise<LiveRun<ScriptOutput>> => {
-    const security = new SecurityResolver(bars);
+    const security = new SecurityResolver(bars, runOptions.getHtfBars);
     let [recorder, script] = record(runOptions, security);
     let runtime = await runHistorical(script, bars);
     // security() calls return undefined until their timeframes are computed; then run again.

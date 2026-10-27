@@ -59,6 +59,18 @@ export type HtfEvaluator = (
   expression: unknown,
 ) => Promise<readonly unknown[]>;
 
+/** Loads external bars for a higher timeframe so indicators warm up beyond chart history. */
+export type HtfBarLoader = (
+  timeframe: string,
+) => Promise<readonly Bar[] | undefined> | readonly Bar[] | undefined;
+
+/** Combines external history with freshly resampled chart bars. */
+const withOlderBars = (older: readonly Bar[], fresh: readonly Bar[]): Bar[] => {
+  const firstFresh = fresh[0];
+  if (firstFresh === undefined) return [...older];
+  return [...older.filter((b) => b.time < firstFresh.time), ...fresh];
+};
+
 interface Resolved {
   readonly ms: number;
   /** Higher-timeframe bucket start → index into `values`. */
@@ -76,7 +88,10 @@ export class SecurityResolver {
   private readonly resolved = new Map<string, Resolved>();
   private callIndex = 0;
 
-  public constructor(private readonly chartBars: readonly Bar[]) {}
+  public constructor(
+    private readonly chartBars: readonly Bar[],
+    private readonly getHtfBars?: HtfBarLoader | undefined,
+  ) {}
 
   public beginBar(): void {
     this.callIndex = 0;
@@ -110,7 +125,9 @@ export class SecurityResolver {
     for (const [key, { timeframe, expression }] of this.requested) {
       if (this.resolved.has(key)) continue;
       const ms = timeframeMs(timeframe);
-      const htfBars = resampleBars(this.chartBars, ms);
+      const resampled = resampleBars(this.chartBars, ms);
+      const custom = this.getHtfBars ? await this.getHtfBars(timeframe) : undefined;
+      const htfBars = custom && custom.length > 0 ? withOlderBars(custom, resampled) : resampled;
       const values = await evaluate(htfBars, expression);
       const indexByStart = new Map(htfBars.map((bar, i) => [bar.time, i]));
       this.resolved.set(key, { ms, indexByStart, values });
