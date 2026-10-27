@@ -265,7 +265,7 @@ export const createApi = (
 });
 
 /** Evaluates a security() expression once per higher-timeframe bar, on its own runtime. */
-export const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
+const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
   const evaluate = expression as (api: ScriptApi) => unknown;
   const values: unknown[] = [];
   const recorder = new ScriptRecorder({}, "sub");
@@ -278,7 +278,10 @@ export const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
   return values;
 };
 
-export const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<PineRuntime> => {
+export const runHistorical = async (
+  script: PineScript,
+  bars: readonly Bar[],
+): Promise<PineRuntime> => {
   const runtime = new PineRuntime({
     provider: new StubIndicatorProvider(bars),
     symbol: "SCRIPT",

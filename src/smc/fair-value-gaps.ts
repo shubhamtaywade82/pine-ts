@@ -74,7 +74,8 @@ const evaluateFvg = (
   sources: ReturnType<typeof requireCurrentSession>["sources"],
 ): FvgState => {
   const index = sources.bar_index.at(0) ?? 0;
-  if (index < 2) return { zone: undefined, createdBar: 0, valid: false, touched: false, mitigated: false };
+  if (index < 2)
+    return { zone: undefined, createdBar: 0, valid: false, touched: false, mitigated: false };
   const high0 = sources.high.at(0) ?? Number.NaN;
   const low0 = sources.low.at(0) ?? Number.NaN;
   const high2 = sources.high.at(2) ?? Number.NaN;
