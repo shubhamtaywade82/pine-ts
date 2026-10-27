@@ -23,14 +23,6 @@ import type { Bar } from "../core/types.js";
 import * as math from "../math/index.js";
 import { StubIndicatorProvider } from "../registry/registry.js";
 import type { InputsBag } from "../registry/types.js";
-import {
-  getActiveStrategyEngine,
-  setActiveStrategyEngine,
-  StrategyEngine,
-  type ClosedTrade,
-  type Direction,
-  type StrategyDeclaration,
-} from "../strategy/index.js";
 import * as ta from "../ta/index.js";
 import { alert, alertcondition, resetGlobalState, type AlertFrequency } from "../global/index.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
@@ -79,6 +71,22 @@ export type {
   ScriptPlotOptions,
   StringInputOptions,
 } from "./recorder.js";
+export type {
+  CloseOptions,
+  Condition,
+  EntryOptions,
+  ExitOptions,
+  StrategyApi,
+  StrategyOrders,
+  WhenOptions,
+} from "./strategy-orders.js";
+export {
+  defineStrategy,
+  type BacktestOptions,
+  type BacktestOutput,
+  type StrategyOptions,
+  type StrategyScript,
+} from "./strategy.js";
 
 /** Everything an indicator body needs, without imports or type annotations. */
 export interface ScriptApi {
@@ -117,84 +125,16 @@ export interface ScriptApi {
   readonly alertcondition: (condition: boolean, title?: string, message?: string) => void;
 }
 
-/** A condition: a plain boolean or a boolean series (its current bar is read). */
-export type Condition = boolean | Series<boolean>;
-
-export interface EntryOptions {
-  /** Defaults to the declaration's `default_qty_value` when `default_qty_type` is `"fixed"`. */
-  readonly qty?: number;
-  readonly limit?: number;
-  readonly stop?: number;
-  readonly oca_name?: string;
-  /** The order is placed only on bars where this is true. Omitted means always. */
-  readonly when?: Condition;
-}
-
-export interface CloseOptions {
-  readonly qty?: number;
-  readonly when?: Condition;
-}
-
-export interface WhenOptions {
-  readonly when?: Condition;
-}
-
-export interface ExitOptions {
-  /** Entry id the bracket protects. */
-  readonly from_entry: string;
-  /** Omitted exits the whole trade. */
-  readonly qty?: number;
-  /** Take-profit price. */
-  readonly limit?: number;
-  /** Stop-loss price. */
-  readonly stop?: number;
-  /** Take-profit distance in ticks from the entry price (needs `mintick`). */
-  readonly profit?: number;
-  /** Stop-loss distance in ticks from the entry price (needs `mintick`). */
-  readonly loss?: number;
-  readonly oca_name?: string;
-  readonly when?: Condition;
-}
-
-/** Order helpers. Each call delegates to the `StrategyEngine` method of the same name. */
-export interface StrategyOrders {
-  readonly engine: StrategyEngine;
-  entry(id: string, direction: Direction, options?: EntryOptions): void;
-  close(id: string, options?: CloseOptions): void;
-  close_all(options?: WhenOptions): void;
-  cancel(id: string, options?: WhenOptions): void;
-  cancel_all(options?: WhenOptions): void;
-  /** Take-profit / stop-loss bracket; see `StrategyEngine.exit`. */
-  exit(id: string, options: ExitOptions): void;
-}
-
-export interface StrategyApi extends ScriptApi {
-  readonly strategy: StrategyOrders;
-}
-
 export interface IndicatorOptions {
   /** Pine `overlay`: plots on the price pane. Pine's default is `false`. */
   readonly overlay?: boolean;
 }
-
-export type StrategyOptions = Omit<StrategyDeclaration, "title">;
 
 export interface RunOptions {
   /** Input overrides keyed by input title. Unknown titles are rejected. */
   readonly inputs?: InputsBag;
   /** Custom loader for higher-timeframe bars (e.g. from exchange REST API). Falls back to resampling chart bars. */
   readonly getHtfBars?: HtfBarLoader;
-}
-
-export interface BacktestOptions extends RunOptions {
-  /** `syminfo.mintick`; required when `strategy.exit` uses `profit`/`loss` ticks. */
-  readonly mintick?: number;
-  /**
-   * Overrides of the `defineStrategy()` declaration for this run (capital,
-   * sizing, commission, ...), as TradingView's Properties tab overrides
-   * `strategy()` arguments. The script's own `options` are left unchanged.
-   */
-  readonly properties?: StrategyOptions;
 }
 
 /** A bound execution: feed `script` to any `PineRuntime` (historical or realtime). */
@@ -214,22 +154,6 @@ export interface IndicatorScript {
   live(bars: readonly Bar[], options?: RunOptions): Promise<LiveIndicator<ScriptOutput>>;
 }
 
-export interface BacktestOutput extends ScriptOutput {
-  readonly engine: StrategyEngine;
-  readonly trades: readonly ClosedTrade[];
-  /** Engine equity after each bar's script execution. */
-  readonly equity: readonly number[];
-  /** Margin used in account currency after each bar's script execution. */
-  readonly margin: readonly number[];
-}
-
-export interface StrategyScript {
-  readonly kind: "strategy";
-  readonly title: string;
-  readonly options: StrategyOptions;
-  backtest(bars: readonly Bar[], options?: BacktestOptions): Promise<BacktestOutput>;
-}
-
 export function indicator(title: string, body: (api: ScriptApi) => void): IndicatorScript;
 export function indicator(
   title: string,
@@ -241,7 +165,7 @@ export function indicator(
   optionsOrBody: IndicatorOptions | ((api: ScriptApi) => void),
   maybeBody?: (api: ScriptApi) => void,
 ): IndicatorScript {
-  const [options, body] = splitArgs(optionsOrBody, maybeBody);
+  const [options, body] = splitArgs<IndicatorOptions, ScriptApi>(optionsOrBody, maybeBody);
   const record = (
     runOptions: RunOptions,
     security?: SecurityResolver,
@@ -285,61 +209,7 @@ export function indicator(
   };
 }
 
-export function defineStrategy(title: string, body: (api: StrategyApi) => void): StrategyScript;
-export function defineStrategy(
-  title: string,
-  options: StrategyOptions,
-  body: (api: StrategyApi) => void,
-): StrategyScript;
-export function defineStrategy(
-  title: string,
-  optionsOrBody: StrategyOptions | ((api: StrategyApi) => void),
-  maybeBody?: (api: StrategyApi) => void,
-): StrategyScript {
-  const [options, body] = splitArgs(optionsOrBody, maybeBody);
-  return {
-    kind: "strategy",
-    title,
-    options,
-    backtest: async (bars, runOptions = {}) => {
-      // The engine fills orders without realtime rollback, so an unconfirmed
-      // bar would turn every tick into a permanent fill.
-      if (bars.some((bar) => bar.isClosed === false)) {
-        throw new Error("backtest() requires confirmed bars only; drop the open bar first");
-      }
-      resetGlobalState();
-      const engine = new StrategyEngine();
-      engine.configure({ ...options, ...runOptions.properties, title });
-      if (runOptions.mintick !== undefined) engine.setMintick(runOptions.mintick);
-      const orders = createOrders(engine);
-      const recorder = new ScriptRecorder(
-        runOptions.inputs ?? {},
-        options.overlay ? "main" : "sub",
-      );
-      const equity: number[] = [];
-      const margin: number[] = [];
-      const script = createScript(recorder, (ctx) => {
-        // Orders queued on the previous bar fill against this bar first.
-        engine.processBar(ctx.bar);
-        body({ ...createApi(ctx, recorder), strategy: orders });
-        equity.push(engine.equity);
-        margin.push(engine.margin_used);
-      });
-
-      const previous = getActiveStrategyEngine();
-      setActiveStrategyEngine(engine);
-      try {
-        await runHistorical(script, bars);
-      } finally {
-        setActiveStrategyEngine(previous);
-      }
-      recorder.assertOverridesDeclared();
-      return { ...recorder.output(), engine, trades: engine.getClosedTrades(), equity, margin };
-    },
-  };
-}
-
-const splitArgs = <TOptions extends object, TApi>(
+export const splitArgs = <TOptions extends object, TApi>(
   optionsOrBody: TOptions | ((api: TApi) => void),
   maybeBody: ((api: TApi) => void) | undefined,
 ): [Partial<TOptions>, (api: TApi) => void] => {
@@ -348,7 +218,7 @@ const splitArgs = <TOptions extends object, TApi>(
   return [optionsOrBody, maybeBody];
 };
 
-const createScript =
+export const createScript =
   (recorder: ScriptRecorder, execute: (ctx: PineContext) => void): PineScript =>
   (ctx) => {
     const barIndex = ctx.bar_index.at(0) ?? 0;
@@ -362,7 +232,7 @@ const createScript =
     }
   };
 
-const createApi = (
+export const createApi = (
   ctx: PineContext,
   recorder: ScriptRecorder,
   security?: SecurityResolver,
@@ -395,7 +265,7 @@ const createApi = (
 });
 
 /** Evaluates a security() expression once per higher-timeframe bar, on its own runtime. */
-const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
+export const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
   const evaluate = expression as (api: ScriptApi) => unknown;
   const values: unknown[] = [];
   const recorder = new ScriptRecorder({}, "sub");
@@ -408,7 +278,7 @@ const evaluateOnBars: HtfEvaluator = async (bars, expression) => {
   return values;
 };
 
-const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<PineRuntime> => {
+export const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<PineRuntime> => {
   const runtime = new PineRuntime({
     provider: new StubIndicatorProvider(bars),
     symbol: "SCRIPT",
@@ -417,63 +287,3 @@ const runHistorical = async (script: PineScript, bars: readonly Bar[]): Promise<
   await runtime.run(script, bars);
   return runtime;
 };
-
-const isTrue = (condition: Condition | undefined): boolean => {
-  if (condition === undefined) return true;
-  if (typeof condition === "boolean") return condition;
-  if (typeof condition === "object" && typeof condition.at === "function") {
-    const value: unknown = condition.at(0);
-    // A v6 bool is never na: a missing value reads as false.
-    if (value === undefined || typeof value === "boolean") return value === true;
-  }
-  throw new TypeError(
-    `Order condition must be a boolean or boolean series; got ${typeof condition}`,
-  );
-};
-
-const defaultQty = (engine: StrategyEngine): number => {
-  const { default_qty_type: type = "fixed", default_qty_value: value } = engine.config;
-  if (type !== "fixed" || value === undefined) {
-    throw new Error(
-      `strategy.entry() needs an explicit qty when default_qty_type is "${type}"; only "fixed" sizing is resolved automatically`,
-    );
-  }
-  return value;
-};
-
-const createOrders = (engine: StrategyEngine): StrategyOrders => ({
-  engine,
-  entry: (id, direction, { qty, limit, stop, oca_name: ocaName, when } = {}) => {
-    if (!isTrue(when)) return;
-    engine.entry(id, direction, qty ?? defaultQty(engine), {
-      ...(limit === undefined ? {} : { limit }),
-      ...(stop === undefined ? {} : { stop }),
-      ...(ocaName === undefined ? {} : { ocaName }),
-    });
-  },
-  close: (id, { qty, when } = {}) => {
-    if (isTrue(when)) engine.close(id, qty);
-  },
-  close_all: ({ when } = {}) => {
-    if (isTrue(when)) engine.close_all();
-  },
-  cancel: (id, { when } = {}) => {
-    if (isTrue(when)) engine.cancel(id);
-  },
-  exit: (
-    id,
-    { from_entry: fromEntry, qty, limit, stop, profit, loss, oca_name: ocaName, when },
-  ) => {
-    if (!isTrue(when)) return;
-    engine.exit(id, fromEntry, qty, {
-      ...(limit === undefined ? {} : { limit }),
-      ...(stop === undefined ? {} : { stop }),
-      ...(profit === undefined ? {} : { profit }),
-      ...(loss === undefined ? {} : { loss }),
-      ...(ocaName === undefined ? {} : { ocaName }),
-    });
-  },
-  cancel_all: ({ when } = {}) => {
-    if (isTrue(when)) engine.cancel_all();
-  },
-});
