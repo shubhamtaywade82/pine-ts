@@ -128,6 +128,7 @@ export {
   type BoxShape,
   type LabelShape,
   type LabelPosition,
+  type LabelSize,
   type ShapeLineStyle,
   type TableCell,
   type TablePosition,

@@ -58,6 +58,7 @@ export type {
   BoxShape,
   LabelPosition,
   LabelShape,
+  LabelSize,
   LineShape,
   ScriptShape,
   ScriptTable,

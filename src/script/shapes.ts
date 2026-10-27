@@ -13,6 +13,7 @@
 
 export type ShapeLineStyle = "solid" | "dashed" | "dotted";
 export type LabelPosition = "above" | "below" | "left" | "right" | "center";
+export type LabelSize = "tiny" | "small" | "normal" | "large" | "huge" | "auto";
 
 interface Identified {
   /** Latest-wins key; omit for a drawing that is never replaced. */
@@ -50,6 +51,8 @@ export interface LabelShape {
   readonly position?: LabelPosition;
   /** Filled callout behind the text (Pine's label_up/label_down styles). */
   readonly background?: string;
+  /** Label size option (e.g. size.tiny). Default "normal". */
+  readonly size?: LabelSize;
 }
 
 export type ScriptShape = LineShape | BoxShape | LabelShape;
