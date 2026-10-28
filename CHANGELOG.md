@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/shubhamtaywade82/pine-ts/compare/v0.2.0...v0.2.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **ci:** use npm publish for provenance and auth token compatibility in publish workflow ([4ff8d8e](https://github.com/shubhamtaywade82/pine-ts/commit/4ff8d8e767df250a06676f14445b245133d3e4a4))
+
 ## [0.2.0](https://github.com/shubhamtaywade82/pine-ts/compare/v0.1.1...v0.2.0) (2026-10-27)
 
 
