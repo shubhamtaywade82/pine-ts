@@ -12,6 +12,7 @@
  */
 
 import type { Bar } from "../core/types.js";
+import { countRequestSite } from "../request/quota.js";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
@@ -104,6 +105,9 @@ export class SecurityResolver {
   public request<T>(timeframe: string, expression: unknown, barTime: number): T | undefined {
     const key = `${this.callIndex}:${timeframe}`;
     this.callIndex += 1;
+    // Count the call site against the request.*() quota (Pine's per-script
+    // budget; 40 on TradingView's highest tier). Same site each bar = free.
+    countRequestSite(`security:${timeframe}:${String(expression).slice(0, 64)}`);
     const resolved = this.resolved.get(key);
     if (resolved === undefined) {
       if (!this.requested.has(key)) this.requested.set(key, { timeframe, expression });

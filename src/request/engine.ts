@@ -42,6 +42,7 @@ import { getCurrentSession, setCurrentSession } from "../core/execution-context.
 import type { Bar, MarketDataProvider } from "../core/types.js";
 import { PineSession, type HistoricalBarFlags } from "../core/session.js";
 import { in_seconds, parse, type TimeframeInfo } from "../time/timeframe.js";
+import { countRequestSite } from "./quota.js";
 
 /**
  * Cache entry for a single `(symbol, timeframe)` pair. Holds the loaded
@@ -176,6 +177,7 @@ export class RequestEngine {
     expression: (ctx: PineContext) => T,
     options?: SecurityOptions,
   ): T | undefined {
+    countRequestSite(`security:${symbol}:${timeframe}:${expression.toString()}`);
     const ctx = this.requireContext(symbol, timeframe);
     const callerSession = getCurrentSession();
     if (callerSession === undefined) return undefined;
@@ -225,6 +227,7 @@ export class RequestEngine {
     expression: (ctx: PineContext) => T,
     options?: SecurityOptions,
   ): readonly T[] {
+    countRequestSite(`security_lower_tf:${symbol}:${timeframe}:${expression.toString()}`);
     const ctx = this.requireContext(symbol, timeframe);
     const callerSession = getCurrentSession();
     if (callerSession === undefined) return [];

@@ -9,6 +9,7 @@ import {
   setActiveRequestEngine,
   withActiveRequestEngine,
 } from "../request/engine.js";
+import { resetRequestQuota } from "../request/quota.js";
 
 export type PineScript = (context: PineContext) => void;
 
@@ -70,6 +71,7 @@ export class PineRuntime {
     await this.initialize();
     const data = await this.loadHistoricalBars(bars);
     assertChronological(data);
+    resetRequestQuota();
 
     const lastIsOpen = data.at(-1)?.isClosed === false;
     const confirmedCount = lastIsOpen ? data.length - 1 : data.length;

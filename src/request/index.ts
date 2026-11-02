@@ -29,6 +29,17 @@ export {
   type SecurityOptions,
 } from "./engine.js";
 
+// request.*() call-site quota (Pine's per-script budget; 40 on the highest tier).
+export {
+  DEFAULT_REQUEST_QUOTA,
+  RequestQuotaExceeded,
+  configureRequestQuota,
+  countRequestSite,
+  requestQuotaLimit,
+  requestSitesUsed,
+  resetRequestQuota,
+} from "./quota.js";
+
 /**
  * Bar-merge look-ahead options (Pine `barmerge.lookahead_on` / `lookahead_off`).
  */

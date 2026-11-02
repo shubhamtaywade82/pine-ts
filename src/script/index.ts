@@ -26,6 +26,7 @@ import type { InputsBag } from "../registry/types.js";
 import * as ta from "../ta/index.js";
 import { alert, alertcondition, resetGlobalState, type AlertFrequency } from "../global/index.js";
 import { getCurrentSession } from "../core/execution-context.js";
+import { resetRequestQuota } from "../request/quota.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
 import { startLive, type LiveIndicator, type LiveRun } from "./live.js";
 import { SecurityResolver, type HtfEvaluator, type HtfBarLoader } from "./security.js";
@@ -185,6 +186,7 @@ export function indicator(
     runOptions: RunOptions,
   ): Promise<LiveRun<ScriptOutput>> => {
     resetGlobalState();
+    resetRequestQuota();
     const security = new SecurityResolver(bars, runOptions.getHtfBars);
     let [recorder, script] = record(runOptions, security);
     let runtime = await runHistorical(script, bars);

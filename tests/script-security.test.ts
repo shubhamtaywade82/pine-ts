@@ -116,3 +116,40 @@ describe("security()", () => {
     expect(withHistory.values["H1 SMA5"]![4]).toBeGreaterThan(0);
   });
 });
+
+describe("security() request quota", () => {
+  it("counts each call site once per run, across every bar", async () => {
+    const { configureRequestQuota, requestSitesUsed, resetRequestQuota } = await import("../src/request/quota.js");
+    resetRequestQuota();
+    configureRequestQuota(40);
+    const bars = quarterHours(8);
+    let sawClose = 0;
+    const script = indicator("Quota", ({ close, security, plot }) => {
+      // Two distinct call sites, executed on every bar.
+      const h1 = security("60", ({ close: hc }) => hc.at(0));
+      const h4 = security("240", ({ close: hc }) => hc.at(0));
+      if (close.at(0) !== undefined) sawClose += 1;
+      plot(h1 ?? 0, "h1");
+      plot(h4 ?? 0, "h4");
+    });
+    await script.run(bars);
+    // The run executes every bar twice (collection pass + resolved pass).
+    expect(sawClose).toBe(16);
+    expect(requestSitesUsed()).toBe(2);
+  });
+
+  it("throws RequestQuotaExceeded past the configured budget", async () => {
+    const { configureRequestQuota, resetRequestQuota } = await import("../src/request/quota.js");
+    resetRequestQuota();
+    configureRequestQuota(1);
+    const bars = quarterHours(8);
+    const script = indicator("QuotaOver", ({ security, plot }) => {
+      const h1 = security("60", ({ close: hc }) => hc.at(0));
+      const h4 = security("240", ({ close: hc }) => hc.at(0)); // second site exceeds the budget of 1
+      plot(h1 ?? 0, "h1");
+      plot(h4 ?? 0, "h4");
+    });
+    // The script wrapper rethrows with `cause: RequestQuotaExceeded`.
+    await expect(script.run(bars)).rejects.toThrow(/Too many request\.\*\(\) call sites/);
+  });
+});
