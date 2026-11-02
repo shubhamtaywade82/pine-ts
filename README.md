@@ -13,7 +13,9 @@ namespace (67/67 manifest symbols, 0 `planned`) are implemented, along with
 `log.*`, global built-ins (`alert`, `timestamp`, type casts), `syminfo.*`,
 `ticker.*` (Heikin-Ashi / Renko / Kagi / Line Break / Point & Figure
 builders), a multi-context `request.security` / `request.security_lower_tf`
-engine (with `gaps`/`lookahead` semantics), a `strategy.*` engine with
+engine (with `gaps`/`lookahead` semantics and a configurable `request.*()`
+call-site quota — 40 by default, matching TradingView's highest tier; see
+`request.configureRequestQuota`), a `strategy.*` engine with
 broker emulator plus a live/paper `BrokerAdapter` boundary (incl. a
 `MockBinanceTradingSurface` reference implementation), a renderer-neutral
 visual event stream with drawing objects, and a `ChartAdapter` that
@@ -86,7 +88,10 @@ Rules (all enforced, none silently coerced):
   `defineStrategy()` options (capital, sizing, commission, ...) for one run,
   like TradingView's Inputs and Properties tabs.
 - `backtest()` runs confirmed bars only; the strategy engine has no realtime
-  rollback. Indicators support realtime via `bind()` + `PineRuntime.runRealtime`.
+  rollback. Indicators support realtime via `bind()` + `PineRuntime.runRealtime`
+  — and `script.live()` re-executes only the forming bar on ticks, with
+  `alert()` events rolled back per revision exactly like plot values and
+  drawings (parity-tested in `tests/script-live.test.ts`).
 - `ctx` (full `PineContext`) and `strategy.engine` remain available as escape
   hatches. Semantics are identical to the low-level runtime (parity-tested in
   `tests/script-authoring.test.ts`).

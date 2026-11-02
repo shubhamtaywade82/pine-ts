@@ -119,7 +119,8 @@ describe("security()", () => {
 
 describe("security() request quota", () => {
   it("counts each call site once per run, across every bar", async () => {
-    const { configureRequestQuota, requestSitesUsed, resetRequestQuota } = await import("../src/request/quota.js");
+    const { configureRequestQuota, requestSitesUsed, resetRequestQuota } =
+      await import("../src/request/quota.js");
     resetRequestQuota();
     configureRequestQuota(40);
     const bars = quarterHours(8);

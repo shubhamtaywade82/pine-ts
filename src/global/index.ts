@@ -56,7 +56,12 @@ export const resetGlobalState = (): void => {
 
 /** Returns the captured alert events emitted so far this run. */
 export const getAlertEvents = (): readonly AlertEvent[] =>
-  globalState.events.map(({ message, freq, barIndex, barTime }) => ({ message, freq, barIndex, barTime }));
+  globalState.events.map(({ message, freq, barIndex, barTime }) => ({
+    message,
+    freq,
+    barIndex,
+    barTime,
+  }));
 
 /**
  * Drops alert events recorded for `barIndex` during a *previous* realtime

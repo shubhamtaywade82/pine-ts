@@ -34,7 +34,6 @@ const alertingScript = indicator("Alerts", ({ close, alert, plot }) => {
   plot(close.value, "close");
 });
 
-
 describe("live()", () => {
   it("matches a full run after ticks on the forming bar", async () => {
     const bars = history(10);
