@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/shubhamtaywade82/pine-ts/compare/v0.2.1...v0.3.0) (2026-11-02)
+
+
+### Features
+
+* **request:** 40-call request.*() call-site quota (TradingView Ultimate parity) ([5e2bf8a](https://github.com/shubhamtaywade82/pine-ts/commit/5e2bf8a8f916bb0f7615974cce9d5edfd675a4d7))
+
+
+### Bug Fixes
+
+* **script:** roll back alert events on realtime ticks and drop stale pass-1 alerts in security runs ([5ecf48c](https://github.com/shubhamtaywade82/pine-ts/commit/5ecf48c27b2ff173c412da31bad8ac7f53956e6c))
+
 ## [0.2.1](https://github.com/shubhamtaywade82/pine-ts/compare/v0.2.0...v0.2.1) (2026-10-28)
 
 
