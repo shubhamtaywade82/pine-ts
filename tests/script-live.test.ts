@@ -28,6 +28,13 @@ const script = indicator("Live", ({ close, plot, security, draw, bar_index }) =>
     draw.label({ x: bar_index.value ?? 0, y: close.value ?? 0, text: "x" });
 });
 
+/** Emits an alert on the last bar; used to pin the realtime rollback contract. */
+const alertingScript = indicator("Alerts", ({ close, alert, plot }) => {
+  alert(`close=${close.value}`);
+  plot(close.value, "close");
+});
+
+
 describe("live()", () => {
   it("matches a full run after ticks on the forming bar", async () => {
     const bars = history(10);
@@ -63,5 +70,36 @@ describe("live()", () => {
     const bars = history(10);
     const live = await script.live(bars.slice(3));
     expect(await live.update(bars)).toEqual(await script.run(bars));
+  });
+});
+
+describe("live() alert events", () => {
+  it("replaces the open bar's alert on a tick instead of duplicating it", async () => {
+    const bars = history(10);
+    const live = await alertingScript.live(bars);
+    const initial = await live.update(bars);
+    expect(initial.alerts).toHaveLength(10);
+
+    const ticked = [...bars.slice(0, -1), { ...bars[9]!, close: 111, high: 112 }];
+    const output = await live.update(ticked);
+    // One event per bar: the forming bar's earlier alert is discarded, and
+    // only the re-executed bar's alert survives with the ticked close.
+    expect(output.alerts).toHaveLength(10);
+    expect(output.alerts?.at(-1)?.message).toBe("close=111");
+    expect(output).toEqual(await alertingScript.run(ticked));
+  });
+
+  it("keeps historical alerts and appends the new bar's alert when a bar closes", async () => {
+    const bars = history(10);
+    const live = await alertingScript.live(bars);
+    await live.update(bars);
+    const next = [
+      ...bars.slice(0, -1),
+      { ...bars[9]!, close: 120, isClosed: true },
+      bar(10, 121, false),
+    ];
+    const output = await live.update(next);
+    expect(output.alerts).toHaveLength(11);
+    expect(output).toEqual(await alertingScript.run(next));
   });
 });

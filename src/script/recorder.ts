@@ -21,7 +21,7 @@ import {
   markerPlot,
 } from "../registry/define.js";
 import type { InputConfig, InputsBag, PlotConfig, PlotPane } from "../registry/types.js";
-import { getAlertEvents, type AlertEvent } from "../global/index.js";
+import { dropAlertEventsForRevision, getAlertEvents, type AlertEvent } from "../global/index.js";
 import { collectDrawings, type RecordedDrawing, type ScriptDrawings } from "./draw.js";
 
 export interface NumberInputOptions {
@@ -96,11 +96,14 @@ export class ScriptRecorder {
     private readonly pane: PlotPane,
   ) {}
 
-  public beginBar(barIndex: number): void {
+  public beginBar(barIndex: number, revision?: number): void {
     this.barIndex = barIndex;
     this.callIndex = 0;
-    // A realtime tick re-executes the open bar: its drawings start over.
+    // A realtime tick re-executes the open bar: its drawings start over and
+    // alert events captured on an earlier revision of the same bar are
+    // discarded so only the final execution's alerts survive.
     this.drawingsByBar.delete(barIndex);
+    if (revision !== undefined) dropAlertEventsForRevision(barIndex, revision);
   }
 
   public recordDrawing(drawing: RecordedDrawing): void {

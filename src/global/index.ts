@@ -36,9 +36,13 @@ export interface AlertEvent {
 
 export type AlertFrequency = "once_per_bar" | "once_per_bar_close" | "all";
 
+/** Internal realtime-rollback stamp: never exposed to hosts. */
+type StampedEvent = AlertEvent & { revision?: number };
+
 interface GlobalState {
   readonly conditions: Map<string, AlertCondition>;
-  readonly events: AlertEvent[];
+  readonly events: StampedEvent[];
+  privateStateMarker?: never;
   /** Most recent `max_bars_back` setting; defaults to the session limit. */
   maxBarsBack?: number;
 }
@@ -51,7 +55,23 @@ export const resetGlobalState = (): void => {
 };
 
 /** Returns the captured alert events emitted so far this run. */
-export const getAlertEvents = (): readonly AlertEvent[] => globalState.events;
+export const getAlertEvents = (): readonly AlertEvent[] =>
+  globalState.events.map(({ message, freq, barIndex, barTime }) => ({ message, freq, barIndex, barTime }));
+
+/**
+ * Drops alert events recorded for `barIndex` during a *previous* realtime
+ * revision of the same open bar. A tick re-executes the forming bar, so any
+ * `alert()` captured on the earlier revision must be discarded exactly like
+ * a `plot()` value or a drawing: only the final execution of the bar counts.
+ * Events of the current revision (stamped with `keepRevision`) survive.
+ */
+export const dropAlertEventsForRevision = (barIndex: number, keepRevision: number): void => {
+  const kept = globalState.events.filter(
+    (event) => event.barIndex !== barIndex || event.revision === keepRevision,
+  );
+  globalState.events.length = 0;
+  globalState.events.push(...kept);
+};
 
 /** Returns the alert conditions declared so far this run. */
 export const getAlertConditions = (): readonly AlertCondition[] => [
@@ -65,12 +85,16 @@ export const getAlertConditions = (): readonly AlertCondition[] => [
  */
 export const alert = (message: string, freq: AlertFrequency = "once_per_bar_close"): void => {
   const session = getCurrentSession();
-  globalState.events.push({
+  const event: StampedEvent = {
     message,
     freq,
     barIndex: session?.barIndex ?? Number.NaN,
     barTime: session?.sources.time.at(0) ?? undefined,
-  });
+  };
+  // Stamp the session revision so a later re-execution of the same open bar
+  // can discard this event (see `dropAlertEventsForRevision`).
+  if (session !== undefined) event.revision = session.revision;
+  globalState.events.push(event);
 };
 
 /**

@@ -25,6 +25,7 @@ import { StubIndicatorProvider } from "../registry/registry.js";
 import type { InputsBag } from "../registry/types.js";
 import * as ta from "../ta/index.js";
 import { alert, alertcondition, resetGlobalState, type AlertFrequency } from "../global/index.js";
+import { getCurrentSession } from "../core/execution-context.js";
 import { createDraw, type ScriptDraw } from "./draw.js";
 import { startLive, type LiveIndicator, type LiveRun } from "./live.js";
 import { SecurityResolver, type HtfEvaluator, type HtfBarLoader } from "./security.js";
@@ -190,6 +191,10 @@ export function indicator(
     // security() calls return undefined until their timeframes are computed; then run again.
     if (security.hasPending) {
       await security.resolve(evaluateOnBars);
+      // The first pass ran with security() undefined, so any alert events it
+      // captured are stale: clear them so only the resolved pass's alerts
+      // reach the output (and no duplicates survive).
+      resetGlobalState();
       [recorder, script] = record(runOptions, security);
       runtime = await runHistorical(script, bars);
     }
@@ -222,7 +227,7 @@ export const createScript =
   (recorder: ScriptRecorder, execute: (ctx: PineContext) => void): PineScript =>
   (ctx) => {
     const barIndex = ctx.bar_index.at(0) ?? 0;
-    recorder.beginBar(barIndex);
+    recorder.beginBar(barIndex, getCurrentSession()?.revision);
     try {
       execute(ctx);
       recorder.endBar();
