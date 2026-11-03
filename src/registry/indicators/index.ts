@@ -31,6 +31,8 @@ import { smcFvg } from "./smc-fvg.js";
 import { smcOb } from "./smc-ob.js";
 import { smcLiquidity } from "./smc-liquidity.js";
 import { mtfTrend } from "./mtf-trend.js";
+import { alma } from "./alma.js";
+import { almaRibbon } from "./alma-ribbon.js";
 
 /** Registers the built-in indicators with the active registry. Idempotent. */
 export const registerBuiltinIndicators = (): void => {
@@ -58,6 +60,8 @@ export const registerBuiltinIndicators = (): void => {
   registerIndicator(smcOb);
   registerIndicator(smcLiquidity);
   registerIndicator(mtfTrend);
+  registerIndicator(alma);
+  registerIndicator(almaRibbon);
 };
 
 // Self-register on module import.
@@ -87,3 +91,5 @@ export { smcFvg } from "./smc-fvg.js";
 export { smcOb } from "./smc-ob.js";
 export { smcLiquidity } from "./smc-liquidity.js";
 export { mtfTrend } from "./mtf-trend.js";
+export { alma } from "./alma.js";
+export { almaRibbon } from "./alma-ribbon.js";

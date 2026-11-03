@@ -267,62 +267,7 @@ export const linreg = (source: Series<number>, length: number, offset: number): 
   }) as FloatSeries;
 };
 
-/**
- * `ta.alma(source, length, offset, sigma)`. Arnaud Legoux Moving Average — a
- * Gaussian-weighted moving average where the Gaussian peak is placed at
- * `m = offset * (length - 1)` over a `0..length-1` index of the window
- * (newest at the highest index, oldest at index 0). A larger `offset` (toward
- * 1) makes the average more responsive; a larger `sigma` flattens the kernel.
- *
- * Implementation matches the standard ALMA formula: weights
- * `w_i = exp(-(i - m)^2 / (2 * sigma^2))` for `i = 0..length-1`, then
- * `alma = sum(w_i * source[length - 1 - i]) / sum(w_i)`. The window reads the
- * last `length` non-na values; a na current value yields na, matching the
- * verified `ta.sma` model.
- */
-export const alma = (
-  source: Series<number>,
-  length: number,
-  offset: number,
-  sigma: number,
-): FloatSeries => {
-  requirePositiveLength(length);
-  const runtime = requireCompatibleRuntime(source);
-  return runtime.nodes.getOrCreate(nodeKey("ta.alma", source, length, offset, sigma), () => {
-    // Pre-compute the static Gaussian weights once per node. The window
-    // array is newest-first, so weight w[length-1-i] multiplies the i-th
-    // oldest value (i=0 = oldest, i=length-1 = current bar).
-    const m = offset * (length - 1);
-    const s = 2 * sigma * sigma;
-    const weights: number[] = [];
-    let weightSum = 0;
-    for (let i = 0; i < length; i += 1) {
-      const w = Math.exp(-((i - m) ** 2) / s);
-      weights.push(w);
-      weightSum += w;
-    }
-    const definition = {
-      warmupBars: length - 1,
-      init: (): null => null,
-      evaluate: (): number => {
-        if (isNa(source.at(0))) return Number.NaN;
-        const window = collectNonNaWindow(source, length);
-        if (window === undefined) return Number.NaN;
-        let weighted = 0;
-        for (let i = 0; i < length; i += 1) {
-          // window[i] is the i-th newest; the oldest is at index length-1.
-          // The Gaussian weight at index j in the kernel aligns with the
-          // (length - 1 - j)-th newest sample.
-          const sample = window[length - 1 - i]!.value;
-          weighted += weights[i]! * sample;
-        }
-        return weighted / weightSum;
-      },
-      commit: (): void => undefined,
-    };
-    return new FloatSeries(runtime, new IndicatorNode(definition));
-  }) as FloatSeries;
-};
+export { alma, type AlmaOptions } from "./alma.js";
 
 /**
  * `ta.cog(source, length)`. Center of Gravity oscillator — the negative

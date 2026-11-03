@@ -7,3 +7,5 @@ export * from "./bands.js";
 export * from "./volume.js";
 export * from "./events.js";
 export * from "./extra.js";
+export * from "./alma.js";
+export * from "./multi-alma.js";

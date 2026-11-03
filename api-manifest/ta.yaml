@@ -767,7 +767,7 @@ functions:
       kernel: "Gaussian weights w_i = exp(-(i - offset*(length-1))^2 / (2*sigma^2))"
       formula: "alma = sum(w_i * source[length-1-i]) / sum(w_i)"
       na: "na current value yields na; fewer than length non-na samples yields na"
-    impl: { module: src/ta/trend.ts, export: alma }
+    impl: { module: src/ta/alma.ts, export: alma }
     status: draft
     vectors: [fixtures/v6/ta/alma.basic.json]
 
