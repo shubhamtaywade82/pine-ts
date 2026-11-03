@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/shubhamtaywade82/pine-ts/compare/v0.3.0...v0.4.0) (2026-11-03)
+
+
+### Features
+
+* **ta:** add Pine v6 ALMA primitive, weight caching, and multi-ALMA analysis ([8f41e06](https://github.com/shubhamtaywade82/pine-ts/commit/8f41e06717a45873bbeda36d7ac659f45972040f))
+
 ## [0.3.0](https://github.com/shubhamtaywade82/pine-ts/compare/v0.2.1...v0.3.0) (2026-11-02)
 
 
