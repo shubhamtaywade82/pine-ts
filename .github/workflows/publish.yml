@@ -1,15 +1,17 @@
 name: Publish
 
+# Called by release-please.yml only. That file must be the trusted-publisher
+# entry on npmjs.com, because trusted publishing validates the calling workflow.
+# Publishes with npm trusted publishing (OIDC): no npm token is stored or used.
+# The direct release and dispatch triggers were removed; each would make this
+# file the caller. Manual runs go through release-please.yml's workflow_dispatch.
 on:
-  release:
-    types: [published]
-  # Called by release-please.yml after it creates a release.
   workflow_call:
-  workflow_dispatch:
     inputs:
       tag:
         description: "npm dist-tag to publish under"
         required: false
+        type: string
         default: "latest"
 
 jobs:
@@ -17,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # npm provenance attestation.
+      # npm trusted publishing (OIDC) and provenance.
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -28,10 +30,12 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
+      - name: Pin npm for trusted publishing
+        run: npm install -g npm@^11.21.0
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # A release never ships a build that fails its own quality gate.
       - run: pnpm check
-      - run: npm publish --access public --provenance --tag ${{ inputs.tag || 'latest' }}
+      - name: Publish to npm (trusted publishing)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_DIST_TAG: ${{ inputs.tag || 'latest' }}
+        run: npm publish --access public --provenance --tag "$NPM_DIST_TAG" --ignore-scripts
